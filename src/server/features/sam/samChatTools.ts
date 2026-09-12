@@ -51,6 +51,7 @@ import {
   listBusinessCategoriesTool,
 } from "@/server/mcp/tools/local-seo-tools";
 import { researchKeywordsTool } from "@/server/mcp/tools/research-keywords";
+import { getGoogleAdsKeywordIdeasTool } from "@/server/mcp/tools/google-ads-keyword-planner";
 import { saveKeywordsTool } from "@/server/mcp/tools/save-keywords";
 import {
   getSearchConsolePerformanceTool,
@@ -353,24 +354,18 @@ export function buildSamMcpTools(
     create_rank_tracker: adaptTool(createRankTrackerTool),
     get_rank_tracker: adaptTool(getRankTrackerTool),
     add_rank_tracking_keywords: adaptTool(addRankTrackingKeywordsTool),
-    remove_rank_tracking_keywords: adaptTool(removeRankTrackingKeywordsTool),
-    estimate_rank_tracker_cost: adaptTool(estimateRankTrackerCostTool),
     run_rank_tracker: adaptTool(runRankTrackerTool),
     get_ranked_keywords: adaptTool(getRankedKeywordsTool),
     find_serp_competitors: adaptTool(findSerpCompetitorsTool),
     search_local_businesses: adaptTool(searchLocalBusinessesTool),
     get_local_serp_results: adaptTool(getLocalSerpResultsTool),
-    get_google_business_questions: adaptTool(getGoogleBusinessQuestionsTool),
     get_business_profile: adaptTool(getBusinessProfileTool),
     get_business_reviews: adaptTool(getBusinessReviewsTool),
-    get_business_updates: adaptTool(getBusinessUpdatesTool),
-    list_business_categories: adaptTool(listBusinessCategoriesTool),
     get_local_rank_grid: adaptTool(getLocalRankGridTool),
     get_keyword_metrics: adaptTool(getKeywordMetricsTool),
+    get_google_ads_keyword_ideas: adaptTool(getGoogleAdsKeywordIdeasTool),
     get_search_console_performance: adaptTool(getSearchConsolePerformanceTool),
     inspect_urls: adaptTool(inspectUrlsTool),
-    // Unconditional like the MCP server's registrations — the GA4 launch gate
-    // was removed in #505.
     get_google_analytics_organic_landing_pages: adaptObjectTool(
       getGoogleAnalyticsOrganicLandingPagesTool,
     ),
@@ -387,21 +382,8 @@ export function buildSamMcpTools(
     get_google_analytics_traffic_acquisition: adaptObjectTool(
       getGoogleAnalyticsTrafficAcquisitionTool,
     ),
-    get_google_analytics_measurement_health: adaptObjectTool(
-      getGoogleAnalyticsMeasurementHealthTool,
-    ),
-    get_google_analytics_ecommerce_performance: adaptObjectTool(
-      getGoogleAnalyticsEcommercePerformanceTool,
-    ),
-    get_google_analytics_site_search: adaptObjectTool(
-      getGoogleAnalyticsSiteSearchTool,
-    ),
-    get_google_analytics_audience_breakdown: adaptObjectTool(
-      getGoogleAnalyticsAudienceBreakdownTool,
-    ),
     run_site_audit: adaptTool(runSiteAuditTool),
     get_audit_status: waitingAuditStatusTool(adaptTool),
     get_audit_issues: adaptTool(getAuditIssuesTool),
-    get_audit_pages: adaptTool(getAuditPagesTool),
   };
 }

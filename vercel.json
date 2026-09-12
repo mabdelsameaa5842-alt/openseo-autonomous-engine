@@ -1,0 +1,9 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "https://open-seo.abdelsameaa.workers.dev/$1"
+    }
+  ]
+}

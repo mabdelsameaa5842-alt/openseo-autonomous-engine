@@ -31,11 +31,11 @@ export default defineConfig(({ mode }) => {
       "TURNSTILE_SITE_KEY",
     ],
     server: {
-      allowedHosts,
+      allowedHosts: true,
       port,
     },
     preview: {
-      allowedHosts,
+      allowedHosts: true,
       port,
     },
     build: {

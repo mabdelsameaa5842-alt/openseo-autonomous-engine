@@ -1,7 +1,9 @@
 import {
+  Activity,
   Bookmark,
   Bot,
   ClipboardCheck,
+  Cpu,
   Globe,
   LayoutDashboard,
   Link2,
@@ -58,6 +60,16 @@ const projectNavItems = [
     icon: ClipboardCheck,
   },
   {
+    to: "/p/$projectId/vorder-studio" as const,
+    label: "ROAS & Performance",
+    icon: Activity,
+  },
+  {
+    to: "/p/$projectId/skills-hub" as const,
+    label: "AI Strategy & Skills Hub",
+    icon: Cpu,
+  },
+  {
     to: "/p/$projectId/brand-lookup" as const,
     label: "Brand Lookup",
     icon: Sparkles,
@@ -104,13 +116,10 @@ export function getProjectNavGroups(projectId: string) {
       items: [byPath("/p/$projectId")],
     },
     {
-      label: "Research",
+      label: "Growth & Performance",
       items: [
-        byPath("/p/$projectId/keywords"),
-        byPath("/p/$projectId/domain"),
-        byPath("/p/$projectId/backlinks"),
-        byPath("/p/$projectId/brand-lookup"),
-        byPath("/p/$projectId/prompt-explorer"),
+        byPath("/p/$projectId/vorder-studio"),
+        byPath("/p/$projectId/skills-hub"),
       ],
     },
     {
@@ -120,6 +129,16 @@ export function getProjectNavGroups(projectId: string) {
         byPath("/p/$projectId/rank-tracking"),
         byPath("/p/$projectId/saved"),
         byPath("/p/$projectId/audit"),
+      ],
+    },
+    {
+      label: "Research",
+      items: [
+        byPath("/p/$projectId/keywords"),
+        byPath("/p/$projectId/domain"),
+        byPath("/p/$projectId/backlinks"),
+        byPath("/p/$projectId/brand-lookup"),
+        byPath("/p/$projectId/prompt-explorer"),
       ],
     },
   ];

@@ -21,6 +21,7 @@ import {
 import { getPublicOrigin } from "@/server/mcp/public-origin";
 import { createOpenSeoMcpServer } from "@/server/mcp/server";
 import { AuthRepository } from "@/server/auth/repositories/AuthRepository";
+import { recordMcpAuthorized } from "@/server/features/activation/mcpActivation";
 
 // Mirrors the agents SDK's DEFAULT_CORS_OPTIONS so legacy responses carry the
 // same CORS surface as the modern handler's.
@@ -223,6 +224,7 @@ export async function handleSelfHostedOpenSeoMcpRequest(
     authMode === "local_noauth"
       ? await resolveLocalNoAuthContext()
       : await resolveCloudflareAccessContext(request.headers);
+  await recordMcpAuthorized(identity.organizationId);
   const props = createWorkersOAuthMcpProps({
     userId: identity.userId,
     userEmail: identity.userEmail,

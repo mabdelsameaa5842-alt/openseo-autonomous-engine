@@ -2,6 +2,7 @@ import {
   createOpenRouter,
   type LanguageModelV3,
 } from "@openrouter/ai-sdk-provider";
+import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import {
   getOptionalEnvValue,
   getRequiredEnvValue,
@@ -9,13 +10,28 @@ import {
 
 // OpenRouter model slug used for the in-app chat agents (onboarding + SAM).
 // Override with OPENROUTER_MODEL to swap models without a code change.
-const DEFAULT_CHAT_AGENT_MODEL = "openai/gpt-5.6-luna";
+const DEFAULT_CHAT_AGENT_MODEL = "openai/gpt-4o-mini";
+const DEFAULT_GEMINI_MODEL = "gemini-3.6-flash";
 
 // Previous default; kept reachable via OPENROUTER_MODEL for rollback. Its
 // routing needs the ZDR/provider tuning below.
 const MINIMAX_M3 = "minimax/minimax-m3";
 
+export function buildGeminiChatAgentModel(
+  apiKey: string,
+  modelId?: string,
+): LanguageModelV3 {
+  const google = createGoogleGenerativeAI({ apiKey });
+  const model = modelId || DEFAULT_GEMINI_MODEL;
+  return google(model) as unknown as LanguageModelV3;
+}
+
 export async function getChatAgentModel(): Promise<LanguageModelV3> {
+  const geminiKey = await getOptionalEnvValue("GEMINI_API_KEY");
+  if (geminiKey) {
+    const geminiModel = await getOptionalEnvValue("GEMINI_MODEL");
+    return buildGeminiChatAgentModel(geminiKey, geminiModel);
+  }
   const apiKey = await getRequiredEnvValue("OPENROUTER_API_KEY");
   const modelId = await getOptionalEnvValue("OPENROUTER_MODEL");
   return buildChatAgentModel(apiKey, modelId);
@@ -63,8 +79,11 @@ export function buildChatAgentModel(
     });
   }
 
+  const isReasoningModel =
+    model.includes("gpt-5") || model.includes("o1") || model.includes("o3");
+
   return openrouter(model, {
     usage: { include: true },
-    extraBody: { reasoning: { effort: "max" } },
+    ...(isReasoningModel ? { extraBody: { reasoning: { effort: "max" } } } : {}),
   });
 }

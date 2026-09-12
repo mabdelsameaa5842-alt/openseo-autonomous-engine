@@ -1,7 +1,7 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Suspense, useCallback, useEffect } from "react";
-import { Brain, Loader2, Plus, Wrench } from "lucide-react";
+import { Brain, Loader2, Plus, Sparkles, Wrench } from "lucide-react";
 import { createSamSession } from "@/serverFunctions/sam";
 import {
   invalidateSamSessions,
@@ -80,20 +80,37 @@ export function SamChat({
     )?.title;
     return (
       <div className="flex h-full min-h-0 flex-col">
-        {/* Session title + the shortest path to inspect or correct the shared
-            memory SAM reads and writes during the conversation. */}
+        {/* Session title + Google Antigravity Connected Status + Project Memory */}
         <div className="flex items-center justify-between gap-3 border-b border-base-300 px-5 py-3.5">
-          <span className="truncate text-sm font-medium text-base-content/80">
-            {activeTitle ?? "Chat"}
-          </span>
-          <Link
-            to="/p/$projectId/settings/context"
-            params={{ projectId }}
-            className="flex shrink-0 items-center gap-1.5 text-xs text-base-content/60 transition-colors hover:text-base-content"
-          >
-            <Brain className="size-3.5" />
-            Project memory
-          </Link>
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="truncate text-sm font-medium text-base-content/80">
+              {activeTitle ?? "Chat"}
+            </span>
+            <div className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-base-300/80 bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/85 shadow-sm">
+              <span className="relative flex size-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60 opacity-75"></span>
+                <span className="relative inline-flex size-2 rounded-full bg-primary"></span>
+              </span>
+              <span>Google Antigravity (AGY)</span>
+              <span className="text-base-content/40">•</span>
+              <span className="text-xs text-primary font-semibold">متصل</span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="hidden md:flex items-center gap-1 text-[11px] text-base-content/60">
+              <span className="rounded bg-base-200 px-1.5 py-0.5 text-[10px] font-mono">GSC Live</span>
+              <span className="rounded bg-base-200 px-1.5 py-0.5 text-[10px] font-mono">GA4 Live</span>
+              <span className="rounded bg-base-200 px-1.5 py-0.5 text-[10px] font-mono">MCP Ready</span>
+            </div>
+            <Link
+              to="/p/$projectId/settings/context"
+              params={{ projectId }}
+              className="flex shrink-0 items-center gap-1.5 rounded-lg border border-base-300/80 bg-base-200/40 px-2.5 py-1 text-xs font-medium text-base-content/80 transition-all hover:bg-base-200 hover:text-base-content"
+            >
+              <Brain className="size-3.5 text-primary" />
+              <span>Project Memory (الكونتكست)</span>
+            </Link>
+          </div>
         </div>
         <div className="flex min-h-0 flex-1">
           {/* useAgentChat suspends while it fetches the session's history; this
@@ -130,19 +147,29 @@ export function SamChat({
 
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
-      <div className="flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-        <Wrench className="size-6" />
+      <div className="flex size-14 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 via-emerald-500/10 to-primary/5 text-primary shadow-sm ring-1 ring-primary/20">
+        <Sparkles className="size-7 text-primary" />
       </div>
-      <div className="space-y-1">
-        <p className="text-lg font-medium">What should we work on?</p>
-        <p className="max-w-sm text-sm text-base-content/60">
-          SAM is your in-app SEO agent with access to every OpenSEO research
-          tool. Start a chat to get going.
+      <div className="space-y-1.5 max-w-md">
+        <div className="inline-flex items-center gap-2 rounded-lg border border-base-300/80 bg-base-200/50 px-3 py-1 text-xs font-medium text-base-content/85 mb-1 shadow-sm">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60 opacity-75"></span>
+            <span className="relative inline-flex size-2 rounded-full bg-primary"></span>
+          </span>
+          <span>Google Antigravity (AGY)</span>
+          <span className="text-base-content/40">•</span>
+          <span className="text-xs text-primary font-semibold">Active</span>
+        </div>
+        <p className="text-xl font-bold text-base-content">
+          مساعد نمو وسيو بورتفوليو محمد عبد السميع
+        </p>
+        <p className="text-sm text-base-content/70 leading-relaxed">
+          مرتبط بـ Google Search Console و Google Analytics 4 وسياق المشروع المحفوظ لتحليل الكلمات، رفع التحويلات (SXO) عبر واتساب، وتوسيع ظهور البورتفوليو.
         </p>
       </div>
       <button
         type="button"
-        className="btn btn-primary btn-sm gap-1"
+        className="btn btn-primary btn-sm gap-1.5 px-4 shadow-sm"
         disabled={createSession.isPending}
         onClick={() => createSession.mutate()}
       >
@@ -151,7 +178,7 @@ export function SamChat({
         ) : (
           <Plus className="size-4" />
         )}
-        New chat
+        بدء محادثة جديدة (New Chat)
       </button>
     </div>
   );

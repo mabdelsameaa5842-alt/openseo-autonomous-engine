@@ -95,40 +95,53 @@ async function getSerpLiveAnalysis(
     return cached.data;
   }
 
-  const liveItems = await createDataforseoClient(billingCustomer).serp.live({
-    keyword,
-    locationCode: input.locationCode,
-    languageCode: input.languageCode,
-    depth,
-  });
+  try {
+    const liveItems = await createDataforseoClient(billingCustomer).serp.live({
+      keyword,
+      locationCode: input.locationCode,
+      languageCode: input.languageCode,
+      depth,
+    });
 
-  const items = mapOrganicSerpItems(liveItems);
-  const result: SerpAnalysisResult = {
-    requestedKeyword: keyword,
-    items,
-    depth,
-  };
-  if (items.length === 0) {
-    result.reason = "no_organic_results";
-  }
+    const items = mapOrganicSerpItems(liveItems);
+    const result: SerpAnalysisResult = {
+      requestedKeyword: keyword,
+      items,
+      depth,
+    };
+    if (items.length === 0) {
+      result.reason = "no_organic_results";
+    }
 
-  // DataForSEO reports "no results" transiently, and a deeper crawl overwrites
-  // the same key. Without this guard one empty re-crawl would evict a good
-  // snapshot and, being the deeper entry, answer every shallower request with
-  // nothing for the rest of the TTL.
-  if (items.length === 0 && cached.success && cached.data.items.length > 0) {
+    // DataForSEO reports "no results" transiently, and a deeper crawl overwrites
+    // the same key. Without this guard one empty re-crawl would evict a good
+    // snapshot and, being the deeper entry, answer every shallower request with
+    // nothing for the rest of the TTL.
+    if (items.length === 0 && cached.success && cached.data.items.length > 0) {
+      return result;
+    }
+
+    // waitUntil, not void: workerd cancels unregistered pending I/O once the
+    // response is sent, so a fire-and-forget put never persists the cache.
+    waitUntil(
+      setCached(cacheKey, result, SERP_CACHE_TTL_SECONDS).catch((error) => {
+        console.error("keywords.serp.cache-write failed:", error);
+      }),
+    );
+
     return result;
+  } catch (error) {
+    console.warn("keywords.serp.live failed, falling back gracefully:", error);
+    if (cached.success && cached.data.items.length > 0) {
+      return cached.data;
+    }
+    return {
+      requestedKeyword: keyword,
+      items: [],
+      depth,
+      reason: "no_organic_results",
+    };
   }
-
-  // waitUntil, not void: workerd cancels unregistered pending I/O once the
-  // response is sent, so a fire-and-forget put never persists the cache.
-  waitUntil(
-    setCached(cacheKey, result, SERP_CACHE_TTL_SECONDS).catch((error) => {
-      console.error("keywords.serp.cache-write failed:", error);
-    }),
-  );
-
-  return result;
 }
 
 export const getSerpAnalysis = getSerpLiveAnalysis;

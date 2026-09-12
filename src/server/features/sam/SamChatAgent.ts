@@ -24,7 +24,10 @@ import { ProjectRepository } from "@/server/features/projects/repositories/Proje
 import { buildSamMcpTools } from "@/server/features/sam/samChatTools";
 import { buildSamSkillSource } from "@/server/features/sam/samSkills";
 import { buildSamSystemPrompt } from "@/server/features/sam/samSystemPrompt";
-import { buildChatAgentModel } from "@/server/lib/openrouter";
+import {
+  buildChatAgentModel,
+  buildGeminiChatAgentModel,
+} from "@/server/lib/openrouter";
 import {
   getEnvValueSync,
   isHostedServerAuthMode,
@@ -127,9 +130,18 @@ export class SamChatAgent extends Think {
   }
 
   getModel() {
+    const geminiKey = getEnvValueSync(this.env, "GEMINI_API_KEY");
+    if (geminiKey) {
+      return buildGeminiChatAgentModel(
+        geminiKey,
+        getEnvValueSync(this.env, "GEMINI_MODEL"),
+      );
+    }
     const apiKey = getEnvValueSync(this.env, "OPENROUTER_API_KEY");
     if (!apiKey) {
-      throw new Error("OPENROUTER_API_KEY is required for the SAM agent");
+      throw new Error(
+        "GEMINI_API_KEY or OPENROUTER_API_KEY is required for the SAM agent",
+      );
     }
     return buildChatAgentModel(
       apiKey,
@@ -328,7 +340,9 @@ export class SamChatAgent extends Think {
         // deliberately roomy — ~10x measured reasoning use — while keeping the
         // worst-case turn (48 steps at the full cap) under ~$2.
         maxSteps: 48,
-        maxOutputTokens: 32_000,
+        maxOutputTokens:
+          Number(getEnvValueSync(this.env, "OPENROUTER_MAX_TOKENS")) ||
+          (getEnvValueSync(this.env, "GEMINI_API_KEY") ? 16_000 : 3500),
       };
     });
   }
@@ -383,10 +397,17 @@ export class SamChatAgent extends Think {
     }
   }
 
-  // The return value becomes the stored chat-terminal body that reconnecting
-  // clients replay — returning nothing would make it the string "undefined".
   onChatError(error: unknown, ctx?: ChatErrorContext): unknown {
-    console.error("[sam] chat turn error", ctx?.stage, error);
+    const errObj = error as any;
+    console.error("[sam] chat turn error:", {
+      stage: ctx?.stage,
+      message: errObj?.message,
+      name: errObj?.name,
+      status: errObj?.status,
+      statusCode: errObj?.statusCode,
+      responseBody: errObj?.responseBody,
+      data: errObj?.data,
+    });
     return error;
   }
 

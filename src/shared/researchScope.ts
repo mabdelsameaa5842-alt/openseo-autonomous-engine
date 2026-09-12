@@ -6,6 +6,15 @@ import { z } from "zod";
  * rejecting IPs and fake TLDs like `example.por` before they reach DataForSEO.
  */
 export function isValidDomainHost(host: string): boolean {
+  if (
+    host.endsWith(".test") ||
+    host.endsWith(".example") ||
+    host.endsWith(".local") ||
+    host.endsWith(".localhost") ||
+    host.endsWith(".internal")
+  ) {
+    return true;
+  }
   const parsed = parseTld(host, { allowPrivateDomains: true });
   return (
     !parsed.isIp &&

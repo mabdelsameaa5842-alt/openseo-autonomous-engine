@@ -14,7 +14,10 @@ import {
   openRouterCostUsd,
   staticAssistantResponse,
 } from "@/server/lib/chatAgent";
-import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
+import {
+  getEnvValueSync,
+  isHostedServerAuthMode,
+} from "@/server/lib/runtime-env";
 import {
   customerHasManagedAccess,
   checkUsageCreditsDepleted,
@@ -176,7 +179,8 @@ export class OnboardingChatAgent extends AIChatAgent {
       // truncated mid-table once the model had spent the budget thinking.
       // Deliberately roomy: it's a per-step ceiling, not a target — the model
       // only generates (and we only bill) what it actually uses.
-      maxOutputTokens: 32_000,
+      maxOutputTokens:
+        Number(getEnvValueSync(this.env, "OPENROUTER_MAX_TOKENS")) || 3500,
       stopWhen: stepCountIs(5),
       // Meter LLM spend against the same credit pool as DataForSEO: sum the real
       // per-step cost OpenRouter reports and deduct it. Best-effort, hosted-only.

@@ -13,10 +13,36 @@ import {
 import { useStickToBottom } from "@/client/components/chat/useStickToBottom";
 
 const SUGGESTIONS = [
-  "What keywords should I focus on next?",
-  "Who are my top SERP competitors?",
-  "How is my Search Console traffic trending?",
-  "Find quick-win keywords I already rank for",
+  {
+    category: "Google Search Console (GSC)",
+    icon: "📊",
+    prompt: "حلل أداء Google Search Console لموقع البورتفوليو واستخرج الكلمات الواعدة بين المراكز 4 و 20",
+  },
+  {
+    category: "Google Analytics 4 (GA4)",
+    icon: "📈",
+    prompt: "ما هي الصفحات الأكثر جذباً للزيارات في GA4 وما أفضل مصادر الترافيك للبورتفوليو؟",
+  },
+  {
+    category: "تحويلات واتساب (SXO)",
+    icon: "🎯",
+    prompt: "اقترح خطة SXO لتحسين معدل التحويل وزيادة نقرات التواصل واستشارات الواتساب من الزوار العضويين",
+  },
+  {
+    category: "الميديا باينج وإعلانات الخليج",
+    icon: "🔍",
+    prompt: "حلل فرص الكلمات المفتاحية لإعلانات تيك توك وسناب شات والميديا باينج في السعودية ومصر",
+  },
+  {
+    category: "سياق المشروع (Project Memory)",
+    icon: "🧠",
+    prompt: "راجع سياق المشروع المحفوظ (Project Memory) واقترح الأولويات التسويقية والسيو لهذا الأسبوع",
+  },
+  {
+    category: "السيو الفني وتجربة الصفحة",
+    icon: "⚡",
+    prompt: "افحص صحة السيو الفني لموقع البورتفوليو والـ Core Web Vitals لضمان أفضل تجربة للمستخدم",
+  },
 ];
 
 export function SamConversation({
@@ -29,10 +55,19 @@ export function SamConversation({
   // The conversation lives in the SamChatAgent Durable Object, keyed by the
   // session id. The WebSocket is authorized in the Worker (src/server.ts) before
   // it reaches the DO; billing gates come back as normal assistant messages.
-  const agent = useAgent({ agent: "sam-chat", name: sessionId });
+  const wsHost =
+    typeof window !== "undefined" &&
+    window.location.hostname.includes("vercel.app")
+      ? "open-seo.abdelsameaa.workers.dev"
+      : undefined;
+  const agent = useAgent({
+    agent: "sam-chat",
+    name: sessionId,
+    host: wsHost,
+  });
   // SAM streams dense tool-input deltas; unthrottled per-chunk store fanout
   // re-renders the transcript per delta and trips React #185 (cloudflare/agents#1361).
-  const { messages, sendMessage, setMessages, clearHistory, status } =
+  const { messages, sendMessage, setMessages, clearHistory, status, error } =
     useAgentChat({ agent, experimental_throttle: 50 });
 
   const isBusy = status === "submitted" || status === "streaming";
@@ -111,24 +146,58 @@ export function SamConversation({
       >
         <div className="mx-auto max-w-2xl space-y-6">
           {messages.length === 0 ? (
-            <div className="space-y-2 text-sm text-base-content/80">
-              <p>
-                Hey, I’m SAM — your in-app SEO agent. I can research keywords,
-                size up competitors, read your SERPs, backlinks, rank tracking
-                and Search Console, and turn it into next steps for this
-                project.
+            <div className="space-y-4 rounded-2xl border border-base-300 bg-base-100/70 p-5 shadow-sm backdrop-blur-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-base-200 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex size-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex size-2.5 rounded-full bg-emerald-500"></span>
+                  </span>
+                  <span className="text-sm font-bold text-base-content">
+                    Google Antigravity (AGY) & SAM متصل
+                  </span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="badge badge-outline badge-xs text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">GSC Live</span>
+                  <span className="badge badge-outline badge-xs text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold">GA4 Live</span>
+                  <span className="badge badge-outline badge-xs text-[10px] text-primary font-semibold">Context Loaded</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 text-sm text-base-content/85 leading-relaxed">
+                <p>
+                  أهلاً بك! أنا <strong>SAM</strong> ومساعد الذكاء الاصطناعي <strong>Google Antigravity (AGY)</strong> — وكيل السيو والنمو الرقمي لبورتفوليو محمد عبد السميع.
+                </p>
+                <p className="text-xs text-base-content/70">
+                  متصل مباشرة ببيانات <strong>Google Search Console</strong> و <strong>Google Analytics 4</strong> وسياق المشروع المحفوظ (Project Memory). جاهز لتحليل الكلمات المفتاحية، ومراقبة المنافسين، واقتراح تحسينات للتحويل (SXO) عبر واتساب.
+                </p>
+              </div>
+
+              <div className="rounded-xl bg-base-200/50 p-3 text-xs space-y-1.5 border border-base-300/40">
+                <div className="font-semibold text-base-content/90 flex items-center gap-1.5">
+                  <span>🧠</span> <span>سياق المشروع المفعل (Project Context & Memory):</span>
+                </div>
+                <div className="text-base-content/70 grid sm:grid-cols-2 gap-1.5 pt-0.5">
+                  <div>• <strong>الموقع:</strong> mohamed-abdelsamee-portfolio.vercel.app</div>
+                  <div>• <strong>النشاط:</strong> Senior Performance Media Buyer (21x ROAS)</div>
+                  <div>• <strong>السوق المستهدف:</strong> السعودية، مصر، الخليج العربي</div>
+                  <div>• <strong>الأولوية:</strong> تصدر نتائج الميديا باينج + رفع استشارات واتساب</div>
+                </div>
+              </div>
+
+              <p className="text-xs font-semibold text-base-content/75 pt-1">
+                ⚡ اختر برومبت مقترح للبدء الفوري، أو اكتب استفسارك بالأسفل:
               </p>
-              <p>Ask me anything, or start with one of these:</p>
             </div>
           ) : null}
 
           {messages.map((message, index) => (
             <ChatMessage
               key={message.id}
-              message={message}
               // SAM exposes the full MCP tool surface (~19 tools), too many to
               // hand-label, so tool names are humanized generically rather
               // than kept in a curated label map.
+              message={message}
               resolveToolLabel={humanizeToolLabel}
               streaming={
                 isBusy &&
@@ -159,21 +228,32 @@ export function SamConversation({
           ) : null}
 
           {status === "error" ? (
-            <p className="text-sm text-error">
-              Something went wrong. Please try again.
-            </p>
+            <div className="rounded-xl border border-error/30 bg-error/10 p-4 text-xs text-error space-y-1.5">
+              <p className="font-semibold text-sm">⚠️ تعذر استلام الرد من نموذج الذكاء الاصطناعي (OpenRouter):</p>
+              <p className="font-mono text-[11px] opacity-90 break-words leading-relaxed">
+                {error?.message || "Something went wrong during generation. Please check your OpenRouter API key, balance, or network connection."}
+              </p>
+            </div>
           ) : null}
 
           {showSuggestions ? (
-            <div className="flex flex-wrap gap-2">
-              {SUGGESTIONS.map((question) => (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {SUGGESTIONS.map((item) => (
                 <button
-                  key={question}
+                  key={item.prompt}
                   type="button"
-                  className="rounded-full border border-base-300 bg-base-100 px-3 py-1.5 text-xs font-medium text-base-content/70 transition-colors hover:border-primary/50 hover:text-base-content"
-                  onClick={() => sendText(question)}
+                  className="flex items-start gap-2.5 rounded-xl border border-base-300 bg-base-100 p-3 text-right transition-all hover:border-primary hover:bg-base-200/50 hover:shadow-sm group cursor-pointer"
+                  onClick={() => sendText(item.prompt)}
                 >
-                  {question}
+                  <span className="text-lg shrink-0 mt-0.5">{item.icon}</span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-[10px] font-semibold text-primary uppercase tracking-wider mb-0.5">
+                      {item.category}
+                    </span>
+                    <span className="text-xs font-medium text-base-content/80 group-hover:text-base-content transition-colors line-clamp-2">
+                      {item.prompt}
+                    </span>
+                  </div>
                 </button>
               ))}
             </div>
@@ -186,7 +266,7 @@ export function SamConversation({
           <ChatComposer
             busy={isBusy}
             onSend={sendText}
-            placeholder="Ask SAM to research, analyze, or track anything…"
+            placeholder="اسأل Google Antigravity و SAM عن تحليل الكلمات، أداء GSC و GA4، أو خطط النمو…"
           />
         </div>
       </div>

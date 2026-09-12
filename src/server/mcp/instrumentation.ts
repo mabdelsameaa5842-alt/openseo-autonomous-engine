@@ -169,7 +169,7 @@ export function instrumentMcpToolHandler<TArgs>(
       // path after the first call.
       if (succeeded) {
         const auth = context.auth;
-        if (auth.clientId) {
+        if (auth.clientId || auth.organizationId) {
           await recordExternalMcpToolCall(auth.organizationId);
         }
       }

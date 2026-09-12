@@ -194,10 +194,20 @@ function SerpAnalysisLoadingState() {
 
 function SerpAnalysisEmptyState({ keyword }: { keyword?: string | null }) {
   return (
-    <div className="text-sm text-base-content/50 text-center py-8">
-      <p>No SERP details available for this keyword yet.</p>
+    <div className="text-sm text-base-content/60 text-center py-6 space-y-3">
+      <p>No SERP snapshot currently cached or returned for this keyword.</p>
       {keyword ? (
-        <p className="mt-1">Try clicking another keyword to load data.</p>
+        <div>
+          <a
+            href={`https://www.google.com/search?q=${encodeURIComponent(keyword)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-xs btn-outline gap-1.5 inline-flex items-center text-xs"
+          >
+            <span>View Live Google Results</span>
+            <ExternalLink className="size-3 shrink-0" />
+          </a>
+        </div>
       ) : null}
     </div>
   );

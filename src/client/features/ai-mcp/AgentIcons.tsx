@@ -32,3 +32,37 @@ export function CodexIcon(props: SVGProps<SVGSVGElement>) {
     </svg>
   );
 }
+
+export function AntigravityIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      {...props}
+    >
+      <path
+        d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+        fill="url(#agyGrad)"
+        stroke="none"
+      />
+      <circle cx="12" cy="12" r="9" stroke="url(#agyRing)" strokeWidth="1.5" strokeDasharray="3 3" />
+      <defs>
+        <linearGradient id="agyGrad" x1="2" y1="2" x2="22" y2="22" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#38bdf8" />
+          <stop offset="0.5" stopColor="#818cf8" />
+          <stop offset="1" stopColor="#c084fc" />
+        </linearGradient>
+        <linearGradient id="agyRing" x1="3" y1="3" x2="21" y2="21" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#38bdf8" />
+          <stop offset="1" stopColor="#c084fc" />
+        </linearGradient>
+      </defs>
+    </svg>
+  );
+}

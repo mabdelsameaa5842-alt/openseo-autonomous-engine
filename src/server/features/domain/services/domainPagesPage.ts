@@ -177,51 +177,64 @@ export async function getPagesPage(
     return cached.data;
   }
 
-  const dataforseo = createDataforseoClient(billingCustomer);
-  const response = await dataforseo.domain.relevantPages({
-    target: target.hostname,
-    locationCode: input.locationCode,
-    languageCode: input.languageCode,
-    limit: input.pageSize,
-    offset,
-    orderBy,
-    filters: filters.length > 0 ? filters : undefined,
-  });
+  try {
+    const dataforseo = createDataforseoClient(billingCustomer);
+    const response = await dataforseo.domain.relevantPages({
+      target: target.hostname,
+      locationCode: input.locationCode,
+      languageCode: input.languageCode,
+      limit: input.pageSize,
+      offset,
+      orderBy,
+      filters: filters.length > 0 ? filters : undefined,
+    });
 
-  const pages = response.items
-    .map(mapPageItem)
-    .filter(
-      (item): item is NonNullable<ReturnType<typeof mapPageItem>> =>
-        item != null,
+    const pages = response.items
+      .map(mapPageItem)
+      .filter(
+        (item): item is NonNullable<ReturnType<typeof mapPageItem>> =>
+          item != null,
+      );
+
+    const totalCount = response.totalCount;
+    const hasMore = computeHasMore(
+      offset,
+      response.items.length,
+      totalCount,
+      input.pageSize,
     );
 
-  const totalCount = response.totalCount;
-  const hasMore = computeHasMore(
-    offset,
-    response.items.length,
-    totalCount,
-    input.pageSize,
-  );
+    const result: DomainPagesPageResult = {
+      domain: target.hostname,
+      page: input.page,
+      pageSize: input.pageSize,
+      totalCount,
+      hasMore,
+      pages,
+      fetchedAt: new Date().toISOString(),
+    };
 
-  const result: DomainPagesPageResult = {
-    domain: target.hostname,
-    page: input.page,
-    pageSize: input.pageSize,
-    totalCount,
-    hasMore,
-    pages,
-    fetchedAt: new Date().toISOString(),
-  };
+    // waitUntil, not void: workerd cancels unregistered pending I/O once the
+    // response is sent, so a fire-and-forget put never persists the cache.
+    waitUntil(
+      setCached(cacheKey, result, DOMAIN_PAGES_PAGE_TTL_SECONDS).catch(
+        (error) => {
+          console.error("domain.pages-page.cache-write failed:", error);
+        },
+      ),
+    );
 
-  // waitUntil, not void: workerd cancels unregistered pending I/O once the
-  // response is sent, so a fire-and-forget put never persists the cache.
-  waitUntil(
-    setCached(cacheKey, result, DOMAIN_PAGES_PAGE_TTL_SECONDS).catch(
-      (error) => {
-        console.error("domain.pages-page.cache-write failed:", error);
-      },
-    ),
-  );
-
-  return result;
+    return result;
+  } catch (error) {
+    console.warn("DataForSEO relevantPages unavailable, returning empty pages:", error);
+    return {
+      domain: target.hostname,
+      page: input.page,
+      pageSize: input.pageSize,
+      totalCount: 0,
+      hasMore: false,
+      pages: [],
+      fetchedAt: new Date().toISOString(),
+    };
+  }
 }

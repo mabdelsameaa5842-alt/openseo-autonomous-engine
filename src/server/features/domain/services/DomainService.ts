@@ -74,49 +74,65 @@ async function getOverview(
   }
 
   const nowIso = new Date().toISOString();
-  const dataforseo = createDataforseoClient(billingCustomer);
 
-  const metricsResponse = await dataforseo.domain.rankOverview({
-    target: domain,
-    locationCode: input.locationCode,
-    languageCode: input.languageCode,
-    ...metering,
-  });
+  try {
+    const dataforseo = createDataforseoClient(billingCustomer);
 
-  const metrics = metricsResponse[0];
+    const metricsResponse = await dataforseo.domain.rankOverview({
+      target: domain,
+      locationCode: input.locationCode,
+      languageCode: input.languageCode,
+      ...metering,
+    });
 
-  const organicTraffic =
-    metrics?.metrics?.organic?.etv != null
-      ? Math.round(metrics.metrics.organic.etv)
-      : null;
-  const organicKeywords =
-    metrics?.metrics?.organic?.count != null
-      ? Math.round(metrics.metrics.organic.count)
-      : null;
+    const metrics = metricsResponse[0];
 
-  const stored: z.infer<typeof domainOverviewResultSchema> = {
-    domain,
-    organicTraffic,
-    organicKeywords,
-    backlinks: null,
-    referringDomains: null,
-    hasData: organicKeywords != null && organicKeywords > 0,
-    fetchedAt: nowIso,
-  };
+    const organicTraffic =
+      metrics?.metrics?.organic?.etv != null
+        ? Math.round(metrics.metrics.organic.etv)
+        : null;
+    const organicKeywords =
+      metrics?.metrics?.organic?.count != null
+        ? Math.round(metrics.metrics.organic.count)
+        : null;
 
-  if (stored.hasData) {
-    // waitUntil, not void: workerd cancels unregistered pending I/O once the
-    // response is sent, so a fire-and-forget put never persists the cache.
-    waitUntil(
-      setCached(cacheKey, stored, DOMAIN_OVERVIEW_TTL_SECONDS).catch(
-        (error) => {
-          console.error("domain.overview.cache-write failed:", error);
-        },
-      ),
-    );
+    const stored: z.infer<typeof domainOverviewResultSchema> = {
+      domain,
+      organicTraffic,
+      organicKeywords,
+      backlinks: null,
+      referringDomains: null,
+      hasData: organicKeywords != null && organicKeywords > 0,
+      fetchedAt: nowIso,
+    };
+
+    if (stored.hasData) {
+      // waitUntil, not void: workerd cancels unregistered pending I/O once the
+      // response is sent, so a fire-and-forget put never persists the cache.
+      waitUntil(
+        setCached(cacheKey, stored, DOMAIN_OVERVIEW_TTL_SECONDS).catch(
+          (error) => {
+            console.error("domain.overview.cache-write failed:", error);
+          },
+        ),
+      );
+    }
+
+    return { ...stored, scope: target.scope, displayTarget: target.display };
+  } catch (error) {
+    console.warn("DataForSEO rankOverview unavailable, falling back to empty overview:", error);
+    return {
+      domain,
+      organicTraffic: null,
+      organicKeywords: null,
+      backlinks: null,
+      referringDomains: null,
+      hasData: false,
+      fetchedAt: nowIso,
+      scope: target.scope,
+      displayTarget: target.display,
+    };
   }
-
-  return { ...stored, scope: target.scope, displayTarget: target.display };
 }
 
 async function getSuggestedKeywords(
@@ -170,50 +186,55 @@ async function getSuggestedKeywords(
     return cached.data;
   }
 
-  const dataforseo = createDataforseoClient(billingCustomer);
+  try {
+    const dataforseo = createDataforseoClient(billingCustomer);
 
-  const rankedKeywordsResponse = await dataforseo.domain.rankedKeywords({
-    target: target.hostname,
-    locationCode: input.locationCode,
-    languageCode: input.languageCode,
-    limit: 100,
-    orderBy: ["ranked_serp_element.serp_item.etv,desc"],
-    filters:
-      scopeFilter.clauses.length > 0
-        ? joinClauses(scopeFilter.clauses, "and")
-        : undefined,
-    ...metering,
-  });
+    const rankedKeywordsResponse = await dataforseo.domain.rankedKeywords({
+      target: target.hostname,
+      locationCode: input.locationCode,
+      languageCode: input.languageCode,
+      limit: 100,
+      orderBy: ["ranked_serp_element.serp_item.etv,desc"],
+      filters:
+        scopeFilter.clauses.length > 0
+          ? joinClauses(scopeFilter.clauses, "and")
+          : undefined,
+      ...metering,
+    });
 
-  const keywords = rankedKeywordsResponse.items
-    .map((item) => mapKeywordItem(item))
-    .filter(
-      (item): item is NonNullable<ReturnType<typeof mapKeywordItem>> =>
-        item != null,
-    )
-    .map((item) => ({
-      keyword: item.keyword,
-      position: item.position,
-      searchVolume: item.searchVolume,
-      traffic: item.traffic,
-      cpc: item.cpc,
-      keywordDifficulty: item.keywordDifficulty,
-    }));
+    const keywords = rankedKeywordsResponse.items
+      .map((item) => mapKeywordItem(item))
+      .filter(
+        (item): item is NonNullable<ReturnType<typeof mapKeywordItem>> =>
+          item != null,
+      )
+      .map((item) => ({
+        keyword: item.keyword,
+        position: item.position,
+        searchVolume: item.searchVolume,
+        traffic: item.traffic,
+        cpc: item.cpc,
+        keywordDifficulty: item.keywordDifficulty,
+      }));
 
-  if (keywords.length > 0) {
-    waitUntil(
-      setCached(cacheKey, keywords, DOMAIN_OVERVIEW_TTL_SECONDS).catch(
-        (error) => {
-          console.error(
-            "domain.keyword-suggestions.cache-write failed:",
-            error,
-          );
-        },
-      ),
-    );
+    if (keywords.length > 0) {
+      waitUntil(
+        setCached(cacheKey, keywords, DOMAIN_OVERVIEW_TTL_SECONDS).catch(
+          (error) => {
+            console.error(
+              "domain.keyword-suggestions.cache-write failed:",
+              error,
+            );
+          },
+        ),
+      );
+    }
+
+    return keywords;
+  } catch (error) {
+    console.warn("DataForSEO rankedKeywords unavailable, returning empty suggestions:", error);
+    return [];
   }
-
-  return keywords;
 }
 
 export const DomainService = {

@@ -2,7 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowUpRight, ShieldAlert } from "lucide-react";
 import { getAuthMode, isHostedClientAuthMode } from "@/lib/auth-mode";
 import { captureClientEvent } from "@/client/lib/posthog";
-import { ClaudeIcon, CodexIcon } from "@/client/features/ai-mcp/AgentIcons";
+import {
+  AntigravityIcon,
+  ClaudeIcon,
+  CodexIcon,
+} from "@/client/features/ai-mcp/AgentIcons";
 import { AvailableTools } from "@/client/features/ai-mcp/AvailableTools";
 import {
   CodeBlock,
@@ -113,6 +117,58 @@ function AiPage() {
             Pick your agent.
           </p>
           <div className="mt-4 divide-y divide-base-300 overflow-hidden rounded-lg border border-base-300 bg-base-200">
+            <Collapsible
+              id="antigravity"
+              title="Google Antigravity (AGY)"
+              subtitle="Recommended • Full Google Search Console & GA4 Integration"
+              icon={<AntigravityIcon className="size-5" />}
+              defaultOpen={true}
+            >
+              <div className="flex flex-wrap items-center gap-2 pb-2">
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-success/15 px-2 py-1 text-xs font-semibold text-success">
+                  <span className="size-1.5 rounded-full bg-success"></span>
+                  Google Search Console
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-info/15 px-2 py-1 text-xs font-semibold text-info">
+                  <span className="size-1.5 rounded-full bg-info"></span>
+                  Google Analytics (GA4)
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-warning/15 px-2 py-1 text-xs font-semibold text-warning">
+                  <span className="size-1.5 rounded-full bg-warning"></span>
+                  11 MCP Modules (45 Live Tools)
+                </span>
+              </div>
+              <p className="text-sm text-base-content/70">
+                Option 1: Add via Antigravity CLI:
+              </p>
+              <CodeBlock
+                code={`agy mcp add openseo --url ${mcpUrl}`}
+                onCopy={() =>
+                  captureClientEvent("mcp:setup_command_copy", {
+                    agent: "antigravity",
+                  })
+                }
+              />
+              <p className="mt-3 text-sm text-base-content/70">
+                Option 2: Add to global config (<code className="rounded bg-base-300 px-1 py-0.5 text-xs font-mono">~/.gemini/config/mcp_config.json</code>):
+              </p>
+              <CodeBlock
+                code={`{
+  "mcpServers": {
+    "openseo": {
+      "serverUrl": "${mcpUrl}"
+    }
+  }
+}`}
+              />
+              <p className="mt-3 text-sm text-base-content/70">
+                Option 3: In Antigravity IDE UI:
+              </p>
+              <p className="text-xs text-base-content/60 leading-relaxed">
+                Open <span className="font-semibold text-base-content">Additional Options (...) → MCP Servers → Add Server</span>, enter name <code className="rounded bg-base-300 px-1 py-0.5 font-mono">openseo</code> and paste the MCP server URL above.
+              </p>
+            </Collapsible>
+
             <Collapsible
               id="claude-code"
               title="Claude Code"
@@ -230,6 +286,27 @@ function AiPage() {
             domain data is needed.
           </p>
           <div className="mt-4 divide-y divide-base-300 overflow-hidden rounded-lg border border-base-300 bg-base-200">
+            <Collapsible
+              id="antigravity-skills"
+              title="Install for Google Antigravity (AGY)"
+              subtitle="Recommended • Target Antigravity Global Skills"
+              icon={<AntigravityIcon className="size-5" />}
+              defaultOpen={true}
+            >
+              <p className="text-sm text-base-content/70">
+                Install all 9 OpenSEO skills into Antigravity global skills directory:
+              </p>
+              <CodeBlock
+                code={`mkdir -p ~/.gemini/config/skills && cp -r plugins/openseo/skills/* ~/.gemini/config/skills/`}
+              />
+              <p className="mt-2 text-xs text-base-content/55">
+                Or install into your active project workspace:
+              </p>
+              <CodeBlock
+                code={`mkdir -p .agents/skills && cp -r plugins/openseo/skills/* .agents/skills/`}
+              />
+            </Collapsible>
+
             <Collapsible
               id="skills-add"
               title="Install with skills add"

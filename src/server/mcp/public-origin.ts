@@ -8,23 +8,19 @@ function getForwardedProtocol(request: Request) {
 }
 
 export function getPublicOrigin(request: Request) {
-  const url = new URL(request.url);
-  if (url.protocol === "https:") {
-    return url.origin;
-  }
-
-  const protocol = getForwardedProtocol(request);
   const host = firstHeaderValue(request.headers.get("x-forwarded-host"));
+  const protocol = getForwardedProtocol(request) || "https";
 
-  if (!protocol || !host) {
-    return url.origin;
+  if (host) {
+    try {
+      return new URL(`${protocol}://${host}`).origin;
+    } catch {
+      // fall back to request url
+    }
   }
 
-  try {
-    return new URL(`${protocol}://${host}`).origin;
-  } catch {
-    return url.origin;
-  }
+  const url = new URL(request.url);
+  return url.origin;
 }
 
 export function requestWithPublicOrigin(request: Request) {

@@ -4,6 +4,9 @@
   "main": "src/server.ts",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "vars": {
+    "AUTH_MODE": "local_noauth"
+  },
   "observability": {
     "enabled": true,
     // Spans are billed as observability events (free tier 200k/day); add a
@@ -108,41 +111,26 @@
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "4abd52f3f2c549ac83cc2cb4ceec8620",
+      "id": "282a39fee80a470c90e6295e9d72edd8",
     },
     {
       "binding": "OAUTH_KV",
-      "id": "bd1759494309474a9b423b029967b0db",
+      "id": "e5e7ec40fe1546f6ab05e3b76efce13d",
     },
   ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "open-seo",
-      "database_id": "37bee90a-e1aa-404f-b01e-b0d1d479bda1",
+      "database_id": "0264b73c-5727-49d4-9809-67968ebb4402",
       "migrations_dir": "drizzle",
     },
   ],
-  // Postgres scale path (opt-in; D1 is the default). Hyperdrive is the ONLY way
-  // the app connects to Postgres — there is no direct-connection fallback. For
-  // local dev, `localConnectionString` is the throwaway Docker Postgres from
-  // docs/LOCAL_POSTGRES.md, and nothing connects to it unless
-  // DATABASE_PROVIDER=postgres is set in .env.local.
-  //
-  // Kept commented out: the id lives in OpenSEO's account, and only local
-  // Postgres dev reads this block (Alchemy deploys and the Docker image never
-  // do). Uncomment when running local Postgres dev per docs/LOCAL_POSTGRES.md.
-  // "hyperdrive": [
+  // R2 bucket commented out to enable deployment on 100% free Cloudflare plan without credit card requirement
+  // "r2_buckets": [
   //   {
-  //     "binding": "HYPERDRIVE",
-  //     "id": "9d64ccfb559f44449ce52a143912f898",
-  //     "localConnectionString": "postgres://openseo:openseo@localhost:5433/openseo",
+  //     "bucket_name": "open-seo",
+  //     "binding": "R2",
   //   },
   // ],
-  "r2_buckets": [
-    {
-      "bucket_name": "open-seo",
-      "binding": "R2",
-    },
-  ],
 }

@@ -27,6 +27,14 @@ import { sweepDubReferredOrganizations } from "@/server/referrals/dub";
 import { maybeSendSelfHostHeartbeat } from "@/server/lib/self-host-telemetry";
 import { handleGdprStorageErasure } from "@/server/gdpr/storage-erasure";
 import { GDPR_STORAGE_ERASURE_PATH } from "@/shared/gdpr-erasure";
+import { handleAutonomousSeoCycle } from "@/server/features/automation/autonomousHandler";
+import {
+  handleMakeAiBuilder,
+  handleMakeBlueprintDownload,
+  handleMakeStatus,
+  handleMakeConnect,
+  handleMakeDisconnect,
+} from "@/server/features/automation/makeAiBuilder";
 
 const appFetch = createStartHandler(defaultStreamHandler);
 const openSeoOAuthProvider = createOpenSeoOAuthProvider(appFetch);
@@ -121,6 +129,7 @@ function authorizeChatAgent(
 // wrapper and TanStack route guard below.
 async function routeChatAgents(request: Request, env: Env): Promise<Response> {
   const response = await routeAgentRequest(request, env, {
+    cors: true,
     onBeforeConnect: (req, lobby) => authorizeChatAgent(req, lobby),
     onBeforeRequest: (req, lobby) => authorizeChatAgent(req, lobby),
   });
@@ -150,6 +159,30 @@ function handleFetch(
 
   if (pathname === GDPR_STORAGE_ERASURE_PATH) {
     return handleGdprStorageErasure(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/seo-cycle") {
+    return handleAutonomousSeoCycle(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/make-builder") {
+    return handleMakeAiBuilder(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/make-blueprint") {
+    return handleMakeBlueprintDownload(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/make-status") {
+    return handleMakeStatus(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/make-connect") {
+    return handleMakeConnect(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/make-disconnect") {
+    return handleMakeDisconnect(publicRequest, env);
   }
 
   if (pathname.startsWith("/agents/")) {

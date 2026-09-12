@@ -13,36 +13,49 @@ const BETA_NOTICE_DISMISSED_KEY = "sam-beta-notice-dismissed";
 // Beta framing + the MCP power-path nudge, pinned to the bottom of the Chat
 // tab. Dismissible per browser; localStorage is read in an effect so SSR and
 // the first client render stay identical (same pattern as AppShell).
-function BetaNotice() {
-  const [dismissed, setDismissed] = useState(true);
+function AntigravityConnectionCard() {
+  const [dismissed, setDismissed] = useState(false);
   useEffect(() => {
     setDismissed(localStorage.getItem(BETA_NOTICE_DISMISSED_KEY) === "1");
   }, []);
   if (dismissed) return null;
 
   return (
-    <div className="mx-2 mb-2 rounded-lg border border-base-300 bg-base-100 p-3">
+    <div className="mx-2 mb-2 rounded-xl border border-base-300/80 bg-base-200/40 p-3 shadow-sm transition-all hover:border-base-300">
       <div className="flex items-center justify-between">
-        <span className="badge badge-primary badge-sm">Beta</span>
-        <button
-          type="button"
-          aria-label="Dismiss"
-          className="btn btn-ghost btn-xs btn-square text-base-content/40"
-          onClick={() => {
-            localStorage.setItem(BETA_NOTICE_DISMISSED_KEY, "1");
-            setDismissed(true);
-          }}
-        >
-          <X className="size-3.5" />
-        </button>
+        <div className="flex items-center gap-2">
+          <span className="relative flex size-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60 opacity-75"></span>
+            <span className="relative inline-flex size-2 rounded-full bg-primary"></span>
+          </span>
+          <span className="font-medium text-xs text-base-content">Google Antigravity</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="rounded-md border border-base-300 bg-base-100 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+            Active
+          </span>
+          <button
+            type="button"
+            aria-label="Dismiss"
+            className="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-base-content"
+            onClick={() => {
+              localStorage.setItem(BETA_NOTICE_DISMISSED_KEY, "1");
+              setDismissed(true);
+            }}
+          >
+            <X className="size-3.5" />
+          </button>
+        </div>
       </div>
-      <p className="mt-1.5 text-xs text-base-content/70">
-        For more powerful AI workflows, use the OpenSEO MCP with your own agent
-        like Claude Code or Hermes.
+      <p className="mt-1.5 text-[11px] leading-relaxed text-base-content/70">
+        مساعد AGY متصل عبر بروتوكول MCP مع قنوات GSC و GA4 وسياق المشروع الموثق.
       </p>
-      <Link to="/ai" className="link link-primary mt-1.5 inline-block text-xs">
-        Set up the MCP →
-      </Link>
+      <div className="mt-2.5 flex items-center justify-between border-t border-base-300/60 pt-2">
+        <span className="text-[10px] font-mono text-base-content/40">OpenSEO Protocol</span>
+        <Link to="/ai" className="text-[11px] font-medium text-primary hover:underline">
+          Skills Hub →
+        </Link>
+      </div>
     </div>
   );
 }
@@ -172,7 +185,7 @@ export function SamSidebarPanel({
         )}
       </div>
 
-      <BetaNotice />
+      <AntigravityConnectionCard />
     </div>
   );
 }

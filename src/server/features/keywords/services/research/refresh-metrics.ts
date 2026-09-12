@@ -34,41 +34,45 @@ export async function refreshSavedKeywordMetrics(
     groups.set(key, group);
   }
 
-  for (const groupRows of groups.values()) {
-    const { locationCode, languageCode } = groupRows[0].row;
-    const metrics = await fetchKeywordMetricsForList(client, {
-      keywords: groupRows.map((r) => r.row.keyword),
-      locationCode,
-      languageCode,
-      creditFeature: "keyword_research",
-    });
-    const byKeyword = new Map(
-      metrics.map((metric) => [metric.keyword.toLowerCase(), metric]),
-    );
-
-    for (let i = 0; i < groupRows.length; i += REFRESH_UPSERT_BATCH_SIZE) {
-      const chunk = groupRows.slice(i, i + REFRESH_UPSERT_BATCH_SIZE);
-      await Promise.all(
-        chunk.map((r) => {
-          const metric = byKeyword.get(r.row.keyword.toLowerCase());
-          if (!metric) return Promise.resolve();
-          return KeywordResearchRepository.upsertKeywordMetric({
-            projectId: input.projectId,
-            keyword: r.row.keyword,
-            locationCode,
-            languageCode,
-            searchVolume: metric.searchVolume,
-            cpc: metric.cpc,
-            competition: metric.competition,
-            keywordDifficulty: metric.keywordDifficulty,
-            intent: normalizeIntent(metric.intent),
-            monthlySearchesJson: JSON.stringify(metric.monthlySearches),
-          });
-        }),
+  try {
+    for (const groupRows of groups.values()) {
+      const { locationCode, languageCode } = groupRows[0].row;
+      const metrics = await fetchKeywordMetricsForList(client, {
+        keywords: groupRows.map((r) => r.row.keyword),
+        locationCode,
+        languageCode,
+        creditFeature: "keyword_research",
+      });
+      const byKeyword = new Map(
+        metrics.map((metric) => [metric.keyword.toLowerCase(), metric]),
       );
-    }
 
-    updated += byKeyword.size;
+      for (let i = 0; i < groupRows.length; i += REFRESH_UPSERT_BATCH_SIZE) {
+        const chunk = groupRows.slice(i, i + REFRESH_UPSERT_BATCH_SIZE);
+        await Promise.all(
+          chunk.map((r) => {
+            const metric = byKeyword.get(r.row.keyword.toLowerCase());
+            if (!metric) return Promise.resolve();
+            return KeywordResearchRepository.upsertKeywordMetric({
+              projectId: input.projectId,
+              keyword: r.row.keyword,
+              locationCode,
+              languageCode,
+              searchVolume: metric.searchVolume,
+              cpc: metric.cpc,
+              competition: metric.competition,
+              keywordDifficulty: metric.keywordDifficulty,
+              intent: normalizeIntent(metric.intent),
+              monthlySearchesJson: JSON.stringify(metric.monthlySearches),
+            });
+          }),
+        );
+      }
+
+      updated += byKeyword.size;
+    }
+  } catch (error) {
+    console.warn("refreshSavedKeywordMetrics failed gracefully:", error);
   }
 
   return { updated };

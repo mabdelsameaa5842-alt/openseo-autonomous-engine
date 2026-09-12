@@ -7,7 +7,7 @@ import { captureClientEvent } from "@/client/lib/posthog";
  */
 export const GOOGLE_LINK_ERROR_PARAM = "google_link_error";
 
-export type GoogleLinkProvider = "gsc" | "ga4";
+export type GoogleLinkProvider = "gsc" | "ga4" | "googleAds";
 
 type CapturedLinkError = {
   provider: GoogleLinkProvider;
@@ -27,7 +27,7 @@ function captureLinkErrorFromLocation(): CapturedLinkError | null {
   if (typeof window === "undefined") return null;
   const url = new URL(window.location.href);
   const provider = url.searchParams.get(GOOGLE_LINK_ERROR_PARAM);
-  if (provider !== "gsc" && provider !== "ga4") return null;
+  if (provider !== "gsc" && provider !== "ga4" && provider !== "googleAds") return null;
   const code = url.searchParams.get("error") ?? "unknown";
   url.searchParams.delete(GOOGLE_LINK_ERROR_PARAM);
   url.searchParams.delete("error");

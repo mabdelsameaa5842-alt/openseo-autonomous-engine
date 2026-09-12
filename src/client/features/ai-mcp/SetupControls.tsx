@@ -7,15 +7,17 @@ export function Collapsible({
   title,
   subtitle,
   icon,
+  defaultOpen = false,
   children,
 }: {
   id: string;
   title: string;
   subtitle?: string;
   icon?: React.ReactNode;
+  defaultOpen?: boolean;
   children: React.ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   const contentId = `collapsible-${id}`;
 
   return (

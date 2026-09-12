@@ -39,6 +39,7 @@ export async function buildCacheKey(
  * drift between writes and reads is otherwise silent.
  */
 export async function getCached(key: string): Promise<unknown> {
+  if (!env?.R2) return null;
   const obj = await env.R2.get(`${CACHE_PREFIX}${key}`);
   if (!obj) return null;
 
@@ -61,6 +62,7 @@ export async function setCached<T>(
   ttlSeconds: number,
   metadata: Record<string, string> = {},
 ): Promise<void> {
+  if (!env?.R2) return;
   await env.R2.put(`${CACHE_PREFIX}${key}`, JSON.stringify(data), {
     httpMetadata: { contentType: "application/json" },
     customMetadata: {

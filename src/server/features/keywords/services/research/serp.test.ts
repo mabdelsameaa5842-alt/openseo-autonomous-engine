@@ -121,4 +121,40 @@ describe("getSerpAnalysis cache depth", () => {
       expect.any(Number),
     );
   });
+
+  it("handles live API errors gracefully and returns empty items", async () => {
+    mocks.getCached.mockResolvedValue(null);
+    mocks.createDataforseoClient.mockReturnValue({
+      serp: {
+        live: vi.fn().mockRejectedValue(new Error("DataForSEO 403 Forbidden")),
+      },
+    });
+
+    const result = await getSerpAnalysis(
+      { ...input, depth: 20 },
+      billingCustomer,
+    );
+
+    expect(result.items).toEqual([]);
+    expect(result.reason).toBe("no_organic_results");
+    expect(result.depth).toBe(20);
+  });
+
+  it("falls back to shallow cache when deep live API call throws", async () => {
+    mocks.getCached.mockResolvedValue(cachedSnapshot(20));
+    mocks.createDataforseoClient.mockReturnValue({
+      serp: {
+        live: vi.fn().mockRejectedValue(new Error("DataForSEO 403 Forbidden")),
+      },
+    });
+
+    const result = await getSerpAnalysis(
+      { ...input, depth: 100 },
+      billingCustomer,
+    );
+
+    expect(result.items.length).toBe(1);
+    expect(result.items[0]?.title).toBe("Cached");
+  });
 });
+

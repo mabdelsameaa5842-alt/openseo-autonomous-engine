@@ -133,6 +133,19 @@ function RootDocument({ children }: { children: React.ReactNode }) {
   return (
     <html suppressHydrationWarning translate="no">
       <head>
+        {/* Google tag (gtag.js) */}
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-T3700T2Y5T"
+        />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-T3700T2Y5T');`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{ __html: themePreferenceInitScript }}
         />

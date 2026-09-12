@@ -53,31 +53,21 @@
   "kv_namespaces": [
     {
       "binding": "KV",
-      "id": "4abd52f3f2c549ac83cc2cb4ceec8620",
+      "id": "282a39fee80a470c90e6295e9d72edd8",
     },
   ],
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "open-seo",
-      "database_id": "37bee90a-e1aa-404f-b01e-b0d1d479bda1",
+      "database_id": "0264b73c-5727-49d4-9809-67968ebb4402",
       "migrations_dir": "drizzle",
     },
   ],
-  // Postgres scale path — same rules as wrangler.jsonc: only local Postgres
-  // dev reads this block. Uncomment together with the block in wrangler.jsonc
-  // per docs/LOCAL_POSTGRES.md.
-  // "hyperdrive": [
+  // "r2_buckets": [
   //   {
-  //     "binding": "HYPERDRIVE",
-  //     "id": "9d64ccfb559f44449ce52a143912f898",
-  //     "localConnectionString": "postgres://openseo:openseo@localhost:5433/openseo",
+  //     "bucket_name": "open-seo",
+  //     "binding": "R2",
   //   },
   // ],
-  "r2_buckets": [
-    {
-      "bucket_name": "open-seo",
-      "binding": "R2",
-    },
-  ],
 }

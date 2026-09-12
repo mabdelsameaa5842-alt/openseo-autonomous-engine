@@ -16,6 +16,8 @@ import {
   GscCard,
 } from "@/client/features/dashboard/DashboardCards";
 import { Ga4Card } from "@/client/features/dashboard/Ga4Card";
+import { GoogleAdsCard } from "@/client/features/dashboard/GoogleAdsCard";
+import { MakeAutomationCard } from "@/client/features/dashboard/MakeAutomationCard";
 import { McpConnectCard } from "@/client/features/dashboard/McpConnectCard";
 import { WorkspaceMergeBanner } from "@/client/features/dashboard/WorkspaceMergeBanner";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
@@ -330,6 +332,16 @@ export function DashboardPage({ projectId }: { projectId: string }) {
           },
         ]
       : []),
+    {
+      key: "googleAds",
+      hasData: true,
+      node: <GoogleAdsCard projectId={projectId} />,
+    },
+    {
+      key: "makeAutomation",
+      hasData: true,
+      node: <MakeAutomationCard projectId={projectId} />,
+    },
     {
       key: "audit",
       hasData: overview?.audit != null,
