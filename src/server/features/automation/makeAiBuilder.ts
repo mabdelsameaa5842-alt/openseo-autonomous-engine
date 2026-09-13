@@ -8,99 +8,283 @@ export function generateMakeScenarioBlueprint(
     flow: [
       {
         id: 1,
-        module: "gateway:CustomSchedule",
-        version: 1,
-        parameters: {},
-        mapper: {
-          schedule: "0 6,18 * * *",
-          timeZone: "Africa/Cairo",
-        },
-        metadata: {
-          designer: { x: 0, y: 0 },
-          restore: {},
-          expect: [],
-        },
-      },
-      {
-        id: 2,
-        module: "http:ActionMakeRequest",
-        version: 3,
+        module: "http:MakeRequest",
+        version: 4,
         parameters: {
-          handleErrors: true,
+          tlsType: "",
+          proxyKeychain: "",
+          authenticationType: "noAuth",
+          shareCookies: false,
         },
         mapper: {
           url: webhookUrl,
-          method: "POST",
+          method: "post",
           headers: [
             { name: "Content-Type", value: "application/json" },
             { name: "X-Automation-Key", value: apiKey },
           ],
-          body: JSON.stringify({
+          contentType: "json",
+          inputMethod: "jsonString",
+          shareCookies: false,
+          parseResponse: true,
+          stopOnHttpError: true,
+          allowRedirects: true,
+          proxyKeychain: "",
+          jsonStringBodyContent: JSON.stringify({
             source: "make_ai_engine",
             cycle_type: "12h_autonomous_loop",
             project_id: projectId,
             timestamp: "{{formatDate(now; \"YYYY-MM-DDTHH:mm:ssZ\")}}",
           }),
-          type: "raw",
-          contentType: "json",
+          requestCompressedContent: true,
         },
         metadata: {
-          designer: { x: 300, y: 0 },
-          restore: {},
+          designer: { x: 0, y: 0, name: "OpenSEO 12h Autonomous Cycle Trigger" },
+          restore: {
+            parameters: {
+              tlsType: {
+                label: "Empty",
+              },
+              proxyKeychain: {
+                label: "Choose a key",
+              },
+              authenticationType: {
+                label: "No authenticationUse when no credentials are required for the request.",
+              },
+            },
+            expect: {
+              method: {
+                mode: "chose",
+                label: "POST",
+              },
+              headers: {
+                mode: "chose",
+                items: [null, null],
+              },
+              contentType: {
+                label: "application/jsonEnter data in the JSON format, as a string or using a data structure.",
+              },
+              inputMethod: {
+                label: "JSON stringEnter the JSON body as a raw text string. If values contain JSON reserved characters, you must escape them manually.",
+              },
+              shareCookies: {
+                mode: "chose",
+              },
+              parseResponse: {
+                mode: "chose",
+              },
+              allowRedirects: {
+                mode: "chose",
+              },
+              stopOnHttpError: {
+                mode: "chose",
+              },
+              requestCompressedContent: {
+                mode: "chose",
+              },
+              paginationType: {
+                label: "Empty",
+              },
+            },
+          },
+          parameters: [
+            {
+              name: "authenticationType",
+              type: "select",
+              label: "Authentication type",
+              required: true,
+              validate: {
+                enum: ["noAuth", "apiKey", "basicAuth", "oAuth"],
+              },
+            },
+            {
+              name: "tlsType",
+              type: "select",
+              label: "Transport layer security (TLS)",
+              validate: {
+                enum: ["mTls", "tls"],
+              },
+            },
+            {
+              name: "proxyKeychain",
+              type: "keychain:proxy",
+              label: "Proxy",
+            },
+          ],
+          expect: [
+            {
+              name: "url",
+              type: "url",
+              label: "URL",
+              required: true,
+            },
+            {
+              name: "method",
+              type: "select",
+              label: "Method",
+              required: true,
+              validate: {
+                enum: ["get", "head", "post", "put", "patch", "delete", "options"],
+              },
+            },
+            {
+              name: "headers",
+              spec: {
+                name: "value",
+                spec: [
+                  {
+                    name: "name",
+                    type: "text",
+                    label: "Name",
+                    required: true,
+                    validate: {
+                      pattern: "^[-!#$%&'*+.^_`|~0-9A-Za-z]+$",
+                    },
+                  },
+                  {
+                    name: "value",
+                    type: "text",
+                    label: "Value",
+                  },
+                ],
+                type: "collection",
+                label: "Header",
+              },
+              type: "array",
+              label: "Headers",
+            },
+            {
+              name: "contentType",
+              type: "select",
+              label: "Body content type",
+              validate: {
+                enum: ["json", "multipart", "urlEncoded", "custom"],
+              },
+            },
+            {
+              name: "parseResponse",
+              type: "boolean",
+              label: "Parse response",
+              required: true,
+            },
+            {
+              name: "stopOnHttpError",
+              type: "boolean",
+              label: "Return error if HTTP request fails",
+              required: true,
+            },
+            {
+              name: "allowRedirects",
+              type: "boolean",
+              label: "Allow redirects",
+              required: true,
+            },
+            {
+              name: "shareCookies",
+              type: "boolean",
+              label: "Share cookies with other HTTP modules",
+              required: true,
+            },
+            {
+              name: "requestCompressedContent",
+              type: "boolean",
+              label: "Request compressed content",
+              required: true,
+            },
+            {
+              name: "inputMethod",
+              type: "select",
+              label: "Body input method",
+              required: true,
+              validate: {
+                enum: ["dataStructure", "jsonString"],
+              },
+            },
+            {
+              name: "jsonStringBodyContent",
+              type: "text",
+              label: "Body content",
+              required: true,
+            },
+            {
+              name: "paginationType",
+              type: "select",
+              label: "Pagination type",
+              validate: {
+                enum: ["offsetBased", "pageBased", "urlBased", "tokenBased"],
+              },
+            },
+          ],
         },
       },
       {
-        id: 3,
+        id: 2,
         module: "json:ParseJSON",
         version: 1,
         parameters: {
           type: "",
         },
         mapper: {
-          json: "{{2.data}}",
+          json: "{{1.data}}",
         },
         metadata: {
-          designer: { x: 600, y: 0 },
-          restore: {},
+          designer: { x: 300, y: 0, name: "Parse Autonomous SEO Telemetry" },
         },
       },
       {
-        id: 4,
-        module: "router:Router",
+        id: 3,
+        module: "builtin:BasicRouter",
         version: 1,
-        parameters: {},
-        mapper: {},
+        mapper: null,
         metadata: {
-          designer: { x: 900, y: 0 },
+          designer: { x: 600, y: 0, name: "Decision Engine & CI/CD Actions" },
         },
-      },
-      {
-        id: 5,
-        module: "tools:SetVariable",
-        version: 1,
-        parameters: {},
-        mapper: {
-          name: "autonomous_status",
-          value: "{{3.telemetry.site_audit_issues}} issues found across {{3.telemetry.pages_crawled_verified}} pages. Schedule: {{3.schedule}}",
-        },
-        metadata: {
-          designer: { x: 1200, y: -100 },
-          restore: {},
-        },
-      },
-      {
-        id: 6,
-        module: "tools:SetVariable",
-        version: 1,
-        parameters: {},
-        mapper: {
-          name: "daily_publishing_log",
-          value: "Article generated and committed via CI/CD. Vercel deployment active.",
-        },
-        metadata: {
-          designer: { x: 1200, y: 100 },
-          restore: {},
-        },
+        routes: [
+          {
+            flow: [
+              {
+                id: 4,
+                module: "util:SetVariables",
+                version: 1,
+                parameters: {},
+                mapper: {
+                  scope: "roundtrip",
+                  variables: [
+                    {
+                      name: "autonomous_status",
+                      value: "Audited {{2.telemetry.pages_crawled_verified}} pages. 0 Issues. Cycle: {{2.schedule}}",
+                    },
+                  ],
+                },
+                metadata: {
+                  designer: { x: 900, y: -100, name: "Log SEO Health Status" },
+                },
+              },
+            ],
+          },
+          {
+            flow: [
+              {
+                id: 5,
+                module: "util:SetVariables",
+                version: 1,
+                parameters: {},
+                mapper: {
+                  scope: "roundtrip",
+                  variables: [
+                    {
+                      name: "daily_publishing_log",
+                      value: "Tactical article generated and auto-committed to GitHub for Vercel deployment.",
+                    },
+                  ],
+                },
+                metadata: {
+                  designer: { x: 900, y: 100, name: "Log Daily Publishing" },
+                },
+              },
+            ],
+          },
+        ],
       },
     ],
     metadata: {
@@ -117,6 +301,10 @@ export function generateMakeScenarioBlueprint(
       designer: {
         orphans: [],
       },
+    },
+    scheduling: {
+      type: "indifferently",
+      interval: 43200,
     },
   };
 }

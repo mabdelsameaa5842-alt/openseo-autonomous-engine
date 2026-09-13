@@ -47,19 +47,24 @@ export function BrandLookupResults({ result, projectId }: Props) {
 
     if (allPlatformsErrored) {
       return (
-        <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-sm">
-          AI mention data is temporarily unavailable for{" "}
-          <strong>{result.resolvedTarget}</strong>. Please try again shortly.
+        <div className="rounded-2xl border border-white/10 bg-[#121215]/90 p-5 text-sm text-zinc-300 backdrop-blur-md">
+          <p className="font-semibold text-white">AI Mention Data Unavailable</p>
+          <p className="mt-1 text-xs text-zinc-400">
+            Mention telemetry is temporarily unavailable for <strong className="text-white">{result.resolvedTarget}</strong>. Please try again shortly.
+          </p>
         </div>
       );
     }
     return (
       <div className="space-y-3">
-        <div className="rounded-lg border border-info/30 bg-info/10 p-4 text-sm">
-          No AI mentions found for <strong>{result.resolvedTarget}</strong>.
+        <div className="rounded-2xl border border-white/10 bg-[#121215]/90 p-5 text-sm text-zinc-300 backdrop-blur-md">
+          <p className="font-semibold text-white">No AI Mentions Detected</p>
+          <p className="mt-1 text-xs text-zinc-400">
+            No brand mentions or citations found yet for <strong className="text-white">{result.resolvedTarget}</strong> across AI models (ChatGPT, Claude, Gemini, Perplexity).
+          </p>
         </div>
         {erroredPlatforms.length > 0 ? (
-          <p className="text-xs text-base-content/60">
+          <p className="text-xs text-zinc-500">
             Note:{" "}
             {erroredPlatforms
               .map((p) => formatPlatformLabel(p.platform))

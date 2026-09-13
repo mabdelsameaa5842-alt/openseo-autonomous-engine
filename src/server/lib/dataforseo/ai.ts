@@ -31,7 +31,11 @@ const classifyAiSearchError = createDataforseoBillingClassifier({
 });
 
 const assertOptions = (path: string) =>
-  ({ classify: classifyAiSearchError, classifyPath: path }) as const;
+  ({
+    classify: classifyAiSearchError,
+    classifyPath: path,
+    treatNoResultsAsEmpty: true,
+  }) as const;
 
 function clampLimit(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.floor(value)));

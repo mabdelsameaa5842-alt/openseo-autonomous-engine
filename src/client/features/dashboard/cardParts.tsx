@@ -1,7 +1,6 @@
-// Shared building blocks for the dashboard cards. Same visual language as
-// the GSC IntegrationCard (rounded-xl, shadow-sm, header row + divider) so
-// the embedded SearchConsoleConnectionCard doesn't read as a different
-// design system.
+// Shared building blocks for the dashboard cards.
+// Styled according to Apple Human Interface Guidelines (OLED dark, hairline borders,
+// monochrome typography, with semantic emerald green and red accents).
 export function CardShell({
   title,
   stamp,
@@ -14,15 +13,15 @@ export function CardShell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="overflow-hidden rounded-xl border border-base-300 bg-base-100 shadow-sm">
-      <div className="flex items-center justify-between gap-4 px-5 py-4">
-        <h2 className="text-base font-semibold leading-tight">{title}</h2>
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121215]/90 shadow-xl shadow-black/20 backdrop-blur-md transition-all duration-200 hover:border-white/15">
+      <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+        <h2 className="text-sm font-semibold tracking-tight text-white">{title}</h2>
         {action}
       </div>
-      <div className="border-t border-base-300 p-5">
+      <div className="p-5">
         {children}
         {stamp ? (
-          <p className="mt-4 text-[11px] text-base-content/45">{stamp}</p>
+          <p className="mt-4 text-[11px] font-mono text-zinc-500">{stamp}</p>
         ) : null}
       </div>
     </div>
@@ -38,7 +37,7 @@ export function EmptyCardBody({
 }) {
   return (
     <div className="flex flex-col items-start gap-3">
-      <p className="text-sm text-base-content/70">{message}</p>
+      <p className="text-xs text-zinc-400 leading-relaxed">{message}</p>
       {cta}
     </div>
   );
@@ -56,13 +55,17 @@ export function Stat({
   sub?: React.ReactNode;
 }) {
   const toneClass =
-    tone === "success" ? "text-success" : tone === "error" ? "text-error" : "";
+    tone === "success"
+      ? "text-[#30D158]"
+      : tone === "error"
+        ? "text-[#FF453A]"
+        : "text-white";
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-base-content/60">
+      <p className="text-[11px] font-medium uppercase tracking-wider text-zinc-400">
         {label}
       </p>
-      <p className={`text-2xl font-semibold tabular-nums ${toneClass}`}>
+      <p className={`mt-0.5 text-2xl font-bold tracking-tight font-mono ${toneClass}`}>
         {value}
       </p>
       {sub}
@@ -81,15 +84,17 @@ export function PercentDelta({
   const pct = ((current - previous) / previous) * 100;
   if (!Number.isFinite(pct)) return null;
   const rounded = Math.round(pct);
-  const tone = rounded > 0 ? "text-success" : rounded < 0 ? "text-error" : "";
+  const tone =
+    rounded > 0 ? "text-[#30D158]" : rounded < 0 ? "text-[#FF453A]" : "text-zinc-400";
   return (
-    <p className={`text-xs tabular-nums ${tone}`}>
+    <p className={`mt-1 text-xs font-mono font-medium tabular-nums ${tone}`}>
       {rounded > 0 ? "▲" : rounded < 0 ? "▼" : ""} {Math.abs(rounded)}%
     </p>
   );
 }
 
-export const moreDetailsClass = "btn btn-ghost btn-xs";
+export const moreDetailsClass =
+  "inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-white/10 hover:text-white";
 
 export function newLost(value: number | null): string {
   return value === null ? "—" : String(value);
@@ -109,3 +114,4 @@ export function formatDay(timestamp: string): string {
     day: "numeric",
   });
 }
+

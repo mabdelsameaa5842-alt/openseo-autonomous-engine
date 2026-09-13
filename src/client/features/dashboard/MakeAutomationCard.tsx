@@ -141,24 +141,26 @@ export function MakeAutomationCard({
         {/* Top brand & status bar */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <MakeLogo className="size-6 shrink-0" />
+            <div className="flex size-7 items-center justify-center rounded-lg border border-white/10 bg-white/5">
+              <MakeLogo className="size-4 shrink-0 text-white" />
+            </div>
             <div>
-              <div className="text-xs font-semibold text-base-content/90">
+              <div className="text-xs font-semibold text-white tracking-tight">
                 Make.com AI Automation
               </div>
-              <div className="text-[11px] font-mono text-base-content/50">
+              <div className="text-[11px] font-mono text-zinc-500">
                 ID: {connected ? "make-autoseo-live" : "not-connected"}
               </div>
             </div>
           </div>
 
           {connected ? (
-            <span className="badge badge-sm badge-success gap-1 text-[11px] font-semibold text-white">
-              <span className="size-1.5 rounded-full bg-white animate-pulse" />
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#30D158]/30 bg-[#30D158]/10 px-2.5 py-0.5 text-[11px] font-semibold text-[#30D158]">
+              <span className="size-1.5 rounded-full bg-[#30D158] animate-pulse" />
               Connected
             </span>
           ) : (
-            <span className="badge badge-sm badge-warning gap-1 text-[11px] font-semibold text-amber-900 dark:text-amber-100">
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-0.5 text-[11px] font-medium text-zinc-400">
               غير متصل
             </span>
           )}
@@ -166,17 +168,17 @@ export function MakeAutomationCard({
 
         {/* State: Not Connected */}
         {!connected ? (
-          <div className="space-y-3.5 rounded-xl border border-warning/30 bg-warning/5 p-4">
+          <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.02] p-4">
             {/* Detected Google Account & 1-Click Connect */}
-            <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/80 p-3.5 shadow-sm space-y-2.5">
+            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3.5 space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <GoogleGlyph className="size-4 shrink-0" />
-                  <span className="text-xs font-semibold text-base-content/80">
+                  <span className="text-xs font-medium text-zinc-300">
                     حساب Google المكتشف:
                   </span>
                 </div>
-                <span className="text-xs font-mono font-bold text-primary">
+                <span className="text-xs font-mono font-bold text-white">
                   {detectedGoogleEmail}
                 </span>
               </div>
@@ -185,12 +187,10 @@ export function MakeAutomationCard({
               <button
                 type="button"
                 onClick={() => connect(detectedGoogleEmail)}
-                className="btn btn-sm w-full gap-2.5 bg-white hover:bg-slate-50 text-slate-800 dark:bg-slate-700 dark:text-white dark:hover:bg-slate-600 border border-slate-300 dark:border-slate-600 font-bold shadow-sm"
+                className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white text-black hover:bg-zinc-200 py-2 px-3 text-xs font-semibold shadow-sm transition-colors"
               >
                 <GoogleGlyph className="size-4" />
-                <span className="text-xs font-bold">
-                  تسجيل الدخول وتأكيد الربط بحساب Google
-                </span>
+                <span>تسجيل الدخول وتأكيد الربط بحساب Google</span>
               </button>
             </div>
 
@@ -199,17 +199,17 @@ export function MakeAutomationCard({
               <button
                 type="button"
                 onClick={handleStartGoogleOAuth}
-                className="btn btn-xs btn-outline gap-1.5 flex-1 border-slate-300 text-slate-700 dark:text-slate-200"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/10 bg-white/5 py-1.5 px-2.5 text-[11px] font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <GoogleGlyph className="size-3" />
-                <span className="text-[11px]">تسجيل الدخول عبر Google OAuth</span>
+                <span>تسجيل الدخول عبر Google OAuth</span>
               </button>
 
               <a
                 href={MAKE_GOOGLE_LOGIN_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="btn btn-xs btn-ghost gap-1 text-[11px] text-slate-600 dark:text-slate-300"
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 py-1.5 px-2.5 text-[11px] font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <ExternalLink className="size-3" />
                 <span>دخول Make.com</span>
@@ -217,24 +217,24 @@ export function MakeAutomationCard({
             </div>
 
             {/* AI Scenario Builder Section */}
-            <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2.5">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3 space-y-2.5">
               <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs font-bold text-primary">
-                  <Sparkles className="size-3.5 text-primary" />
+                <span className="flex items-center gap-1.5 text-xs font-semibold text-white">
+                  <Sparkles className="size-3.5 text-zinc-400" />
                   <span>بناء الأتمتة على Make بالذكاء الاصطناعي</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => setShowAiBuilder(!showAiBuilder)}
-                  className="btn btn-ghost btn-xs text-[11px] text-primary hover:bg-primary/10"
+                  className="rounded px-2 py-0.5 text-[11px] text-zinc-400 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   {showAiBuilder ? "إخفاء" : "إظهار الخيارات"}
                 </button>
               </div>
 
               {showAiBuilder ? (
-                <div className="space-y-2 pt-1 border-t border-primary/10">
-                  <p className="text-[11px] text-base-content/70 leading-relaxed">
+                <div className="space-y-2.5 pt-2 border-t border-white/[0.06]">
+                  <p className="text-[11px] text-zinc-400 leading-relaxed">
                     أدخل الـ Make API Token لبناء وتشغيل السيناريو في حسابك تلقائياً دون كتابة أي كود:
                   </p>
                   <div className="flex gap-1.5">
@@ -243,13 +243,13 @@ export function MakeAutomationCard({
                       placeholder="Make API Token (من Make > Profile > API)"
                       value={makeApiToken}
                       onChange={(e) => setMakeApiToken(e.target.value)}
-                      className="input input-bordered input-sm flex-1 text-xs font-mono"
+                      className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs font-mono text-white placeholder-zinc-500 focus:outline-none focus:border-white/20"
                     />
                     <button
                       type="button"
                       onClick={handleBuildScenarioWithAi}
                       disabled={buildingAi}
-                      className="btn btn-sm btn-primary text-xs font-bold gap-1 px-3"
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-zinc-200 disabled:opacity-50 transition-colors"
                     >
                       {buildingAi ? (
                         <RefreshCw className="size-3 animate-spin" />
@@ -265,7 +265,7 @@ export function MakeAutomationCard({
                       href="https://eu1.make.com/user/api-tokens"
                       target="_blank"
                       rel="noreferrer"
-                      className="text-primary hover:underline inline-flex items-center gap-1"
+                      className="text-zinc-400 hover:text-white hover:underline inline-flex items-center gap-1"
                     >
                       <span>الحصول على API Token من Make</span>
                       <ExternalLink className="size-3" />
@@ -274,7 +274,7 @@ export function MakeAutomationCard({
                     <button
                       type="button"
                       onClick={handleDownloadBlueprint}
-                      className="text-secondary hover:underline inline-flex items-center gap-1 font-semibold"
+                      className="text-zinc-400 hover:text-white hover:underline inline-flex items-center gap-1 font-semibold"
                     >
                       <Download className="size-3" />
                       <span>أو تحميل Blueprint .json</span>
@@ -283,13 +283,13 @@ export function MakeAutomationCard({
                 </div>
               ) : (
                 <div className="flex items-center justify-between text-[11px]">
-                  <span className="text-base-content/60">
+                  <span className="text-zinc-400">
                     بناء السيناريو كاملاً (12h Cycle & Daily Publishing)
                   </span>
                   <button
                     type="button"
                     onClick={handleDownloadBlueprint}
-                    className="btn btn-xs btn-outline border-primary/30 text-primary gap-1 font-semibold"
+                    className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
                   >
                     <Download className="size-3" />
                     <span>تحميل Blueprint</span>
@@ -306,11 +306,11 @@ export function MakeAutomationCard({
                 placeholder="name@gmail.com"
                 value={inputEmail}
                 onChange={(e) => setInputEmail(e.target.value)}
-                className="input input-bordered input-sm flex-1 text-xs"
+                className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/20"
               />
               <button
                 type="submit"
-                className="btn btn-sm btn-outline border-base-300 text-xs px-3 font-semibold"
+                className="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 تأكيد الربط
               </button>
@@ -320,14 +320,14 @@ export function MakeAutomationCard({
           /* State: Connected */
           <div className="space-y-3">
             {/* Account Info pill */}
-            <div className="flex items-center justify-between rounded-lg border border-success/30 bg-success/5 px-3 py-2">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center justify-between rounded-xl border border-[#30D158]/20 bg-[#30D158]/5 p-3">
+              <div className="flex items-center gap-2.5">
                 <GoogleGlyph className="size-4 shrink-0" />
                 <div>
-                  <div className="text-[10px] font-semibold text-success">
+                  <div className="text-[10px] uppercase font-semibold text-[#30D158]">
                     حساب Google / الإيميل المتصل:
                   </div>
-                  <div className="text-xs font-bold font-mono text-base-content">
+                  <div className="text-xs font-bold font-mono text-white">
                     {connectedEmail}
                   </div>
                 </div>
@@ -335,7 +335,7 @@ export function MakeAutomationCard({
               <button
                 type="button"
                 onClick={disconnect}
-                className="btn btn-ghost btn-xs text-error text-[11px] gap-1 hover:bg-error/10"
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-xs text-zinc-400 hover:text-[#FF453A] hover:bg-white/10 transition-colors"
                 title="قطع الاتصال"
               >
                 <LogOut className="size-3" />
@@ -345,16 +345,16 @@ export function MakeAutomationCard({
 
             {/* If a scenario was built by AI, show direct link */}
             {createdScenarioUrl || scenarioUrl ? (
-              <div className="flex items-center justify-between rounded-lg bg-primary/10 border border-primary/20 p-2 text-xs">
-                <span className="text-primary font-bold flex items-center gap-1.5">
-                  <CheckCircle2 className="size-3.5" />
+              <div className="flex items-center justify-between rounded-xl border border-white/10 bg-white/[0.03] p-3 text-xs">
+                <span className="text-white font-medium flex items-center gap-1.5">
+                  <CheckCircle2 className="size-3.5 text-[#30D158]" />
                   تم بناء وتفعيل السيناريو بالذكاء الاصطناعي
                 </span>
                 <a
                   href={createdScenarioUrl || scenarioUrl!}
                   target="_blank"
                   rel="noreferrer"
-                  className="btn btn-xs btn-primary gap-1 font-bold"
+                  className="inline-flex items-center gap-1 rounded-lg bg-white/10 border border-white/10 px-2.5 py-1 text-xs font-medium text-white hover:bg-white/15 transition-colors"
                 >
                   <span>فتح السيناريو في Make</span>
                   <ExternalLink className="size-3" />
@@ -363,33 +363,33 @@ export function MakeAutomationCard({
             ) : null}
 
             {/* Telemetry info */}
-            <div className="rounded-xl border border-base-300 bg-base-200/40 p-3.5 space-y-2.5">
+            <div className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5 space-y-2.5">
               <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-base-content/70">
-                  <Clock className="size-3.5 text-primary" />
+                <span className="flex items-center gap-1.5 text-zinc-400">
+                  <Clock className="size-3.5 text-zinc-400" />
                   <span>الجدولة الزمنية</span>
                 </span>
-                <span className="font-bold text-primary font-mono">
+                <span className="font-semibold text-white font-mono">
                   كل 12 ساعة (06:00 AM / 06:00 PM)
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-base-content/70">
-                  <Zap className="size-3.5 text-amber-500" />
+                <span className="flex items-center gap-1.5 text-zinc-400">
+                  <Zap className="size-3.5 text-zinc-400" />
                   <span>النشر اليومي التلقائي</span>
                 </span>
-                <span className="font-bold text-base-content">
+                <span className="font-semibold text-white">
                   1 مقال تكتيكي جديد يومياً
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-xs">
-                <span className="flex items-center gap-1.5 text-base-content/70">
-                  <ShieldCheck className="size-3.5 text-success" />
+                <span className="flex items-center gap-1.5 text-zinc-400">
+                  <ShieldCheck className="size-3.5 text-[#30D158]" />
                   <span>تكامل النشر والفحص</span>
                 </span>
-                <span className="font-bold text-success">
+                <span className="font-semibold text-[#30D158] font-mono">
                   GitHub CI/CD & 0 Issues
                 </span>
               </div>
@@ -400,7 +400,7 @@ export function MakeAutomationCard({
                 type="button"
                 onClick={handleTestPing}
                 disabled={testing}
-                className="btn btn-outline btn-xs border-base-300 gap-1.5 text-base-content/70 hover:bg-base-200"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <RefreshCw
                   className={`size-3 ${testing ? "animate-spin" : ""}`}
@@ -411,7 +411,7 @@ export function MakeAutomationCard({
               <button
                 type="button"
                 onClick={handleDownloadBlueprint}
-                className="btn btn-ghost btn-xs text-primary gap-1 font-semibold"
+                className="inline-flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
               >
                 <Download className="size-3" />
                 <span>تحميل Blueprint</span>

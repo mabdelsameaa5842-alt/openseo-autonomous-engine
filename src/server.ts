@@ -27,7 +27,12 @@ import { sweepDubReferredOrganizations } from "@/server/referrals/dub";
 import { maybeSendSelfHostHeartbeat } from "@/server/lib/self-host-telemetry";
 import { handleGdprStorageErasure } from "@/server/gdpr/storage-erasure";
 import { GDPR_STORAGE_ERASURE_PATH } from "@/shared/gdpr-erasure";
-import { handleAutonomousSeoCycle } from "@/server/features/automation/autonomousHandler";
+import {
+  handleAutonomousSeoCycle,
+  handleMakeTelemetry,
+  handleTriggerCycle,
+  handleMakeLogs,
+} from "@/server/features/automation/autonomousHandler";
 import {
   handleMakeAiBuilder,
   handleMakeBlueprintDownload,
@@ -35,6 +40,11 @@ import {
   handleMakeConnect,
   handleMakeDisconnect,
 } from "@/server/features/automation/makeAiBuilder";
+import {
+  handleSuperAdminLogin,
+  handleSuperAdminSession,
+  handleSuperAdminLogout,
+} from "@/server/features/auth/superAdminAuth";
 
 const appFetch = createStartHandler(defaultStreamHandler);
 const openSeoOAuthProvider = createOpenSeoOAuthProvider(appFetch);
@@ -165,6 +175,18 @@ function handleFetch(
     return handleAutonomousSeoCycle(publicRequest, env);
   }
 
+  if (pathname === "/api/automation/make-telemetry") {
+    return handleMakeTelemetry(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/make-logs") {
+    return handleMakeLogs(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/trigger-run") {
+    return handleTriggerCycle(publicRequest, env);
+  }
+
   if (pathname === "/api/automation/make-builder") {
     return handleMakeAiBuilder(publicRequest, env);
   }
@@ -183,6 +205,18 @@ function handleFetch(
 
   if (pathname === "/api/automation/make-disconnect") {
     return handleMakeDisconnect(publicRequest, env);
+  }
+
+  if (pathname === "/api/auth/super-admin/login") {
+    return handleSuperAdminLogin(publicRequest, env);
+  }
+
+  if (pathname === "/api/auth/super-admin/session") {
+    return handleSuperAdminSession(publicRequest);
+  }
+
+  if (pathname === "/api/auth/super-admin/logout") {
+    return handleSuperAdminLogout();
   }
 
   if (pathname.startsWith("/agents/")) {

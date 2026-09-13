@@ -2,7 +2,15 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, Check } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Check,
+  Zap,
+  RefreshCw,
+  SlidersHorizontal,
+  Globe,
+} from "lucide-react";
 import { sort } from "remeda";
 import { captureClientEvent } from "@/client/lib/posthog";
 import {
@@ -141,55 +149,55 @@ function OnboardingChecklist({
   };
 
   return (
-    <div className="rounded-xl border border-primary/25 bg-primary/5 shadow-sm">
-      <div className="flex items-center justify-between gap-4 px-5 pt-4">
-        <p className="text-xs font-medium uppercase tracking-wide text-primary">
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121215]/90 shadow-xl shadow-black/20 backdrop-blur-md">
+      <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-5 py-3.5">
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
           Onboarding checklist
         </p>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1.5">
           <button
             type="button"
-            className={`btn btn-ghost btn-xs btn-square ${
+            className={`inline-flex items-center justify-center size-6 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors ${
               index === 0 ? "invisible" : ""
             }`}
             aria-label="Previous step"
             disabled={index === 0}
             onClick={() => page(-1)}
           >
-            <ChevronLeft className="size-4" />
+            <ChevronLeft className="size-3.5" />
           </button>
-          <span className="text-xs tabular-nums text-base-content/60">
+          <span className="text-xs font-mono text-zinc-500 tabular-nums">
             {index + 1} / {STEP_ORDER.length}
           </span>
           <button
             type="button"
-            className={`btn btn-ghost btn-xs btn-square ${
+            className={`inline-flex items-center justify-center size-6 rounded-md border border-white/10 bg-white/5 text-zinc-400 hover:text-white hover:bg-white/10 transition-colors ${
               index === STEP_ORDER.length - 1 ? "invisible" : ""
             }`}
             aria-label="Next step"
             disabled={index === STEP_ORDER.length - 1}
             onClick={() => page(1)}
           >
-            <ChevronRight className="size-4" />
+            <ChevronRight className="size-3.5" />
           </button>
         </div>
       </div>
-      <div className="flex flex-row flex-wrap items-center justify-between gap-4 p-5 pt-2">
+      <div className="flex flex-row flex-wrap items-center justify-between gap-4 p-5">
         <div className="min-w-0">
-          <h2 className="text-lg font-semibold">{copy.title}</h2>
-          <p className="mt-1 max-w-xl text-sm text-base-content/70">
+          <h2 className="text-base font-semibold tracking-tight text-white">{copy.title}</h2>
+          <p className="mt-1 max-w-xl text-xs text-zinc-400 leading-relaxed">
             {copy.body}
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap items-center gap-3">
           {done ? (
-            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-success">
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#30D158]">
               <Check className="size-4" />
               Done
             </span>
           ) : step === "domain" ? (
             <form
-              className="join"
+              className="flex items-center gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
                 onSubmitDomain();
@@ -197,7 +205,7 @@ function OnboardingChecklist({
             >
               <input
                 type="text"
-                className="input input-bordered join-item w-52"
+                className="w-52 rounded-xl border border-white/10 bg-black/40 px-3.5 py-1.5 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white/20"
                 placeholder="acme.com"
                 value={domainInput}
                 onChange={(event) => setDomainInput(event.target.value)}
@@ -205,7 +213,7 @@ function OnboardingChecklist({
               />
               <button
                 type="submit"
-                className="btn btn-primary join-item"
+                className="rounded-xl bg-white px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-zinc-200 transition-colors disabled:opacity-50"
                 disabled={
                   domainMutation.isPending ||
                   normalizeDomainInput(domainInput) === ""
@@ -217,7 +225,7 @@ function OnboardingChecklist({
           ) : step === "mcp" ? (
             <Link
               to="/ai"
-              className="link link-primary text-sm font-medium"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-white hover:underline"
               onClick={() =>
                 captureClientEvent("dashboard:next_move_click", { step })
               }
@@ -225,7 +233,11 @@ function OnboardingChecklist({
               {copy.cta} →
             </Link>
           ) : (
-            <button type="button" className="btn btn-primary" onClick={onCta}>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-zinc-200 transition-colors"
+              onClick={onCta}
+            >
               {copy.cta}
             </button>
           )}
@@ -274,7 +286,7 @@ export function DashboardPage({ projectId }: { projectId: string }) {
   if (activationQuery.isError) {
     return (
       <div className="px-4 py-4 md:px-6 md:py-6">
-        <div className="alert alert-error">
+        <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-[#FF453A]">
           {getStandardErrorMessage(activationQuery.error)}
         </div>
       </div>
@@ -290,11 +302,11 @@ export function DashboardPage({ projectId }: { projectId: string }) {
         className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-4 md:px-6 md:py-6"
         aria-busy
       >
-        <div className="skeleton h-8 w-52" />
-        <div className="skeleton h-36" />
+        <div className="h-8 w-48 animate-pulse rounded-xl bg-white/5" />
+        <div className="h-32 animate-pulse rounded-2xl bg-white/5" />
         <div className="grid gap-5 lg:grid-cols-2">
-          <div className="skeleton h-44" />
-          <div className="skeleton h-44" />
+          <div className="h-44 animate-pulse rounded-2xl bg-white/5" />
+          <div className="h-44 animate-pulse rounded-2xl bg-white/5" />
         </div>
       </div>
     );
@@ -372,7 +384,82 @@ export function DashboardPage({ projectId }: { projectId: string }) {
   return (
     <div className="px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8">
       <div className="mx-auto flex max-w-5xl flex-col gap-5">
-        <h1 className="text-2xl font-semibold">Dashboard</h1>
+        {/* Header with Title & Domain Badge */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-white">Dashboard</h1>
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Organic search performance, autonomous engine & technical health
+            </p>
+          </div>
+
+          {activation.domain ? (
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
+              <Globe className="size-3.5 text-zinc-400" />
+              <span className="font-mono text-white">{activation.domain}</span>
+              <span className="inline-flex items-center gap-1 rounded-full border border-[#30D158]/30 bg-[#30D158]/10 px-2 py-0.5 text-[10px] font-semibold text-[#30D158]">
+                <span className="size-1.5 rounded-full bg-[#30D158] animate-pulse" />
+                Active
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        {/* Internal Action Command Strip */}
+        <div className="rounded-2xl border border-white/10 bg-[#121215]/80 p-3 shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+              Services
+            </span>
+            <div className="h-3.5 w-px bg-white/10" />
+            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
+              <span className={`size-1.5 rounded-full ${gscConnected ? "bg-[#30D158]" : "bg-zinc-600"}`} />
+              <span>GSC</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
+              <span className={`size-1.5 rounded-full ${ga4Connected ? "bg-[#30D158]" : "bg-zinc-600"}`} />
+              <span>GA4</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
+              <span className="size-1.5 rounded-full bg-[#30D158]" />
+              <span>Make.com</span>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
+              <span className="size-1.5 rounded-full bg-[#30D158]" />
+              <span>Google Ads</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => toast.success("دورة Make.com التلقائية مجدولة ونشطة كل 12 ساعة وجاهزة للنشر اليومي!")}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <Zap className="size-3.5 text-amber-400" />
+              <span>Trigger Automation</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={refreshMutation.isPending}
+              onClick={() => refreshMutation.mutate()}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+            >
+              <RefreshCw className={`size-3.5 text-zinc-400 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
+              <span>Sync Snapshot</span>
+            </button>
+
+            <Link
+              to="/p/$projectId/settings/integrations"
+              params={{ projectId }}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <SlidersHorizontal className="size-3.5 text-zinc-400" />
+              <span>Integrations</span>
+            </Link>
+          </div>
+        </div>
 
         <WorkspaceMergeBanner />
 

@@ -55,11 +55,11 @@ function SessionsTooltip({
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-md border border-base-300 bg-base-100 px-3 py-2 shadow-sm">
-      <p className="text-xs text-base-content/60">
+    <div className="rounded-xl border border-white/10 bg-[#121215]/95 px-3 py-2 shadow-2xl backdrop-blur-md">
+      <p className="text-[11px] font-mono text-zinc-400">
         {label ? formatTrendDay(label) : ""}
       </p>
-      <p className="text-sm font-medium tabular-nums">
+      <p className="text-xs font-semibold font-mono text-white">
         {formatCount(payload[0].value)} sessions
       </p>
     </div>
@@ -106,20 +106,20 @@ export function Ga4Card({
         <div className="space-y-3" aria-busy>
           <div className="grid grid-cols-2 gap-3">
             {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="skeleton h-16" />
+              <div key={i} className="h-16 animate-pulse rounded-xl bg-white/5" />
             ))}
           </div>
-          <div className="skeleton h-24" />
+          <div className="h-24 animate-pulse rounded-xl bg-white/5" />
         </div>
       ) : reportQuery.isError ? (
-        <p className="text-sm text-base-content/60">
+        <p className="text-xs text-zinc-400">
           Couldn&rsquo;t load Google Analytics data. Try again shortly.
         </p>
       ) : report?.connected ? (
         // Covers null (no report row) and 0: a zero-session period would
         // otherwise render an all-zero flatline chart in an empty box.
         !report.totals.sessions ? (
-          <p className="text-sm text-base-content/60">
+          <p className="text-xs text-zinc-400">
             No organic search traffic recorded in the last 28 days yet.
           </p>
         ) : (
@@ -164,15 +164,14 @@ export function Ga4Card({
                   <YAxis hide domain={[0, "auto"]} />
                   <Tooltip
                     content={<SessionsTooltip />}
-                    cursor={{ stroke: "currentColor", strokeOpacity: 0.2 }}
+                    cursor={{ stroke: "rgba(255,255,255,0.15)", strokeWidth: 1 }}
                   />
                   <Area
                     type="monotone"
                     dataKey="sessions"
-                    stroke="var(--color-primary)"
-                    strokeWidth={2}
-                    fill="var(--color-primary)"
-                    fillOpacity={0.08}
+                    stroke="#ffffff"
+                    strokeWidth={1.5}
+                    fill="rgba(255,255,255,0.06)"
                   />
                 </AreaChart>
               </ResponsiveContainer>

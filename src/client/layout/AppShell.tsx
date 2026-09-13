@@ -13,10 +13,29 @@ import { BILLING_ROUTE } from "@/shared/billing";
 import { getSeoApiKeyStatus } from "@/serverFunctions/config";
 import { getProjects } from "@/serverFunctions/projects";
 import { getLastProjectId } from "@/client/lib/active-project";
+import { SuperAdminGate } from "@/client/components/SuperAdminGate";
 
 const DATAFORSEO_HELP_PATH = "/help/dataforseo-api-key";
 
 export function AuthenticatedAppLayout({
+  children,
+  projectId,
+  banner,
+}: {
+  children: React.ReactNode;
+  projectId?: string;
+  banner?: React.ReactNode;
+}) {
+  return (
+    <SuperAdminGate>
+      <AuthenticatedAppLayoutInner projectId={projectId} banner={banner}>
+        {children}
+      </AuthenticatedAppLayoutInner>
+    </SuperAdminGate>
+  );
+}
+
+function AuthenticatedAppLayoutInner({
   children,
   projectId,
   banner,

@@ -27,6 +27,7 @@ import { closeDropdown } from "@/client/lib/dropdown";
 import { signOutAndRedirect, useSession } from "@/lib/auth-client";
 import { isHostedClientAuthMode } from "@/lib/auth-mode";
 import { BILLING_ROUTE } from "@/shared/billing";
+import { useSuperAdmin } from "@/client/components/SuperAdminGate";
 
 interface SidebarProps {
   projectId: string | null;
@@ -232,7 +233,9 @@ function SidebarViewTab({
 function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
   const { data: session } = useSession();
   const isHostedMode = isHostedClientAuthMode();
-  const email = session?.user?.email;
+  const superAdmin = useSuperAdmin();
+  const email = superAdmin.user?.email || session?.user?.email;
+  const userName = superAdmin.user?.name || "م. محمد عبد السميع";
   const [isSwitching, setIsSwitching] = useState(false);
 
   const orgContextQuery = useQuery({
@@ -261,7 +264,7 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
   }
 
   return (
-    <div className="shrink-0 border-t border-base-300 px-2 py-2 pb-safe">
+    <div className="shrink-0 border-t border-base-300 px-2 py-2 pb-safe space-y-1.5">
       <SidebarNavLink
         icon={CircleHelp}
         label="Help & Community"
@@ -274,18 +277,48 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
           <button
             type="button"
             tabIndex={0}
-            className={`${navItemClass} w-full`}
+            className="group relative flex w-full items-center gap-2.5 rounded-xl border border-base-300/80 bg-base-100/60 p-2 text-left backdrop-blur-md transition-all duration-200 hover:border-amber-400/50 hover:bg-base-300/40 hover:shadow-sm"
             aria-label="Open account menu"
           >
-            <User className="h-4 w-4 shrink-0" />
-            <span className="truncate" data-ph-mask>
-              {email}
+            {/* Apple HIG Monogram Avatar */}
+            <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500/20 via-amber-600/10 to-transparent border border-amber-500/30 text-amber-500 dark:text-amber-300 font-bold text-xs shadow-inner">
+              MA
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-2 w-2">
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+              </span>
+            </div>
+
+            <div className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-xs font-semibold text-base-content leading-tight">
+                {userName}
+              </span>
+              <span className="truncate text-[11px] text-base-content/50 font-mono">
+                {email}
+              </span>
+            </div>
+
+            <span className="shrink-0 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-600 dark:text-amber-400">
+              👑 Admin
             </span>
           </button>
           <ul
             tabIndex={0}
-            className="dropdown-content z-30 menu mb-1 w-56 rounded-box border border-base-300 bg-base-100 p-2 shadow-lg"
+            className="dropdown-content z-30 menu mb-1 w-64 rounded-2xl border border-base-300 bg-base-100/95 p-2 shadow-xl backdrop-blur-xl"
           >
+            <li className="menu-title flex flex-row items-center gap-1.5 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-base-content/50">
+              حساب المدير العام (Super Admin)
+            </li>
+            <li className="px-3 py-2 rounded-xl bg-base-200/50 border border-base-300/40 mb-1">
+              <div className="flex flex-col gap-0.5">
+                <span className="font-semibold text-xs text-base-content">{userName}</span>
+                <span className="text-[11px] text-base-content/60 font-mono">{email}</span>
+                <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-emerald-500 font-medium">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  جلسة آمنة ومحمية عبر Apple WebCrypto
+                </span>
+              </div>
+            </li>
+            <li aria-hidden className="pointer-events-none my-1 h-px bg-base-300 p-0" />
             {organizations.length > 1 ? (
               <>
                 <li className="menu-title flex flex-row items-center gap-1.5 max-w-full">
@@ -321,7 +354,7 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
             <li>
               <Link to="/settings" onClick={closeMenu}>
                 <Settings className="h-4 w-4" />
-                Settings
+                Settings (الإعدادات)
               </Link>
             </li>
             {isHostedMode ? (
@@ -333,24 +366,23 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
               </li>
             ) : null}
             <ThemePreferenceMenuItems />
-            {isHostedMode ? (
-              <>
-                <li
-                  aria-hidden
-                  className="pointer-events-none my-1 h-px bg-base-300 p-0"
-                />
-                <li>
-                  <button
-                    type="button"
-                    className="text-error"
-                    onClick={() => signOutAndRedirect()}
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Sign out
-                  </button>
-                </li>
-              </>
-            ) : null}
+            <li
+              aria-hidden
+              className="pointer-events-none my-1 h-px bg-base-300 p-0"
+            />
+            <li>
+              <button
+                type="button"
+                className="text-error font-medium"
+                onClick={() => {
+                  superAdmin.logout();
+                  if (isHostedMode) signOutAndRedirect();
+                }}
+              >
+                <LogOut className="h-4 w-4" />
+                تسجيل الخروج (Sign out)
+              </button>
+            </li>
           </ul>
         </div>
       ) : (

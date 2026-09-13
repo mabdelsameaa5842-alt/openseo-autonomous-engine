@@ -75,11 +75,11 @@ export function GscCard({
       {reportQuery.isPending ? (
         <div className="grid grid-cols-2 gap-3" aria-busy>
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="skeleton h-20" />
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-white/5" />
           ))}
         </div>
       ) : reportQuery.isError ? (
-        <p className="text-sm text-base-content/60">
+        <p className="text-xs text-zinc-400">
           Couldn&rsquo;t load Search Console data. Try again shortly.
         </p>
       ) : report?.connected ? (
@@ -131,7 +131,7 @@ export function AuditHealthCard({
             <Link
               to="/p/$projectId/audit"
               params={{ projectId }}
-              className="btn btn-primary btn-sm"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black hover:bg-zinc-200 transition-colors"
             >
               Run an audit
             </Link>
@@ -162,38 +162,38 @@ export function AuditHealthCard({
       }
     >
       {audit.topIssues.length === 0 ? (
-        <div className="flex items-center gap-2 text-sm text-base-content/70">
-          <Check className="size-4 text-success" />
-          No issues found — your site looks healthy.
+        <div className="flex items-center gap-2 rounded-xl border border-[#30D158]/20 bg-[#30D158]/5 p-3 text-xs text-white">
+          <Check className="size-4 text-[#30D158] shrink-0" />
+          <span>No issues found — your site looks completely healthy.</span>
         </div>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-2.5">
           {audit.topIssues.map((issue) => (
             <li
               key={issue.issueType}
-              className="flex items-center justify-between gap-2 text-sm"
+              className="flex items-center justify-between gap-2 text-xs"
             >
               <span className="flex min-w-0 items-center gap-2">
                 <span
-                  className={`size-2 shrink-0 rounded-full ${
+                  className={`size-1.5 shrink-0 rounded-full ${
                     issue.severity === "critical"
-                      ? "bg-error"
+                      ? "bg-[#FF453A]"
                       : issue.severity === "warning"
-                        ? "bg-warning"
-                        : "bg-base-content/30"
+                        ? "bg-amber-400"
+                        : "bg-zinc-600"
                   }`}
                 />
-                <span className="truncate">
+                <span className="truncate text-zinc-300 font-medium">
                   {issueTitles[issue.issueType] ?? issue.issueType}
                 </span>
               </span>
-              <span className="shrink-0 tabular-nums text-base-content/60">
+              <span className="shrink-0 font-mono text-zinc-400">
                 {issue.count} {issue.count === 1 ? "page" : "pages"}
               </span>
             </li>
           ))}
           {audit.totalIssueTypes > audit.topIssues.length ? (
-            <li className="text-xs text-base-content/50">
+            <li className="pt-1 text-[11px] font-mono text-zinc-500">
               + {audit.totalIssueTypes - audit.topIssues.length} more issue
               {audit.totalIssueTypes - audit.topIssues.length === 1 ? "" : "s"}
             </li>
@@ -218,7 +218,7 @@ export function BacklinkPulseCard({
       <CardShell title="Backlink pulse" stamp="Taking your first snapshot…">
         <div className="grid grid-cols-2 gap-3" aria-busy>
           {Array.from({ length: 4 }, (_, i) => (
-            <div key={i} className="skeleton h-20" />
+            <div key={i} className="h-20 animate-pulse rounded-xl bg-white/5" />
           ))}
         </div>
       </CardShell>
@@ -228,7 +228,7 @@ export function BacklinkPulseCard({
   if (!backlinks) {
     return (
       <CardShell title="Backlink pulse">
-        <p className="text-sm text-base-content/60">
+        <p className="text-xs text-zinc-400">
           We&rsquo;ll snapshot who links to your domain — nothing to set up.
         </p>
       </CardShell>
