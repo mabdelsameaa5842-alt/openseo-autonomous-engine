@@ -674,7 +674,13 @@ export function sanitizeFlowGraph(
     }
 
     if (validNodeIds.has(edge.source) && validNodeIds.has(edge.target)) {
-      sanitizedEdges.push(edge);
+      const cleanLabel = (edge.label || "").toLowerCase().includes("make")
+        ? "إشراف وتوليد المحتوى"
+        : edge.label;
+      sanitizedEdges.push({
+        ...edge,
+        label: cleanLabel,
+      });
     }
   }
 
@@ -707,6 +713,17 @@ export function sanitizeFlowGraph(
     });
   }
 
+  // Deduplicate edges by source-target pair
+  const seenPairs = new Set<string>();
+  const uniqueEdges: FlowEdge[] = [];
+  for (const edge of sanitizedEdges) {
+    const pair = `${edge.source}->${edge.target}`;
+    if (!seenPairs.has(pair)) {
+      seenPairs.add(pair);
+      uniqueEdges.push(edge);
+    }
+  }
+
   // 3. Inject dynamic domain and count into node_publish
   sanitizedNodes = sanitizedNodes.map((node) => {
     if (node.id === "node_publish") {
@@ -727,7 +744,7 @@ export function sanitizeFlowGraph(
     name: graph.name && !graph.name.toLowerCase().includes("make") ? graph.name : "دورة النشر والتصدر التلقائي (Autonomous SEO Publishing)",
     description: graph.description && !graph.description.toLowerCase().includes("make") ? graph.description : "منظومة Flowise الذاتية المتكاملة لحصاد الكلمات وصياغة المقالات والنشر والتحقق من السيرب",
     nodes: sanitizedNodes,
-    edges: sanitizedEdges,
+    edges: uniqueEdges,
   };
 }
 
@@ -782,7 +799,26 @@ export async function listWorkflows(
         console.warn("[listWorkflows] error parsing workflow:", err);
       }
     }
-    if (list.length > 0) return list;
+    if (list.length > 0) {
+      // Ensure missing standard presets are populated for rich multi-workflow capability
+      const existingTypes = new Set(list.map((w) => w.workflowType));
+      const standardPresets: WorkflowType[] = [
+        "continuous_publishing",
+        "rank_auditor",
+        "competitor_spy",
+        "local_booster",
+      ];
+
+      for (const presetType of standardPresets) {
+        if (!existingTypes.has(presetType)) {
+          const presetFlow = getDefaultFlowGraph(projectId, dynamicDomain, dynamicLiveCount, presetType);
+          await saveFlowGraph(db, presetFlow);
+          list.push(presetFlow);
+        }
+      }
+
+      return list;
+    }
   }
 
   // If no workflows exist, initialize the 4 standard Flowise presets

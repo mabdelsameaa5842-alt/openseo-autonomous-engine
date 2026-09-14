@@ -24,6 +24,7 @@ import {
   ChevronLeft,
   Eye,
   Sliders,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/client/lib/i18n";
@@ -31,6 +32,7 @@ import type { FlowGraph, WorkflowType } from "@/server/features/automation/flowE
 import { WorkflowManagerBar } from "./WorkflowManagerBar";
 import { StudioGeminiChatDrawer } from "./StudioGeminiChatDrawer";
 import { NodeInspectorDrawer } from "./NodeInspectorDrawer";
+import { AddNodeModal } from "./AddNodeModal";
 
 export interface CanvasNode {
   id: string;
@@ -266,6 +268,7 @@ export function AutomationFlowCanvas({
 
   // Drawers & Modals
   const [isAiChatOpen, setIsAiChatOpen] = useState(false);
+  const [isAddNodeModalOpen, setIsAddNodeModalOpen] = useState(false);
   const [inspectingNode, setInspectingNode] = useState<CanvasNode | null>(null);
   const [selectedNode, setSelectedNode] = useState<CanvasNode | null>(null);
 
@@ -421,6 +424,51 @@ export function AutomationFlowCanvas({
     }
   };
 
+  // Delete Node Handler
+  const handleDeleteNode = (nodeId: string) => {
+    setNodes((prev) => prev.filter((n) => n.id !== nodeId));
+    setEdges((prev) => prev.filter((e) => e.from !== nodeId && e.to !== nodeId));
+    setSelectedNode(null);
+    setInspectingNode(null);
+  };
+
+  // Add Edge Handler
+  const handleAddEdge = (from: string, to: string) => {
+    setEdges((prev) => {
+      if (prev.some((e) => e.from === from && e.to === to)) return prev;
+      return [
+        ...prev,
+        {
+          id: `e_${Date.now().toString(36)}`,
+          from,
+          to,
+          animated: true,
+          label: "ربط تسلسلي",
+        },
+      ];
+    });
+  };
+
+  // Remove Edge Handler
+  const handleRemoveEdge = (edgeId: string) => {
+    setEdges((prev) => prev.filter((e) => e.id !== edgeId));
+  };
+
+  // Keyboard shortcut: Delete selected node
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.key === "Delete" || e.key === "Backspace") && selectedNode && !inspectingNode) {
+        const target = e.target as HTMLElement;
+        if (target.tagName !== "INPUT" && target.tagName !== "TEXTAREA") {
+          handleDeleteNode(selectedNode.id);
+          toast.success(isRtl ? "تم حذف العقدة" : "Node deleted");
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedNode, inspectingNode]);
+
   // Preview Workflow from Gemini
   const handlePreviewWorkflow = (aiWorkflow: FlowGraph) => {
     setPreviewWorkflow(aiWorkflow);
@@ -441,7 +489,7 @@ export function AutomationFlowCanvas({
           },
         }),
       });
-      const data = await res.json() as any;
+      const data = (await res.json()) as any;
       if (data?.success && data?.workflow) {
         setWorkflows((prev) => [data.workflow, ...prev]);
         setSelectedWorkflowId(data.workflow.id);
@@ -609,7 +657,7 @@ export function AutomationFlowCanvas({
 
   return (
     <div className="w-full space-y-4">
-      {/* 1. Multi-Workflow Manager Switcher Bar */}
+      {/* 1. Multi-Workflow Manager Switcher Bar (Higher Z-Index) */}
       <WorkflowManagerBar
         projectId={projectId}
         workflows={workflows}
@@ -619,6 +667,7 @@ export function AutomationFlowCanvas({
         onSaveWorkflow={handleSaveFlow}
         onRunTest={handleRunFullCycle}
         onOpenAiChat={() => setIsAiChatOpen(true)}
+        onOpenAddNode={() => setIsAddNodeModalOpen(true)}
         onCreateWorkflow={(type) => {
           setIsAiChatOpen(true);
         }}
@@ -671,8 +720,8 @@ export function AutomationFlowCanvas({
         </div>
       )}
 
-      {/* 3. The Interactive Canvas */}
-      <div className="relative w-full rounded-2xl border border-slate-700/60 bg-slate-900/90 shadow-2xl overflow-hidden backdrop-blur-md">
+      {/* 3. The Interactive Canvas - Guaranteed Z-Index z-10 so it NEVER overlaps menus */}
+      <div className="relative z-10 w-full rounded-2xl border border-slate-700/60 bg-slate-900/90 shadow-2xl overflow-hidden backdrop-blur-md">
         {/* Canvas Top Controls */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 px-3 sm:px-6 py-3 sm:py-4 border-b border-slate-800/80 bg-slate-950/60">
           <div className="flex items-center gap-2.5 sm:gap-3 w-full sm:w-auto">
@@ -698,6 +747,17 @@ export function AutomationFlowCanvas({
 
           {/* Zoom and Action Bar */}
           <div className="flex items-center gap-1 sm:gap-2 self-end sm:self-auto shrink-0">
+            {/* Add Node Button */}
+            <button
+              type="button"
+              onClick={() => setIsAddNodeModalOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/15 text-indigo-300 text-xs font-semibold hover:bg-indigo-500/25 transition cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>{isRtl ? "إضافة عقدة" : "Add Node"}</span>
+            </button>
+
+            {/* Zoom Controls */}
             <div className="flex items-center bg-slate-950/80 rounded-xl border border-slate-800 p-0.5">
               <button
                 type="button"
@@ -813,6 +873,7 @@ export function AutomationFlowCanvas({
               const visuals = getNodeVisuals(node.category);
               const isRunning = node.status === "running";
               const isCompleted = node.status === "completed";
+              const isSelected = selectedNode?.id === node.id;
 
               return (
                 <div
@@ -820,8 +881,8 @@ export function AutomationFlowCanvas({
                   onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
                   onClick={(e) => {
                     e.stopPropagation();
-                    setInspectingNode(node);
                     setSelectedNode(node);
+                    setInspectingNode(node);
                   }}
                   style={{
                     position: "absolute",
@@ -831,6 +892,10 @@ export function AutomationFlowCanvas({
                   }}
                   className={`group cursor-pointer rounded-xl border-2 bg-slate-900/95 p-3 shadow-xl backdrop-blur-md transition-all hover:scale-[1.02] ${
                     visuals.border
+                  } ${
+                    isSelected
+                      ? "ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-950 shadow-indigo-500/20"
+                      : ""
                   } ${
                     isRunning
                       ? "ring-2 ring-blue-400 ring-offset-2 ring-offset-slate-950 animate-pulse"
@@ -847,6 +912,7 @@ export function AutomationFlowCanvas({
                         {node.label}
                       </span>
                     </div>
+                    {/* Status Indicator */}
                     {isRunning ? (
                       <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
                     ) : isCompleted ? (
@@ -885,7 +951,7 @@ export function AutomationFlowCanvas({
                   {/* Click to Edit Hint */}
                   <div className="mt-2 text-[9px] text-center text-indigo-400 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">
                     <Sliders className="h-3 w-3" />
-                    <span>{isRtl ? "انقر لتعديل البارامترات" : "Click to edit"}</span>
+                    <span>{isRtl ? "انقر لتعديل البارامترات" : "Click to inspect & edit"}</span>
                   </div>
                 </div>
               );
@@ -922,15 +988,33 @@ export function AutomationFlowCanvas({
         isRtl={isRtl}
       />
 
-      {/* 5. Node Inspector Drawer (Manual Configuration) */}
+      {/* 5. Add Node Modal Palette */}
+      <AddNodeModal
+        isOpen={isAddNodeModalOpen}
+        onClose={() => setIsAddNodeModalOpen(false)}
+        onAddNode={(newNode) => {
+          setNodes((prev) => [...prev, newNode]);
+          setInspectingNode(newNode);
+          setSelectedNode(newNode);
+          toast.success(isRtl ? `تمت إضافة العقدة "${newNode.label}"` : `Added "${newNode.label}"`);
+        }}
+        isRtl={isRtl}
+      />
+
+      {/* 6. Node Inspector Drawer (Manual Configuration & Deletion & Connecting) */}
       <NodeInspectorDrawer
         node={inspectingNode}
+        allNodes={nodes}
+        edges={edges}
         onClose={() => setInspectingNode(null)}
         onSaveNode={(updatedNode) => {
           setNodes((prev) =>
             prev.map((n) => (n.id === updatedNode.id ? updatedNode : n))
           );
         }}
+        onDeleteNode={handleDeleteNode}
+        onAddEdge={handleAddEdge}
+        onRemoveEdge={handleRemoveEdge}
         isRtl={isRtl}
       />
     </div>
