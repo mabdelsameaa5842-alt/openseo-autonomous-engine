@@ -74,10 +74,17 @@ function MobileSidebarDrawer({
       <button
         type="button"
         aria-label="Close sidebar"
-        className="absolute inset-0 bg-black/45"
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity"
         onClick={onClose}
       />
-      <div className="absolute left-0 top-0 h-full shadow-xl">
+      <div
+        className="absolute start-0 top-0 bottom-0 h-full shadow-2xl z-10 overflow-hidden flex flex-col"
+        style={{
+          paddingTop: "env(safe-area-inset-top, 0px)",
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+          background: "var(--apple-sidebar)",
+        }}
+      >
         <Sidebar projectId={projectId} onNavigate={onClose} onClose={onClose} />
       </div>
     </div>

@@ -9,9 +9,12 @@ const BILLING_SIGNALS = [
   "balance",
   "problem billing",
   "recharged",
+  "verify your account",
+  "verification",
+  "complete verification",
 ];
 
-const BILLING_STATUS_CODES = new Set([40200, 40210, 402]);
+const BILLING_STATUS_CODES = new Set([40104, 40200, 40210, 402]);
 
 type DataforseoBillingClassifier = (
   status: number | undefined,

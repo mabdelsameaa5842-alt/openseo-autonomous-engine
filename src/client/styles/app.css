@@ -1,10 +1,13 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where([data-theme="openseo-dark"], [data-theme="openseo-dark"] *, .dark, .dark *));
+
 @theme {
   --container-8xl: 88rem;
 }
 
-:root {
+:root,
+[data-theme="openseo"] {
   --trend-grid-color: oklch(56% 0.01 255 / 0.28);
   --trend-axis-color: oklch(42% 0.01 255 / 0.85);
   --trend-fill-start-opacity: 0.32;
@@ -12,7 +15,78 @@
   --trend-tooltip-bg: oklch(99% 0.005 255 / 0.96);
   --trend-tooltip-border: oklch(84% 0.01 255 / 0.7);
   --trend-tooltip-shadow: oklch(0% 0 0 / 0.1);
+
+  /* Apple HIG Light Palette */
+  --apple-canvas: #F5F5F7;
+  --apple-card: #FFFFFF;
+  --apple-border: #E5E5EA;
+  --apple-border-hover: #D1D1D6;
+  --apple-sidebar: #FAFAFC;
+  --apple-sidebar-border: #E5E5EA;
+  --apple-text-primary: #1D1D1F;
+  --apple-text-secondary: #86868B;
+  --apple-pill: #E5E5EA;
+  --apple-pill-hover: #D8D8DC;
 }
+
+[data-theme="openseo-dark"] {
+  --trend-grid-color: oklch(56% 0.01 255 / 0.28);
+  --trend-axis-color: oklch(42% 0.01 255 / 0.85);
+  --trend-fill-start-opacity: 0.32;
+  --trend-fill-end-opacity: 0.05;
+  --trend-tooltip-bg: oklch(18% 0.005 255 / 0.96);
+  --trend-tooltip-border: oklch(27% 0.01 255 / 0.7);
+  --trend-tooltip-shadow: oklch(0% 0 0 / 0.3);
+
+  /* Apple HIG Dark Palette */
+  --apple-canvas: #0B0B0C;
+  --apple-card: #141416;
+  --apple-border: #222225;
+  --apple-border-hover: #2E2E32;
+  --apple-sidebar: #0E0E10;
+  --apple-sidebar-border: rgba(255, 255, 255, 0.1);
+  --apple-text-primary: #FFFFFF;
+  --apple-text-secondary: #A1A1AA;
+  --apple-pill: #1C1C1E;
+  --apple-pill-hover: #2C2C2E;
+}
+
+/* iOS Safe Area & Mobile Optimization Utilities */
+:root {
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
+}
+
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+.pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+.top-safe {
+  top: env(safe-area-inset-top, 0px);
+}
+.bottom-safe {
+  bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Hide scrollbar for horizontal mobile pill tabs */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 
 @plugin "daisyui" {
   /* @property isn't supported by some browsers and gives a noisy warning https://github.com/saadeghi/daisyui/issues/3882 */

@@ -40,14 +40,11 @@ function resolveThemeName(themePreference: ThemePreference): string {
   if (themePreference === "light") return LIGHT_THEME_NAME;
   if (themePreference === "dark") return DARK_THEME_NAME;
 
-  // "system" — resolve from OS preference
-  if (
-    typeof window !== "undefined" &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-  ) {
-    return DARK_THEME_NAME;
+  // "system" — follow OS preference
+  if (typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches) {
+    return LIGHT_THEME_NAME;
   }
-  return LIGHT_THEME_NAME;
+  return DARK_THEME_NAME;
 }
 
 function applyThemePreference(themePreference: ThemePreference) {
@@ -125,9 +122,11 @@ export const themePreferenceInitScript = `(() => {
     var t;
     if (p === "light") t = ${JSON.stringify(LIGHT_THEME_NAME)};
     else if (p === "dark") t = ${JSON.stringify(DARK_THEME_NAME)};
-    else t = window.matchMedia("(prefers-color-scheme: dark)").matches ? ${JSON.stringify(DARK_THEME_NAME)} : ${JSON.stringify(LIGHT_THEME_NAME)};
+    else if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) t = ${JSON.stringify(LIGHT_THEME_NAME)};
+    else t = ${JSON.stringify(DARK_THEME_NAME)};
     document.documentElement.setAttribute("data-theme", t);
   } catch {
-    document.documentElement.setAttribute("data-theme", ${JSON.stringify(LIGHT_THEME_NAME)});
+    document.documentElement.setAttribute("data-theme", ${JSON.stringify(DARK_THEME_NAME)});
   }
 })();`;
+

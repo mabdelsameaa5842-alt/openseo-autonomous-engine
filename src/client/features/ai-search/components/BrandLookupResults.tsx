@@ -9,6 +9,7 @@ import {
 } from "@/client/features/ai-search/platformLabels";
 import type { BrandLookupResult } from "@/types/schemas/ai-search";
 import { RESEARCH_SCOPE_LABELS } from "@/shared/researchScope";
+import { useI18n } from "@/client/lib/i18n";
 
 type Props = {
   result: BrandLookupResult;
@@ -37,6 +38,8 @@ function DomainLevelBadge() {
 }
 
 export function BrandLookupResults({ result, projectId }: Props) {
+  const { t, isRtl } = useI18n();
+
   if (!result.hasData) {
     const erroredPlatforms = result.perPlatform.filter(
       (p) => p.status === "error",
@@ -47,30 +50,49 @@ export function BrandLookupResults({ result, projectId }: Props) {
 
     if (allPlatformsErrored) {
       return (
-        <div className="rounded-2xl border border-white/10 bg-[#121215]/90 p-5 text-sm text-zinc-300 backdrop-blur-md">
-          <p className="font-semibold text-white">AI Mention Data Unavailable</p>
-          <p className="mt-1 text-xs text-zinc-400">
-            Mention telemetry is temporarily unavailable for <strong className="text-white">{result.resolvedTarget}</strong>. Please try again shortly.
+        <div className="rounded-2xl border border-[#222225] bg-[#141416] p-6 text-sm text-zinc-300 shadow-xl">
+          <div className="flex items-center gap-2.5">
+            <span className="flex size-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-400">
+              !
+            </span>
+            <p className="font-semibold text-white">
+              {isRtl ? "تنبيه توثيق حساب مزود البيانات (DataForSEO)" : "DataForSEO Account Verification Notice"}
+            </p>
+          </div>
+          <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+            {isRtl
+              ? `حساب مزود البيانات يتطلب تأكيد التوثيق في لوحة التحكم الخاصة به لتفعيل مزامنة إشارات الذكاء الاصطناعي للنطاق ${result.resolvedTarget}.`
+              : `The DataForSEO provider account requires verification in the user panel before LLM mention telemetry can be polled for ${result.resolvedTarget}.`}
           </p>
+          <div className="mt-4 flex flex-wrap items-center gap-3">
+            <a
+              href="https://app.dataforseo.com/"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-1.5 text-xs font-semibold text-black hover:bg-zinc-200 transition-colors"
+            >
+              <span>{isRtl ? "فتح لوحة تحكم DataForSEO للتوثيق" : "Open DataForSEO Panel to Verify"}</span>
+              <span className="text-[10px]">↗</span>
+            </a>
+          </div>
         </div>
       );
     }
     return (
       <div className="space-y-3">
-        <div className="rounded-2xl border border-white/10 bg-[#121215]/90 p-5 text-sm text-zinc-300 backdrop-blur-md">
-          <p className="font-semibold text-white">No AI Mentions Detected</p>
-          <p className="mt-1 text-xs text-zinc-400">
-            No brand mentions or citations found yet for <strong className="text-white">{result.resolvedTarget}</strong> across AI models (ChatGPT, Claude, Gemini, Perplexity).
+        <div className="rounded-2xl border border-[#222225] bg-[#141416] p-6 text-sm text-zinc-300 shadow-xl">
+          <p className="font-semibold text-white">
+            {t("brand.no_mentions_title", "No AI Mentions Detected Yet")}
+          </p>
+          <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+            {isRtl
+              ? `لم يتم رصد إشارات أو استشهادات بعد للنطاق ${result.resolvedTarget} عبر نماذج الذكاء الاصطناعي (ChatGPT, Claude, Gemini, Perplexity). يمكنك البدء بنشر مقالات عبر محرك الأتمتة لرفع نسبة الظهور.`
+              : `No brand mentions or citations detected yet for ${result.resolvedTarget} across AI models (ChatGPT, Claude, Gemini, Perplexity). Publishing tactical articles will build presence.`}
           </p>
         </div>
         {erroredPlatforms.length > 0 ? (
           <p className="text-xs text-zinc-500">
-            Note:{" "}
-            {erroredPlatforms
-              .map((p) => formatPlatformLabel(p.platform))
-              .join(" and ")}{" "}
-            {erroredPlatforms.length === 1 ? "was" : "were"} unavailable — some
-            mentions may be missing.
+            {isRtl ? "ملاحظة: بعض المنصات تحتاج إعادة محاولة." : "Note: some platforms were unavailable and may need retry."}
           </p>
         ) : null}
       </div>

@@ -184,5 +184,27 @@ export function createGscClient(opts: {
       );
       return data.inspectionResult ?? null;
     },
+
+    /** Webmasters API `sitemaps.submit` — submits a sitemap URL to GSC for indexing. */
+    async submitSitemap(
+      siteUrl: string,
+      feedpath: string,
+    ): Promise<{ success: boolean; feedpath: string }> {
+      await request<void>(
+        `${GSC_API_BASE}/sites/${encodeURIComponent(siteUrl)}/sitemaps/${encodeURIComponent(feedpath)}`,
+        { method: "PUT" },
+      );
+      return { success: true, feedpath };
+    },
+
+    /** Webmasters API `sitemaps.list` — lists submitted sitemaps for the property. */
+    async listSitemaps(
+      siteUrl: string,
+    ): Promise<Array<{ path: string; lastSubmitted?: string; isPending?: boolean }>> {
+      const data = await request<{
+        sitemap?: Array<{ path: string; lastSubmitted?: string; isPending?: boolean }>;
+      }>(`${GSC_API_BASE}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
+      return data.sitemap ?? [];
+    },
   };
 }

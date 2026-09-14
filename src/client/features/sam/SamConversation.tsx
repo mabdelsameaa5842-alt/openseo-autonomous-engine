@@ -11,6 +11,7 @@ import {
   messageHasVisibleContent,
 } from "@/client/components/chat/ChatMessage";
 import { useStickToBottom } from "@/client/components/chat/useStickToBottom";
+import { useProjectMarket } from "@/client/features/projects/useProjectMarket";
 
 const SUGGESTIONS = [
   {
@@ -52,6 +53,8 @@ export function SamConversation({
   projectId: string;
   sessionId: string;
 }) {
+  const projectMarket = useProjectMarket(projectId);
+  const activeDomain = (projectMarket as any)?.domain || (projectMarket as any)?.name || "الموقع النشط";
   // The conversation lives in the SamChatAgent Durable Object, keyed by the
   // session id. The WebSocket is authorized in the Worker (src/server.ts) before
   // it reaches the DO; billing gates come back as normal assistant messages.
@@ -178,7 +181,7 @@ export function SamConversation({
                   <span>🧠</span> <span>سياق المشروع المفعل (Project Context & Memory):</span>
                 </div>
                 <div className="text-base-content/70 grid sm:grid-cols-2 gap-1.5 pt-0.5">
-                  <div>• <strong>الموقع:</strong> mohamed-abdelsamee-portfolio.vercel.app</div>
+                  <div>• <strong>الموقع:</strong> {activeDomain}</div>
                   <div>• <strong>النشاط:</strong> Senior Performance Media Buyer (21x ROAS)</div>
                   <div>• <strong>السوق المستهدف:</strong> السعودية، مصر، الخليج العربي</div>
                   <div>• <strong>الأولوية:</strong> تصدر نتائج الميديا باينج + رفع استشارات واتساب</div>

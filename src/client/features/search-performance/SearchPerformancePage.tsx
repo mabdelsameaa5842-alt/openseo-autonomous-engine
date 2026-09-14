@@ -225,8 +225,17 @@ export function SearchPerformancePage({ projectId }: { projectId: string }) {
         ) : (
           <>
             <TotalsCards report={report} />
-            <div className="overflow-hidden rounded-xl border border-base-300 bg-base-100">
-              <div className="flex flex-col gap-3 border-b border-base-300 px-4 py-3 lg:flex-row lg:items-center lg:justify-between">
+            <div
+              className="overflow-hidden rounded-2xl shadow-sm transition-colors duration-200"
+              style={{
+                background: "var(--apple-card)",
+                border: "1px solid var(--apple-border)",
+              }}
+            >
+              <div
+                className="flex flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between transition-colors duration-200"
+                style={{ borderBottom: "1px solid var(--apple-border)" }}
+              >
                 <div role="tablist" className="tabs tabs-border w-fit">
                   <TabButton
                     active={tab === "striking"}

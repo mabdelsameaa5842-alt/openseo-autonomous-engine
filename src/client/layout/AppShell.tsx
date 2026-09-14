@@ -14,6 +14,9 @@ import { getSeoApiKeyStatus } from "@/serverFunctions/config";
 import { getProjects } from "@/serverFunctions/projects";
 import { getLastProjectId } from "@/client/lib/active-project";
 import { SuperAdminGate } from "@/client/components/SuperAdminGate";
+import { I18nProvider, LanguageToggle } from "@/client/lib/i18n";
+import { useThemePreference } from "@/client/lib/theme";
+import { ThemeToggle } from "@/client/components/ThemeToggle";
 
 const DATAFORSEO_HELP_PATH = "/help/dataforseo-api-key";
 
@@ -27,11 +30,13 @@ export function AuthenticatedAppLayout({
   banner?: React.ReactNode;
 }) {
   return (
-    <SuperAdminGate>
-      <AuthenticatedAppLayoutInner projectId={projectId} banner={banner}>
-        {children}
-      </AuthenticatedAppLayoutInner>
-    </SuperAdminGate>
+    <I18nProvider>
+      <SuperAdminGate>
+        <AuthenticatedAppLayoutInner projectId={projectId} banner={banner}>
+          {children}
+        </AuthenticatedAppLayoutInner>
+      </SuperAdminGate>
+    </I18nProvider>
   );
 }
 
@@ -134,7 +139,13 @@ function AuthenticatedAppLayoutInner({
   }, [shouldShowMissingSeoApiKeyModal]);
 
   return (
-    <div className="flex h-[100dvh] bg-base-200">
+    <div
+      className="flex h-[100dvh] font-sans transition-colors duration-200"
+      style={{
+        background: "var(--apple-canvas)",
+        color: "var(--apple-text-primary)",
+      }}
+    >
       <div className="hidden shrink-0 md:block">
         <Sidebar projectId={sidebarProjectId} />
       </div>
@@ -148,7 +159,13 @@ function AuthenticatedAppLayoutInner({
         {/* PostHog-style cutout: the main content sits on a raised panel with a
             thin strip of the sidebar background above it and a hairline border. */}
         <div className="flex min-h-0 flex-1 flex-col md:pt-2">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-base-100 md:rounded-tl-lg md:border-l md:border-t md:border-base-300">
+          <div
+            className="flex min-h-0 flex-1 flex-col overflow-hidden md:rounded-tl-lg md:border-l md:border-t transition-colors duration-200"
+            style={{
+              background: "var(--apple-canvas)",
+              borderColor: "var(--apple-border)",
+            }}
+          >
             <SeoApiStatusBanners
               shouldShowSeoApiWarning={shouldShowSeoApiWarning}
               seoApiKeyStatusError={seoApiKeyStatusError}
@@ -156,7 +173,14 @@ function AuthenticatedAppLayoutInner({
 
             {banner}
 
-            <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+            <div 
+              className="min-h-0 flex-1 overflow-auto"
+              style={{
+                paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+              }}
+            >
+              {children}
+            </div>
           </div>
         </div>
       </div>
@@ -188,20 +212,53 @@ function MobileTopBar({
   drawerOpen: boolean;
   onOpenDrawer: () => void;
 }) {
+  const { themePreference } = useThemePreference();
+  const isDark =
+    themePreference === "dark" ||
+    (themePreference === "system" &&
+      typeof window !== "undefined" &&
+      !window.matchMedia("(prefers-color-scheme: light)").matches);
+
   return (
-    <div className="flex shrink-0 items-center gap-1 border-b border-base-300 bg-base-100 px-2 py-1.5 md:hidden">
-      <button
-        type="button"
-        className="btn btn-square btn-ghost btn-sm"
-        aria-label="Toggle sidebar"
-        aria-expanded={drawerOpen}
-        onClick={onOpenDrawer}
-      >
-        <Menu className="h-5 w-5" />
-      </button>
-      <Link to="/" className="ml-1 font-semibold text-base-content">
-        OpenSEO
-      </Link>
-    </div>
+    <header
+      className="flex shrink-0 items-center justify-between gap-2 md:hidden z-30 transition-colors duration-200"
+      style={{
+        paddingTop: "calc(env(safe-area-inset-top, 0px) + 8px)",
+        paddingBottom: "10px",
+        paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
+        paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
+        background: isDark ? "rgba(14, 14, 16, 0.95)" : "rgba(245, 245, 247, 0.95)",
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+        borderBottom: isDark ? "1px solid rgba(255,255,255,0.08)" : "1px solid rgba(0,0,0,0.08)",
+      }}
+    >
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className="flex items-center justify-center h-10 w-10 rounded-xl text-zinc-400 hover:text-white active:scale-95 transition-all touch-manipulation"
+          style={isDark ? { background: "rgba(255,255,255,0.06)" } : { background: "rgba(0,0,0,0.06)", color: "#1D1D1F" }}
+          aria-label="Toggle sidebar"
+          aria-expanded={drawerOpen}
+          onClick={onOpenDrawer}
+        >
+          <Menu className="h-5 w-5" />
+        </button>
+        <Link
+          to="/"
+          className="font-bold text-base tracking-tight flex items-center gap-2"
+          style={{ color: isDark ? "#FFFFFF" : "#1D1D1F" }}
+        >
+          <span className="size-2 rounded-full bg-[#30D158] animate-pulse" />
+          <span>OpenSEO</span>
+        </Link>
+      </div>
+
+      <div className="flex items-center gap-1.5 shrink-0">
+        <ThemeToggle />
+        <LanguageToggle />
+      </div>
+    </header>
   );
 }
+

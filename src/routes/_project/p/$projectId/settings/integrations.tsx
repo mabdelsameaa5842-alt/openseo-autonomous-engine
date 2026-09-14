@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { SearchConsoleConnectionCard } from "@/client/features/gsc/SearchConsoleConnectionCard";
 import { GoogleAnalyticsConnectionCard } from "@/client/features/ga4/GoogleAnalyticsConnectionCard";
 import { GoogleAdsConnectionCard } from "@/client/features/google-ads/GoogleAdsConnectionCard";
-import { MakeAutomationConnectionCard } from "@/client/features/integrations/MakeAutomationConnectionCard";
+import { FlowiseAutomationConnectionCard } from "@/client/features/integrations/FlowiseAutomationConnectionCard";
 
 export const Route = createFileRoute(
   "/_project/p/$projectId/settings/integrations",
@@ -15,17 +15,17 @@ function ProjectIntegrationsRoute() {
 
   return (
     <div className="space-y-8">
-      {/* The ids are the targets old #search-console / #google-analytics / #google-ads / #make-automation deep
+      {/* The ids are the targets old #search-console / #google-analytics / #google-ads / #workflow-automation deep
           links are redirected to from the settings index. */}
-      <section id="make-automation" className="scroll-mt-6 space-y-3">
+      <section id="workflow-automation" className="scroll-mt-6 space-y-3">
         <h2 className="text-sm font-medium text-base-content/50">
           Workflow Automation
         </h2>
-        <MakeAutomationConnectionCard
+        <FlowiseAutomationConnectionCard
           projectId={projectId}
           heading={
             <h2 className="text-sm font-medium text-base-content/50">
-              Make.com Automation
+              Flowise AI Autonomous Engine
             </h2>
           }
         />

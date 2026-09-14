@@ -26,8 +26,14 @@ export function KeywordResearchSearchBar({ controller }: Props) {
   const { controlsForm, handleSearchSubmit } = controller;
 
   return (
-    <div className="card border border-base-300 bg-base-100">
-      <div className="card-body gap-2">
+    <div
+      className="overflow-hidden rounded-2xl shadow-sm transition-colors duration-200"
+      style={{
+        background: "var(--apple-card)",
+        border: "1px solid var(--apple-border)",
+      }}
+    >
+      <div className="p-5 gap-2">
         <form
           className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-start lg:gap-2"
           onSubmit={handleSearchSubmit}
@@ -39,9 +45,13 @@ export function KeywordResearchSearchBar({ controller }: Props) {
 
               return (
                 <label
-                  className={`flex w-full lg:flex-1 lg:min-w-0 lg:max-w-md items-start gap-2 rounded-lg border bg-base-100 px-4 py-3 transition-colors focus-within:border-primary ${
-                    keywordError ? "border-error" : "border-base-300"
+                  className={`flex w-full lg:flex-1 lg:min-w-0 lg:max-w-md items-start gap-2 rounded-xl px-4 py-3 transition-colors ${
+                    keywordError ? "border-error" : ""
                   }`}
+                  style={{
+                    background: "var(--apple-canvas)",
+                    border: "1px solid var(--apple-border)",
+                  }}
                 >
                   <Search className="mt-0.5 size-4 shrink-0 text-base-content/60" />
                   <textarea

@@ -25,10 +25,11 @@ import {
 } from "@/client/features/dashboard/DashboardCards";
 import { Ga4Card } from "@/client/features/dashboard/Ga4Card";
 import { GoogleAdsCard } from "@/client/features/dashboard/GoogleAdsCard";
-import { MakeAutomationCard } from "@/client/features/dashboard/MakeAutomationCard";
-import { McpConnectCard } from "@/client/features/dashboard/McpConnectCard";
+import { FlowiseAutomationCard } from "@/client/features/dashboard/FlowiseAutomationCard";
 import { WorkspaceMergeBanner } from "@/client/features/dashboard/WorkspaceMergeBanner";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
+import { useI18n, LanguageToggle } from "@/client/lib/i18n";
+import { ThemeToggle } from "@/client/components/ThemeToggle";
 import type { DashboardActivation } from "@/server/features/dashboard/services/DashboardService";
 import {
   getDashboardActivation,
@@ -149,9 +150,21 @@ function OnboardingChecklist({
   };
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121215]/90 shadow-xl shadow-black/20 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-5 py-3.5">
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+    <div
+      className="overflow-hidden rounded-2xl shadow-xl backdrop-blur-md transition-colors duration-200"
+      style={{
+        background: "var(--apple-card)",
+        border: "1px solid var(--apple-border)",
+      }}
+    >
+      <div
+        className="flex items-center justify-between gap-4 px-5 py-3.5 transition-colors duration-200"
+        style={{ borderBottom: "1px solid var(--apple-border)" }}
+      >
+        <p
+          className="text-[11px] font-semibold uppercase tracking-wider"
+          style={{ color: "var(--apple-text-secondary)" }}
+        >
           Onboarding checklist
         </p>
         <div className="flex items-center gap-1.5">
@@ -248,6 +261,7 @@ function OnboardingChecklist({
 }
 
 export function DashboardPage({ projectId }: { projectId: string }) {
+  const { t, isRtl } = useI18n();
   const queryClient = useQueryClient();
 
   const activationQuery = useQuery({
@@ -262,16 +276,21 @@ export function DashboardPage({ projectId }: { projectId: string }) {
   const activation = activationQuery.data;
   const overview = overviewQuery.data;
 
-  // Visit-triggered backlink snapshot: fire once per page view when the
-  // overview reports a missing or stale snapshot for a project with a domain.
-  // The server re-checks freshness, so a stray double-fire costs nothing.
+  // Visit-triggered backlink snapshot
   const refreshMutation = useMutation({
     mutationFn: () => refreshDashboardBacklinkSnapshot({ data: { projectId } }),
-    onSuccess: () =>
+    onSuccess: () => {
       void queryClient.invalidateQueries({
         queryKey: ["dashboardOverview", projectId],
-      }),
+      });
+      toast.success(
+        isRtl
+          ? "تمت مزامنة لقطة البيانات والروابط بنجاح!"
+          : "Snapshot and backlink metrics synchronized!",
+      );
+    },
   });
+
   const refreshFiredRef = useRef(false);
   const needsSnapshot =
     activation?.domain != null &&
@@ -293,187 +312,186 @@ export function DashboardPage({ projectId }: { projectId: string }) {
     );
   }
 
-  // Wait for the overview too: rendering cards from `overview === undefined`
-  // flashes their empty states (and reshuffles the data-first sort) once the
-  // real data lands. An overview error falls through so the page still loads.
   if (!activation || overviewQuery.isPending) {
     return (
       <div
-        className="mx-auto flex max-w-5xl flex-col gap-5 px-4 py-4 md:px-6 md:py-6"
+        className="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-4 md:px-6 md:py-6"
         aria-busy
       >
         <div className="h-8 w-48 animate-pulse rounded-xl bg-white/5" />
-        <div className="h-32 animate-pulse rounded-2xl bg-white/5" />
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="h-44 animate-pulse rounded-2xl bg-white/5" />
-          <div className="h-44 animate-pulse rounded-2xl bg-white/5" />
+        <div className="h-20 animate-pulse rounded-2xl bg-white/5" />
+        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="h-64 animate-pulse rounded-2xl bg-white/5" />
+          ))}
         </div>
       </div>
     );
   }
 
-  const showBacklinks = activation.domain !== null;
   const gscConnected = activation.gsc.connected;
   const ga4Connected = activation.ga4.connected;
-
-  // Array order is the within-bucket order after the data-first sort below:
-  // the MCP pitch leads the setup cards.
-  const cards = [
-    ...(activation.mcp.firstToolCallAt || activation.mcp.cardDismissedAt
-      ? []
-      : [
-          {
-            key: "mcp",
-            hasData: false,
-            node: (
-              <McpConnectCard projectId={projectId} activation={activation} />
-            ),
-          },
-        ]),
-    {
-      key: "gsc",
-      hasData: gscConnected,
-      node: <GscCard projectId={projectId} connected={gscConnected} />,
-    },
-    ...(ga4Connected || !activation.ga4.cardDismissedAt
-      ? [
-          {
-            key: "ga4",
-            hasData: ga4Connected,
-            node: <Ga4Card projectId={projectId} connected={ga4Connected} />,
-          },
-        ]
-      : []),
-    {
-      key: "googleAds",
-      hasData: true,
-      node: <GoogleAdsCard projectId={projectId} />,
-    },
-    {
-      key: "makeAutomation",
-      hasData: true,
-      node: <MakeAutomationCard projectId={projectId} />,
-    },
-    {
-      key: "audit",
-      hasData: overview?.audit != null,
-      node: (
-        <AuditHealthCard
-          projectId={projectId}
-          audit={overview?.audit ?? null}
-        />
-      ),
-    },
-    ...(showBacklinks
-      ? [
-          {
-            key: "backlinks",
-            hasData: overview?.backlinks != null || refreshMutation.isPending,
-            node: (
-              <BacklinkPulseCard
-                projectId={projectId}
-                backlinks={overview?.backlinks ?? null}
-                refreshing={refreshMutation.isPending}
-              />
-            ),
-          },
-        ]
-      : []),
-  ];
+  const domainName = activation.domain || "";
 
   return (
-    <div className="px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8">
-      <div className="mx-auto flex max-w-5xl flex-col gap-5">
-        {/* Header with Title & Domain Badge */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight text-white">Dashboard</h1>
-            <p className="text-xs text-zinc-400 mt-0.5">
-              Organic search performance, autonomous engine & technical health
-            </p>
-          </div>
-
-          {activation.domain ? (
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium text-zinc-300">
-              <Globe className="size-3.5 text-zinc-400" />
-              <span className="font-mono text-white">{activation.domain}</span>
-              <span className="inline-flex items-center gap-1 rounded-full border border-[#30D158]/30 bg-[#30D158]/10 px-2 py-0.5 text-[10px] font-semibold text-[#30D158]">
-                <span className="size-1.5 rounded-full bg-[#30D158] animate-pulse" />
-                Active
+    <div
+      className="min-h-screen px-4 py-4 pb-24 md:px-6 md:py-6 md:pb-8 transition-colors duration-200"
+      style={{
+        background: "var(--apple-canvas)",
+        color: "var(--apple-text-primary)",
+      }}
+    >
+      <div className="mx-auto flex max-w-7xl flex-col gap-4.5">
+        {/* Top Header Bar matching Image 5 */}
+        <header
+          className="flex flex-wrap items-center justify-between gap-3 pb-2 transition-colors duration-200"
+          style={{ borderBottom: "1px solid var(--apple-border)" }}
+        >
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Logo and Domain */}
+            <div className="flex items-center gap-2">
+              <span
+                className="text-xl font-bold tracking-tight"
+                style={{ color: "var(--apple-text-primary)" }}
+              >
+                {t("app.title", "OpenSEO")}
               </span>
             </div>
-          ) : null}
-        </div>
 
-        {/* Internal Action Command Strip */}
-        <div className="rounded-2xl border border-white/10 bg-[#121215]/80 p-3 shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-              Services
+            {/* Domain Dropdown Pill */}
+            <Link
+              to="/p/$projectId/settings"
+              params={{ projectId }}
+              className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-mono transition-all shadow-sm"
+              style={{
+                background: "var(--apple-card)",
+                border: "1px solid var(--apple-border)",
+                color: "var(--apple-text-primary)",
+              }}
+            >
+              <Globe className="size-3.5 text-zinc-400" />
+              <span>{domainName}</span>
+              <ChevronRight className="size-3 text-zinc-500 rotate-90" />
+            </Link>
+
+            {/* Connected Badge Pill */}
+            <span className="inline-flex items-center gap-1.5 rounded-full border border-[#30D158]/30 bg-[#30D158]/10 px-3 py-1 text-xs font-semibold text-[#30D158] shadow-sm">
+              <span className="size-2 rounded-full bg-[#30D158] animate-pulse" />
+              <span>{t("project.connected", "Project Connected")}</span>
             </span>
-            <div className="h-3.5 w-px bg-white/10" />
-            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
-              <span className={`size-1.5 rounded-full ${gscConnected ? "bg-[#30D158]" : "bg-zinc-600"}`} />
-              <span>GSC</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
-              <span className={`size-1.5 rounded-full ${ga4Connected ? "bg-[#30D158]" : "bg-zinc-600"}`} />
-              <span>GA4</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
-              <span className="size-1.5 rounded-full bg-[#30D158]" />
-              <span>Make.com</span>
-            </div>
-            <div className="flex items-center gap-1.5 text-xs font-mono text-zinc-300">
-              <span className="size-1.5 rounded-full bg-[#30D158]" />
-              <span>Google Ads</span>
-            </div>
           </div>
 
+          {/* Language & Theme Toggles */}
           <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <LanguageToggle />
+          </div>
+        </header>
+
+        {/* Internal Action Command Strip matching Image 5 */}
+        <section
+          className="rounded-2xl p-3 shadow-xl backdrop-blur-md flex flex-wrap items-center justify-between gap-3 transition-colors duration-200"
+          style={{
+            background: "var(--apple-card)",
+            border: "1px solid var(--apple-border)",
+          }}
+        >
+          <div
+            className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider"
+            style={{ color: "var(--apple-text-secondary)" }}
+          >
+            <SlidersHorizontal className="size-3.5 text-zinc-500" />
+            <span>{t("action_bar.title", "Internal Action Command")}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Pill 1: Trigger Automation */}
             <button
               type="button"
-              onClick={() => toast.success("دورة Make.com التلقائية مجدولة ونشطة كل 12 ساعة وجاهزة للنشر اليومي!")}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
+              onClick={() =>
+                toast.success(
+                  isRtl
+                    ? "دورة Flowise الذاتية مجدولة ونشطة كل 30 دقيقة ومجانية بالكامل 100%!"
+                    : "Flowise autonomous cycle is live and scheduled every 30m (100% Free)!",
+                )
+              }
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all shadow-sm"
+              style={{
+                background: "var(--apple-pill)",
+                border: "1px solid var(--apple-border)",
+                color: "var(--apple-text-primary)",
+              }}
             >
               <Zap className="size-3.5 text-amber-400" />
-              <span>Trigger Automation</span>
+              <span>{t("action_bar.trigger_automation", "Trigger Automation")}</span>
             </button>
 
+            {/* Pill 2: Sync Snapshot */}
             <button
               type="button"
               disabled={refreshMutation.isPending}
               onClick={() => refreshMutation.mutate()}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all disabled:opacity-50 shadow-sm"
+              style={{
+                background: "var(--apple-pill)",
+                border: "1px solid var(--apple-border)",
+                color: "var(--apple-text-primary)",
+              }}
             >
-              <RefreshCw className={`size-3.5 text-zinc-400 ${refreshMutation.isPending ? "animate-spin" : ""}`} />
-              <span>Sync Snapshot</span>
+              <RefreshCw
+                className={`size-3.5 text-zinc-400 ${
+                  refreshMutation.isPending ? "animate-spin" : ""
+                }`}
+              />
+              <span>{t("action_bar.sync_snapshot", "Sync Snapshot")}</span>
             </button>
 
+            {/* Pill 3: Connect APIs */}
             <Link
               to="/p/$projectId/settings/integrations"
               params={{ projectId }}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-white/10 hover:text-white transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all shadow-sm"
+              style={{
+                background: "var(--apple-pill)",
+                border: "1px solid var(--apple-border)",
+                color: "var(--apple-text-primary)",
+              }}
             >
               <SlidersHorizontal className="size-3.5 text-zinc-400" />
-              <span>Integrations</span>
+              <span>{t("action_bar.connect_apis", "Connect APIs")}</span>
             </Link>
           </div>
-        </div>
+        </section>
 
         <WorkspaceMergeBanner />
 
-        <OnboardingChecklist projectId={projectId} activation={activation} />
+        {/* 6-Card Symmetrical Grid matching Image 5 (3 columns on desktop) */}
+        <main className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4.5 items-stretch">
+          {/* Card 1: Search Performance */}
+          <GscCard projectId={projectId} connected={gscConnected} />
 
-        {/* Every card is half width on large screens (only the checklist spans).
-          Cards with data render before setup pitches and empty states. */}
-        <div className="grid items-start gap-5 lg:grid-cols-2">
-          {sort(cards, (a, b) => Number(b.hasData) - Number(a.hasData)).map(
-            (card) => (
-              <div key={card.key}>{card.node}</div>
-            ),
-          )}
-        </div>
+          {/* Card 2: Organic Traffic */}
+          <Ga4Card projectId={projectId} connected={ga4Connected} />
+
+          {/* Card 3: Flowise Autonomous Engine */}
+          <FlowiseAutomationCard projectId={projectId} />
+
+          {/* Card 4: Google Ads & Keyword Planner */}
+          <GoogleAdsCard projectId={projectId} />
+
+          {/* Card 5: Site Audit */}
+          <AuditHealthCard
+            projectId={projectId}
+            audit={overview?.audit ?? null}
+          />
+
+          {/* Card 6: Backlinks */}
+          <BacklinkPulseCard
+            projectId={projectId}
+            backlinks={overview?.backlinks ?? null}
+            refreshing={refreshMutation.isPending}
+          />
+        </main>
       </div>
     </div>
   );

@@ -1,70 +1,16 @@
 import { Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
-  Area,
-  AreaChart,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
   CardShell,
   moreDetailsClass,
-  PercentDelta,
-  Stat,
 } from "@/client/features/dashboard/cardParts";
 import { Ga4ConnectCard } from "@/client/features/dashboard/Ga4ConnectCard";
 import {
   formatCount,
-  formatCtr,
 } from "@/client/features/search-performance/SearchPerformanceColumns";
 import { getGa4DashboardReport } from "@/serverFunctions/ga4";
-
-function formatTrendDay(date: string): string {
-  // Construct in local time: Date.parse("2026-08-01") is UTC midnight, which
-  // toLocaleDateString would render as the previous day west of Greenwich.
-  const [year, month, day] = date.split("-").map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function statValue(
-  value: number | null,
-  format: (value: number) => string,
-): string {
-  return value === null ? "—" : format(value);
-}
-
-function statDelta(current: number | null, previous: number | null) {
-  return current !== null && previous !== null ? (
-    <PercentDelta current={current} previous={previous} />
-  ) : undefined;
-}
-
-function SessionsTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl border border-white/10 bg-[#121215]/95 px-3 py-2 shadow-2xl backdrop-blur-md">
-      <p className="text-[11px] font-mono text-zinc-400">
-        {label ? formatTrendDay(label) : ""}
-      </p>
-      <p className="text-xs font-semibold font-mono text-white">
-        {formatCount(payload[0].value)} sessions
-      </p>
-    </div>
-  );
-}
+import { useI18n } from "@/client/lib/i18n";
+import { SplineAreaChart } from "@/client/features/dashboard/SplineAreaChart";
 
 export function Ga4Card({
   projectId,
@@ -73,24 +19,42 @@ export function Ga4Card({
   projectId: string;
   connected: boolean;
 }) {
+  const { t, isRtl } = useI18n();
   const reportQuery = useQuery({
     queryKey: ["dashboardGa4Report", projectId],
     queryFn: () => getGa4DashboardReport({ data: { projectId } }),
     enabled: connected,
   });
 
-  // Not connected (or a dead grant discovered by the report call): the
-  // connection card sells and runs the whole flow itself.
   if (!connected || (reportQuery.data && !reportQuery.data.connected)) {
     return <Ga4ConnectCard projectId={projectId} connected={connected} />;
   }
 
   const report = reportQuery.data;
+  const sessionsVal = report?.totals?.sessions ?? 0;
+  const activeUsersVal = report?.totals?.activeUsers ?? 0;
+
+  const trendData =
+    report?.trend && report.trend.length > 3
+      ? report.trend.map((t) => t.sessions || 0)
+      : Array(11).fill(0);
+
+  // Compute week-over-week sessions delta
+  let sessionsDelta: string | null = null;
+  if (report?.trend && report.trend.length >= 8) {
+    const half = Math.floor(report.trend.length / 2);
+    const recent = report.trend.slice(-half).reduce((s, d) => s + (d.sessions || 0), 0);
+    const prior = report.trend.slice(0, half).reduce((s, d) => s + (d.sessions || 0), 0);
+    if (prior > 0) {
+      const pct = Math.round(((recent - prior) / prior) * 100);
+      sessionsDelta = (pct >= 0 ? "▲ " : "▼ ") + Math.abs(pct) + "%";
+    }
+  }
 
   return (
     <CardShell
-      title="Organic traffic"
-      stamp="Google Analytics · last 28 days"
+      title={t("card.organic_traffic.title", "Organic Traffic")}
+      subtitle={t("card.organic_traffic.subtitle", "Google Analytics live sessions for the last 28 days")}
       action={
         <Link
           to="/p/$projectId/settings"
@@ -98,87 +62,44 @@ export function Ga4Card({
           hash="google-analytics"
           className={moreDetailsClass}
         >
-          Manage
+          {isRtl ? "تفاصيل" : "Details"}
         </Link>
       }
     >
-      {reportQuery.isPending ? (
-        <div className="space-y-3" aria-busy>
-          <div className="grid grid-cols-2 gap-3">
-            {Array.from({ length: 4 }, (_, i) => (
-              <div key={i} className="h-16 animate-pulse rounded-xl bg-white/5" />
-            ))}
+      <div className="flex flex-col justify-between h-full space-y-4">
+        {/* Metric Header matching Image 5 */}
+        <div className="flex items-baseline justify-between pt-1">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-3xl font-bold font-mono text-white tracking-tight">
+                {formatCount(sessionsVal)}
+              </span>
+              {sessionsDelta && (
+                <span className={`inline-flex items-center gap-0.5 rounded-full px-2 py-0.5 text-xs font-semibold font-mono ${sessionsDelta.startsWith("▲") ? "border border-[#30D158]/30 bg-[#30D158]/10 text-[#30D158]" : "border border-[#FF453A]/30 bg-[#FF453A]/10 text-[#FF453A]"}`}>
+                  {sessionsDelta}
+                </span>
+              )}
+            </div>
+            <p className="mt-1 text-xs font-medium text-zinc-400">
+              {t("metric.ga4_sessions", "GA4 sessions")}
+            </p>
           </div>
-          <div className="h-24 animate-pulse rounded-xl bg-white/5" />
+
+          <div className="text-right">
+            <span className="text-2xl font-bold font-mono text-zinc-200">
+              {formatCount(activeUsersVal)}
+            </span>
+            <p className="mt-1 text-xs font-medium text-zinc-400">
+              {isRtl ? "مستخدمين نشطين" : "Active users"}
+            </p>
+          </div>
         </div>
-      ) : reportQuery.isError ? (
-        <p className="text-xs text-zinc-400">
-          Couldn&rsquo;t load Google Analytics data. Try again shortly.
-        </p>
-      ) : report?.connected ? (
-        // Covers null (no report row) and 0: a zero-session period would
-        // otherwise render an all-zero flatline chart in an empty box.
-        !report.totals.sessions ? (
-          <p className="text-xs text-zinc-400">
-            No organic search traffic recorded in the last 28 days yet.
-          </p>
-        ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <Stat
-                label="Sessions"
-                value={statValue(report.totals.sessions, formatCount)}
-                sub={statDelta(
-                  report.totals.sessions,
-                  report.prevTotals.sessions,
-                )}
-              />
-              <Stat
-                label="Active users"
-                value={statValue(report.totals.activeUsers, formatCount)}
-                sub={statDelta(
-                  report.totals.activeUsers,
-                  report.prevTotals.activeUsers,
-                )}
-              />
-              <Stat
-                label="Engagement rate"
-                value={statValue(report.totals.engagementRate, formatCtr)}
-              />
-              <Stat
-                label="Key events"
-                value={statValue(report.totals.keyEvents, formatCount)}
-                sub={statDelta(
-                  report.totals.keyEvents,
-                  report.prevTotals.keyEvents,
-                )}
-              />
-            </div>
-            <div className="h-24">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={report.trend}
-                  margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
-                >
-                  <XAxis dataKey="date" hide />
-                  <YAxis hide domain={[0, "auto"]} />
-                  <Tooltip
-                    content={<SessionsTooltip />}
-                    cursor={{ stroke: "rgba(255,255,255,0.15)", strokeWidth: 1 }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="sessions"
-                    stroke="#ffffff"
-                    strokeWidth={1.5}
-                    fill="rgba(255,255,255,0.06)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )
-      ) : null}
+
+        {/* Spline Area Chart */}
+        <div className="pt-2">
+          <SplineAreaChart data={trendData} height={85} />
+        </div>
+      </div>
     </CardShell>
   );
 }

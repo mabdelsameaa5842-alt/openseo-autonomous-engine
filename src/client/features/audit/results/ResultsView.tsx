@@ -86,8 +86,14 @@ export function ResultsView({
         lighthouseSummary={stats.lighthouseSummary}
       />
 
-      <div className="card bg-base-100 border border-base-300">
-        <div className="card-body gap-3">
+      <div
+        className="overflow-hidden rounded-2xl shadow-sm transition-colors duration-200"
+        style={{
+          background: "var(--apple-card)",
+          border: "1px solid var(--apple-border)",
+        }}
+      >
+        <div className="p-5 gap-3">
           <ResultsHeader
             issueCount={issues.length}
             pageCount={pages.length}
@@ -326,20 +332,37 @@ function StatsStrip({
 
   return (
     <div
-      className={`grid ${columnsClass} gap-px rounded-lg border border-base-300 bg-base-300/70 overflow-hidden`}
+      className={`grid ${columnsClass} gap-px rounded-2xl overflow-hidden shadow-sm transition-colors duration-200`}
+      style={{
+        border: "1px solid var(--apple-border)",
+        background: "var(--apple-border)",
+      }}
     >
       {items.map((item) => (
-        <div key={item.label} className="bg-base-100 px-4 py-3">
-          <p className="text-[11px] uppercase tracking-wider text-base-content/50">
+        <div
+          key={item.label}
+          className="px-4.5 py-3.5 transition-colors duration-200"
+          style={{ background: "var(--apple-card)" }}
+        >
+          <p
+            className="text-[11px] uppercase tracking-wider font-medium"
+            style={{ color: "var(--apple-text-secondary)" }}
+          >
             {item.label}
           </p>
           <p
-            className={`text-xl font-semibold mt-0.5 tabular-nums ${item.valueClass ?? ""}`}
+            className={`text-xl font-bold font-mono mt-0.5 tabular-nums ${item.valueClass ?? ""}`}
+            style={!item.valueClass ? { color: "var(--apple-text-primary)" } : {}}
           >
             {item.value}
           </p>
           {item.sub && (
-            <div className="text-xs text-base-content/60 mt-1">{item.sub}</div>
+            <div
+              className="text-xs mt-1"
+              style={{ color: "var(--apple-text-secondary)" }}
+            >
+              {item.sub}
+            </div>
           )}
         </div>
       ))}

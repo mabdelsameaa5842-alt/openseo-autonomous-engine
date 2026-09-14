@@ -2,6 +2,8 @@ import { waitUntil } from "cloudflare:workers";
 import { identity, sortBy } from "remeda";
 import type { BillingCustomerContext } from "@/server/billing/subscription";
 import { createDataforseoClient } from "@/server/lib/dataforseo";
+import { getGeminiBrandIntelligence } from "@/server/features/ai-search/services/geminiBrandIntelligence";
+import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import {
   buildLlmTarget,
   CHATGPT_LANGUAGE_CODE,
@@ -121,6 +123,36 @@ export async function getBrandLookup(
         ),
       ),
     );
+  }
+
+  // === Gemini Fallback ===
+  // When DataForSEO returns a billing/auth error (40104, INSUFFICIENT_CREDITS),
+  // automatically route to Google Gemini + Google Ads Keyword Planner for
+  // seamless brand intelligence without any error screen.
+  const hasBillingError = settled.some(
+    (r) =>
+      r.status === "rejected" &&
+      r.reason instanceof AppError &&
+      (r.reason.code === "INSUFFICIENT_CREDITS" ||
+        r.reason.code === "AI_SEARCH_BILLING_ISSUE"),
+  );
+
+  if (hasBillingError) {
+    console.log("ai-search.brand-lookup: DataForSEO billing issue — routing to Gemini fallback");
+    const geminiKey = await getOptionalEnvValue("GEMINI_API_KEY");
+    if (geminiKey) {
+      try {
+        const geminiResult = await getGeminiBrandIntelligence({
+          query: input.query,
+          geminiApiKey: geminiKey,
+        });
+        return geminiResult;
+      } catch (geminiErr) {
+        console.error("ai-search.brand-lookup: Gemini fallback also failed:", geminiErr);
+      }
+    }
+    // If Gemini also fails or no key, rethrow the original billing error
+    rethrowIfBlockingAiSearchError(settled);
   }
 
   rethrowIfBlockingAiSearchError(settled);

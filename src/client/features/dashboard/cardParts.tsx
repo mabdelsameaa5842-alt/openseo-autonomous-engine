@@ -3,25 +3,58 @@
 // monochrome typography, with semantic emerald green and red accents).
 export function CardShell({
   title,
+  subtitle,
   stamp,
   action,
   children,
+  className = "",
 }: {
   title: string;
+  subtitle?: string;
   stamp?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-white/10 bg-[#121215]/90 shadow-xl shadow-black/20 backdrop-blur-md transition-all duration-200 hover:border-white/15">
-      <div className="flex items-center justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
-        <h2 className="text-sm font-semibold tracking-tight text-white">{title}</h2>
+    <div
+      className={`overflow-hidden rounded-2xl shadow-xl flex flex-col justify-between transition-colors duration-200 ${className}`}
+      style={{
+        background: "var(--apple-card)",
+        border: "1px solid var(--apple-border)",
+      }}
+    >
+      <div
+        className="flex items-start justify-between gap-4 px-5 py-4 transition-colors duration-200"
+        style={{ borderBottom: "1px solid var(--apple-border)" }}
+      >
+        <div>
+          <h2
+            className="text-sm font-semibold tracking-tight"
+            style={{ color: "var(--apple-text-primary)" }}
+          >
+            {title}
+          </h2>
+          {subtitle ? (
+            <p
+              className="mt-0.5 text-[11px] leading-normal"
+              style={{ color: "var(--apple-text-secondary)" }}
+            >
+              {subtitle}
+            </p>
+          ) : null}
+        </div>
         {action}
       </div>
-      <div className="p-5">
+      <div className="p-5 flex-1 flex flex-col justify-between">
         {children}
         {stamp ? (
-          <p className="mt-4 text-[11px] font-mono text-zinc-500">{stamp}</p>
+          <p
+            className="mt-4 text-[11px] font-mono"
+            style={{ color: "var(--apple-text-secondary)" }}
+          >
+            {stamp}
+          </p>
         ) : null}
       </div>
     </div>

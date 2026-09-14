@@ -29,17 +29,27 @@ import { handleGdprStorageErasure } from "@/server/gdpr/storage-erasure";
 import { GDPR_STORAGE_ERASURE_PATH } from "@/shared/gdpr-erasure";
 import {
   handleAutonomousSeoCycle,
-  handleMakeTelemetry,
   handleTriggerCycle,
-  handleMakeLogs,
+  handleAutonomousQueue,
+  handleAutonomousRobots,
+  handleAutonomousSitemap,
+  handlePublishQueuedArticle,
+  handleAiHarvestKeywords,
+  handleAiClusterAndQueue,
+  handleGetEngineMode,
+  handlePostEngineMode,
+  handleGetFlowGraph,
+  handlePostFlowGraph,
+  handleListWorkflows,
+  handleCreateWorkflow,
+  handleToggleWorkflow,
+  handleDeleteWorkflow,
+  handleGenerateAiWorkflow,
+  handleCheckLiveRank,
+  handlePublicAutonomousArticles,
+  handleDualPipelinesTelemetry,
+  handleSiteWideRankAudit,
 } from "@/server/features/automation/autonomousHandler";
-import {
-  handleMakeAiBuilder,
-  handleMakeBlueprintDownload,
-  handleMakeStatus,
-  handleMakeConnect,
-  handleMakeDisconnect,
-} from "@/server/features/automation/makeAiBuilder";
 import {
   handleSuperAdminLogin,
   handleSuperAdminSession,
@@ -171,40 +181,87 @@ function handleFetch(
     return handleGdprStorageErasure(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/seo-cycle") {
+  if (pathname === "/api/automation/seo-cycle" || pathname === "/api/autonomous/cycle") {
     return handleAutonomousSeoCycle(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/make-telemetry") {
-    return handleMakeTelemetry(publicRequest, env);
+  if (pathname === "/api/automation/queue" || pathname === "/api/autonomous/queue") {
+    return handleAutonomousQueue(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/make-logs") {
-    return handleMakeLogs(publicRequest, env);
+  if (pathname === "/api/automation/publish-article") {
+    return handlePublishQueuedArticle(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/ai-harvest-keywords") {
+    return handleAiHarvestKeywords(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/ai-cluster-and-queue") {
+    return handleAiClusterAndQueue(publicRequest, env);
+  }
+
+  if (pathname === "/robots.txt" || pathname === "/api/autonomous/robots") {
+    return handleAutonomousRobots(publicRequest, env);
+  }
+
+  if (pathname === "/sitemap.xml" || pathname === "/api/autonomous/sitemap") {
+    return handleAutonomousSitemap(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/dual-pipelines-telemetry") {
+    return handleDualPipelinesTelemetry(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/site-wide-rank-audit") {
+    return handleSiteWideRankAudit(publicRequest, env);
   }
 
   if (pathname === "/api/automation/trigger-run") {
     return handleTriggerCycle(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/make-builder") {
-    return handleMakeAiBuilder(publicRequest, env);
+  if (pathname === "/api/automation/engine-mode") {
+    if (publicRequest.method === "POST") {
+      return handlePostEngineMode(publicRequest, env);
+    }
+    return handleGetEngineMode(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/make-blueprint") {
-    return handleMakeBlueprintDownload(publicRequest, env);
+  if (pathname === "/api/automation/flow-graph") {
+    if (publicRequest.method === "POST") {
+      return handlePostFlowGraph(publicRequest, env);
+    }
+    return handleGetFlowGraph(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/make-status") {
-    return handleMakeStatus(publicRequest, env);
+  if (pathname === "/api/automation/workflows") {
+    if (publicRequest.method === "POST") {
+      return handleCreateWorkflow(publicRequest, env);
+    }
+    if (publicRequest.method === "DELETE") {
+      return handleDeleteWorkflow(publicRequest, env);
+    }
+    return handleListWorkflows(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/make-connect") {
-    return handleMakeConnect(publicRequest, env);
+  if (pathname === "/api/automation/workflows/toggle" && publicRequest.method === "POST") {
+    return handleToggleWorkflow(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/make-disconnect") {
-    return handleMakeDisconnect(publicRequest, env);
+  if (pathname === "/api/automation/generate-ai-workflow" && publicRequest.method === "POST") {
+    return handleGenerateAiWorkflow(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/check-live-rank") {
+    return handleCheckLiveRank(publicRequest, env);
+  }
+
+  if (
+    pathname === "/api/public/autonomous-articles" ||
+    pathname === "/api/public/articles"
+  ) {
+    return handlePublicAutonomousArticles(publicRequest, env);
   }
 
   if (pathname === "/api/auth/super-admin/login") {

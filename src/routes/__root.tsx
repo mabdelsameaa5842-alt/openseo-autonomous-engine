@@ -63,6 +63,20 @@ export const Route = createRootRoute({
         name: "apple-mobile-web-app-status-bar-style",
         content: "black-translucent",
       },
+      {
+        name: "apple-mobile-web-app-title",
+        content: "OpenSEO",
+      },
+      {
+        name: "theme-color",
+        content: "#0E0E10",
+        media: "(prefers-color-scheme: dark)",
+      },
+      {
+        name: "theme-color",
+        content: "#F5F5F7",
+        media: "(prefers-color-scheme: light)",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },

@@ -199,15 +199,29 @@ function TotalCard({
   deltaTitle: string;
 }) {
   return (
-    <div className="rounded-lg border border-base-300 bg-base-100 p-4">
-      <div className="text-xs uppercase tracking-wide text-base-content/60">
+    <div
+      className="rounded-2xl p-4.5 shadow-sm transition-colors duration-200"
+      style={{
+        background: "var(--apple-card)",
+        border: "1px solid var(--apple-border)",
+      }}
+    >
+      <div
+        className="text-xs uppercase tracking-wide font-medium"
+        style={{ color: "var(--apple-text-secondary)" }}
+      >
         {label}
       </div>
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className="text-2xl font-semibold">{value}</span>
+      <div className="mt-1.5 flex items-baseline gap-2">
+        <span
+          className="text-2xl font-bold font-mono tracking-tight"
+          style={{ color: "var(--apple-text-primary)" }}
+        >
+          {value}
+        </span>
         {delta ? (
           <span
-            className={`text-xs ${delta.improved ? "text-success" : "text-error"}`}
+            className={`text-xs font-semibold font-mono ${delta.improved ? "text-[#30D158]" : "text-[#FF453A]"}`}
             title={deltaTitle}
           >
             {delta.text}

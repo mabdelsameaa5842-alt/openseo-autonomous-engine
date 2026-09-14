@@ -29,8 +29,14 @@ export function DomainSearchCard({
   onLocationChange,
 }: Props) {
   return (
-    <div className="card bg-base-100 border border-base-300">
-      <div className="card-body gap-4">
+    <div
+      className="overflow-hidden rounded-2xl shadow-sm transition-colors duration-200"
+      style={{
+        background: "var(--apple-card)",
+        border: "1px solid var(--apple-border)",
+      }}
+    >
+      <div className="p-5 gap-4">
         <form
           className="flex flex-col gap-3 lg:flex-row lg:items-center"
           onSubmit={onSubmit}

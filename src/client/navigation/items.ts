@@ -61,7 +61,7 @@ const projectNavItems = [
   },
   {
     to: "/p/$projectId/vorder-studio" as const,
-    label: "ROAS & Performance",
+    label: "Performance",
     icon: Activity,
   },
   {
