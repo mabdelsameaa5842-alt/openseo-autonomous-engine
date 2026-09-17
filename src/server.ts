@@ -50,6 +50,11 @@ import {
   handleDualPipelinesTelemetry,
   handleSiteWideRankAudit,
   executeScheduledAutonomousTick,
+  handleHarvestedKeywords,
+  handleTaskExecutions,
+  handleStepDetails,
+  handleAddCustomKeywords,
+  handleRunTaskStep,
 } from "@/server/features/automation/autonomousHandler";
 import {
   handleSuperAdminLogin,
@@ -256,6 +261,26 @@ function handleFetch(
 
   if (pathname === "/api/automation/check-live-rank") {
     return handleCheckLiveRank(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/harvested-keywords") {
+    return handleHarvestedKeywords(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/task-executions") {
+    return handleTaskExecutions(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/step-details") {
+    return handleStepDetails(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/add-custom-keywords") {
+    return handleAddCustomKeywords(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/run-task-step") {
+    return handleRunTaskStep(publicRequest, env);
   }
 
   if (

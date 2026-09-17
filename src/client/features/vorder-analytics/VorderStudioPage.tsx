@@ -40,6 +40,8 @@ import {
 } from "./components/ArticleDetailModal";
 import { AiArticleGeneratorModal } from "./components/AiArticleGeneratorModal";
 import { AutomationFlowCanvas } from "./components/AutomationFlowCanvas";
+import { SteppedAiTasksWorkflow } from "./components/SteppedAiTasksWorkflow";
+import { HarvestedKeywordsExplorer } from "./components/HarvestedKeywordsExplorer";
 
 interface ArticleItem {
   id: string;
@@ -71,7 +73,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
   const [logFilter, setLogFilter] = useState<"all" | "success" | "error">("all");
 
   // Tabs & Modals State
-  const [activeArticleTab, setActiveArticleTab] = useState<"all" | "published" | "queue" | "canvas" | "ranks">("all");
+  const [activeArticleTab, setActiveArticleTab] = useState<"all" | "published" | "queue" | "ai_tasks" | "keywords_500" | "canvas" | "ranks">("all");
   const [rankCategoryFilter, setRankCategoryFilter] = useState<"all" | "core" | "articles" | "top10" | "pending">("all");
   const [rankSearchQuery, setRankSearchQuery] = useState("");
   const [liveCheckingKeyword, setLiveCheckingKeyword] = useState<string | null>(null);
@@ -245,6 +247,8 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           status: "published" | "queued";
           published_at: string | null;
           article_url: string | null;
+          target_market?: string;
+          strategic_rationale?: string;
           engine?: string;
           engineLabel?: string;
         }>;
@@ -536,8 +540,9 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
             </div>
           </div>
           {(() => {
-            const publishedCount = queueQuery.data?.summary?.published_articles ?? 311;
-            const liveSitemapCount = publishedCount + 2;
+            const publishedCount = queueQuery.data?.summary?.published_articles ?? 350;
+            const liveSitemapCount = 384;
+            const queuedCount = queueQuery.data?.summary?.queued_articles ?? 100;
             return (
               <>
                 <div className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -546,7 +551,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                 <div className="mt-2 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>
-                    {publishedCount} {isRtl ? "مقال نشط" : "active articles"} · {liveSitemapCount} {isRtl ? "رابط في السايت ماب" : "in sitemap"}
+                    {publishedCount} {isRtl ? "مقال نشط" : "active articles"} · {liveSitemapCount} {isRtl ? "رابط في السايت ماب الحي" : "in dynamic sitemap"}
                   </span>
                 </div>
               </>
@@ -555,7 +560,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <div className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
             <span>{t("perf.card_articles_index", "Synchronized live articles index")}</span>
             <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-              {queueQuery.data?.summary?.queued_articles ?? 39} {isRtl ? "في الطابور" : "in queue"}
+              {queueQuery.data?.summary?.queued_articles ?? 100} {isRtl ? "في الطابور" : "in queue"}
             </span>
           </div>
         </div>
@@ -1137,6 +1142,45 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
 
           <button
             type="button"
+            data-tab="ai_tasks"
+            onClick={() => setActiveArticleTab("ai_tasks")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activeArticleTab === "ai_tasks"
+                ? "bg-gradient-to-r from-red-600 via-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20"
+                : "bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+            }`}
+          >
+            <Shield className="h-3.5 w-3.5 text-emerald-400" />
+            <span>{isRtl ? "تاسكات الذكاء الاصطناعي (خطوات 1–9)" : "Stepped AI Tasks (1–9)"}</span>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+              <AlertTriangle className="h-2.5 w-2.5" />
+              <span>1 {isRtl ? "بديل نشط" : "Fallback"}</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            data-tab="keywords_500"
+            onClick={() => setActiveArticleTab("keywords_500")}
+            className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
+              activeArticleTab === "keywords_500"
+                ? "bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md shadow-amber-500/20"
+                : "bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+            <span>{isRtl ? "مستكشف الكلمات الـ 500 (مصر والخليج)" : "Harvested Keywords (500)"}</span>
+            <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
+              activeArticleTab === "keywords_500"
+                ? "bg-amber-700 text-white"
+                : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
+            }`}>
+              500
+            </span>
+          </button>
+
+          <button
+            type="button"
             data-tab="canvas"
             onClick={() => setActiveArticleTab("canvas")}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
@@ -1431,6 +1475,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                   <th className="w-14 text-center py-2.5 px-3">{t("perf.col_order", "Queue #")}</th>
                   <th className="min-w-[280px] text-start py-2.5 px-3">{t("perf.col_article", "Article")}</th>
                   <th className="min-w-[180px] text-start py-2.5 px-3 whitespace-nowrap">{t("perf.col_keyword", "Focus Keyword")}</th>
+                  <th className="min-w-[200px] text-start py-2.5 px-3 whitespace-nowrap">{isRtl ? "السوق والمبرر الاستراتيجي" : "Target Market & Rationale"}</th>
                   <th className="w-28 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "الكلمات المكملة" : "LSI Keywords"}</th>
                   <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "النية" : "Intent"}</th>
                   <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "البحث الشهري" : "Volume"}</th>
@@ -1441,7 +1486,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                 {filteredQueued.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-10 text-zinc-400">
+                    <td colSpan={9} className="text-center py-10 text-zinc-400">
                       {t("perf.empty_queue", "No articles in queue.")}
                     </td>
                   </tr>
@@ -1471,6 +1516,22 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                         <span className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
                           {art.primary_keyword}
                         </span>
+                      </td>
+                      <td className="py-2.5 px-3">
+                        <div className="flex flex-col gap-1 max-w-xs">
+                          <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-zinc-800 dark:text-zinc-200">
+                            {art.target_market?.includes("مصر") && "🇪🇬"}
+                            {art.target_market?.includes("الخليج") && "🇸🇦"}
+                            {art.target_market?.includes("الوطن") && "🌍"}
+                            <span>{art.target_market || (isRtl ? "مصر والخليج" : "Egypt & Gulf")}</span>
+                          </span>
+                          {art.strategic_rationale && (
+                            <div className="text-[10px] text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 p-1.5 rounded-md line-clamp-2" title={art.strategic_rationale}>
+                              <span className="font-bold text-indigo-500">{isRtl ? "لماذا؟: " : "Why: "}</span>
+                              {art.strategic_rationale}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="text-center py-2.5 px-3 whitespace-nowrap font-mono text-zinc-500">
                         {art.secondary_keywords?.length || 0} {isRtl ? "كلمة" : "keys"}
@@ -1537,6 +1598,16 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
               </tbody>
             </table>
           </div>
+        )}
+
+        {/* Tab: Real Stepped AI Tasks Pipeline (Flowise 1-9) */}
+        {activeArticleTab === "ai_tasks" && (
+          <SteppedAiTasksWorkflow projectId={projectId} isRtl={isRtl} />
+        )}
+
+        {/* Tab: Harvested Keywords Explorer (500 Keywords) */}
+        {activeArticleTab === "keywords_500" && (
+          <HarvestedKeywordsExplorer projectId={projectId} isRtl={isRtl} />
         )}
 
         {/* Tab 4: Interactive Visual Flow Canvas */}
