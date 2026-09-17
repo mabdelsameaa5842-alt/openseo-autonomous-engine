@@ -232,9 +232,9 @@ export function SamConversation({
 
           {status === "error" ? (
             <div className="rounded-xl border border-error/30 bg-error/10 p-4 text-xs text-error space-y-1.5">
-              <p className="font-semibold text-sm">⚠️ تعذر استلام الرد من نموذج الذكاء الاصطناعي (OpenRouter):</p>
+              <p className="font-semibold text-sm">⚠️ تعذر استلام الرد من نموذج الذكاء الاصطناعي:</p>
               <p className="font-mono text-[11px] opacity-90 break-words leading-relaxed">
-                {error?.message || "Something went wrong during generation. Please check your OpenRouter API key, balance, or network connection."}
+                {error?.message || "حدث خطأ غير متوقع أثناء المعالجة، يرجى إعادة المحاولة أو تبديل الموديل."}
               </p>
             </div>
           ) : null}

@@ -328,7 +328,7 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
           <button
             type="button"
             tabIndex={0}
-            className="group relative flex w-full items-center gap-2.5 rounded-xl border border-white/10 bg-[#161618] p-2 text-left backdrop-blur-md transition-all duration-200 hover:border-amber-400/50 hover:bg-[#1C1C1F] hover:shadow-sm"
+            className="group relative flex w-full items-center gap-2.5 rounded-xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-[#161618] p-2 text-left backdrop-blur-md transition-all duration-200 hover:border-amber-400/50 hover:bg-zinc-50 dark:hover:bg-[#1C1C1F] shadow-sm"
             aria-label="Open account menu"
           >
             {/* Apple HIG Monogram Avatar */}
@@ -340,10 +340,10 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
             </div>
 
             <div className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-xs font-semibold text-white leading-tight">
+              <span className="truncate text-xs font-semibold text-zinc-900 dark:text-white leading-tight">
                 {userName}
               </span>
-              <span className="truncate text-[11px] text-zinc-400 font-mono">
+              <span className="truncate text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">
                 {email}
               </span>
             </div>
@@ -354,25 +354,25 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
           </button>
           <ul
             tabIndex={0}
-            className="dropdown-content z-30 menu mb-1 w-64 rounded-2xl border border-white/10 bg-[#161618] p-2 shadow-2xl backdrop-blur-xl text-white"
+            className="dropdown-content z-30 menu mb-1 w-64 rounded-2xl border border-zinc-200 dark:border-white/10 bg-white dark:bg-[#161618] p-2 shadow-2xl backdrop-blur-xl text-zinc-900 dark:text-white"
           >
-            <li className="menu-title flex flex-row items-center gap-1.5 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+            <li className="menu-title flex flex-row items-center gap-1.5 px-3 py-1 text-[11px] font-medium uppercase tracking-wider text-zinc-500 dark:text-zinc-400">
               {isRtl ? "حساب المدير العام" : "Super Admin Account"}
             </li>
-            <li className="px-3 py-2 rounded-xl bg-white/5 border border-white/10 mb-1">
+            <li className="px-3 py-2 rounded-xl bg-zinc-50 dark:bg-white/5 border border-zinc-200 dark:border-white/10 mb-1">
               <div className="flex flex-col gap-0.5">
-                <span className="font-semibold text-xs text-white">{userName}</span>
-                <span className="text-[11px] text-zinc-400 font-mono">{email}</span>
+                <span className="font-semibold text-xs text-zinc-900 dark:text-white">{userName}</span>
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-mono">{email}</span>
                 <span className="mt-1 inline-flex items-center gap-1 text-[10px] text-[#30D158] font-medium">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#30D158]"></span>
                   {isRtl ? "جلسة مشفرة ومحمية بنظام أبل الأمني" : "Secure & Encrypted Session"}
                 </span>
               </div>
             </li>
-            <li aria-hidden className="pointer-events-none my-1 h-px bg-white/10 p-0" />
+            <li aria-hidden className="pointer-events-none my-1 h-px bg-zinc-200 dark:bg-white/10 p-0" />
             {organizations.length > 1 ? (
               <>
-                <li className="menu-title flex flex-row items-center gap-1.5 max-w-full text-zinc-400">
+                <li className="menu-title flex flex-row items-center gap-1.5 max-w-full text-zinc-500 dark:text-zinc-400">
                   <ArrowLeftRight className="h-3 w-3" />
                   {t("nav.organization", "Organization")}
                 </li>
@@ -398,20 +398,20 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
                 ))}
                 <li
                   aria-hidden
-                  className="pointer-events-none my-1 h-px bg-white/10 p-0"
+                  className="pointer-events-none my-1 h-px bg-zinc-200 dark:bg-white/10 p-0"
                 />
               </>
             ) : null}
             <li>
-              <Link to="/settings" onClick={closeMenu} className="hover:bg-white/10">
-                <Settings className="h-4 w-4 text-zinc-400" />
+              <Link to="/settings" onClick={closeMenu} className="hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200">
+                <Settings className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                 {t("nav.settings", "Settings")}
               </Link>
             </li>
             {isHostedMode ? (
               <li>
-                <Link to={BILLING_ROUTE} onClick={closeMenu} className="hover:bg-white/10">
-                  <CreditCard className="h-4 w-4 text-zinc-400" />
+                <Link to={BILLING_ROUTE} onClick={closeMenu} className="hover:bg-zinc-100 dark:hover:bg-white/10 text-zinc-700 dark:text-zinc-200">
+                  <CreditCard className="h-4 w-4 text-zinc-500 dark:text-zinc-400" />
                   {t("nav.billing", "Billing")}
                 </Link>
               </li>
@@ -419,7 +419,7 @@ function SidebarFooter({ onNavigate }: { onNavigate?: () => void }) {
             <ThemePreferenceMenuItems />
             <li
               aria-hidden
-              className="pointer-events-none my-1 h-px bg-white/10 p-0"
+              className="pointer-events-none my-1 h-px bg-zinc-200 dark:bg-white/10 p-0"
             />
             <li>
               <button

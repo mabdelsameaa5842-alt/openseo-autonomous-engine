@@ -8,6 +8,7 @@ import {
 import {
   syncWithGoogleSearchConsole,
   syncWithGoogleAnalytics4,
+  dispatchIndexNow,
 } from "./googleEcosystemSync";
 import {
   generateKeywordUniverse,
@@ -619,7 +620,7 @@ export async function handleAutonomousSitemap(
       `SELECT article_slug as slug, published_at as publishedAt, article_title as title 
        FROM autonomous_content_queue 
        WHERE status = 'published' AND project_id = ?
-       ORDER BY published_at DESC LIMIT 500`
+       ORDER BY published_at DESC LIMIT 1500`
     )
       .bind(ctx.projectId)
       .all();
@@ -629,6 +630,31 @@ export async function handleAutonomousSitemap(
     }
   } catch (err) {
     console.warn("Could not query published articles for sitemap, using defaults", err);
+  }
+
+  // Real-time synchronization: merge live articles from portfolio API to ensure 100% coverage
+  if (cleanDomain) {
+    try {
+      const liveRes = await fetch(`https://${cleanDomain}/api/articles`);
+      if (liveRes.ok) {
+        const liveData: any = await liveRes.json();
+        const existingSlugs = new Set(articles.map(a => a.slug));
+        const list = Array.isArray(liveData) ? liveData : (Array.isArray(liveData?.articles) ? liveData.articles : []);
+        for (const item of list) {
+          const s = item.slug || item.article_slug;
+          if (s && !existingSlugs.has(s)) {
+            articles.push({
+              slug: s,
+              publishedAt: item.publishedAt || item.published_at || new Date().toISOString(),
+              title: item.title || item.article_title || s,
+            });
+            existingSlugs.add(s);
+          }
+        }
+      }
+    } catch (liveErr) {
+      console.warn("Could not fetch live articles for sitemap:", liveErr);
+    }
   }
 
   // Fallback / default high-value programmatic article
@@ -664,8 +690,8 @@ export async function handlePublishQueuedArticle(
   env: Env,
 ): Promise<Response> {
   const ctx = await resolveProjectContext(request, env);
-  const domain = ctx.cleanDomain;
-  const projectId = ctx.projectId;
+  let domain = ctx.cleanDomain;
+  let projectId = ctx.projectId;
 
   try {
     const body: any = await request.json();
@@ -691,6 +717,16 @@ export async function handlePublishQueuedArticle(
       );
     }
 
+    if (row.project_id) {
+      const proj: any = await env.DB.prepare(
+        "SELECT id, domain FROM projects WHERE id = ? LIMIT 1"
+      ).bind(row.project_id).first();
+      if (proj?.domain && !proj.domain.includes("demo-seed.test")) {
+        domain = proj.domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+        projectId = proj.id;
+      }
+    }
+
     const articleUrl = `https://${domain}/blog/${row.article_slug}`;
 
     // Dispatch tactical generation and publication to portfolio backend
@@ -704,7 +740,8 @@ export async function handlePublishQueuedArticle(
           secondary_keywords: row.secondary_keywords,
           brief_outline: row.brief_outline,
         },
-        env
+        env,
+        domain
       );
     } catch (pubErr) {
       console.warn("[Autonomous SEO] Portfolio publish manual dispatch:", pubErr);
@@ -1603,6 +1640,113 @@ export async function handleSiteWideRankAudit(
       status: 500,
       headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
     });
+  }
+}
+
+/**
+ * Scheduled background tick executed by Cloudflare Worker cron every 30 minutes.
+ * Handles autonomous publishing, sitemap/IndexNow sync, and updates workflow execution telemetry.
+ */
+export async function executeScheduledAutonomousTick(env: any): Promise<void> {
+  if (!env || !env.DB) return;
+
+  try {
+    const nowIso = new Date().toISOString();
+
+    // 1. Update last_executed_at on all active workflows in D1
+    await env.DB.prepare(
+      "UPDATE automation_flows SET last_executed_at = ?, updated_at = ? WHERE is_active = 1"
+    ).bind(nowIso, nowIso).run();
+
+    // 2. Fetch active production project (prioritizing mohamed-abdelsamee-portfolio and excluding demo seeds)
+    const projRow: any = await env.DB.prepare(
+      "SELECT id, domain FROM projects WHERE domain NOT LIKE '%.demo-seed.test' AND (archived_at IS NULL OR archived_at = '') ORDER BY CASE WHEN domain LIKE '%mohamed-abdelsamee%' THEN 0 ELSE 1 END, created_at ASC LIMIT 1"
+    ).first();
+    const projectId = projRow?.id || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
+    const rawDomain = projRow?.domain || "mohamed-abdelsamee-portfolio.vercel.app";
+    const domain = rawDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+
+    // 3. Process next queued article if available
+    const nextQueued: any = await env.DB.prepare(
+      "SELECT * FROM autonomous_content_queue WHERE project_id = ? AND status = 'queued' ORDER BY queue_order ASC LIMIT 1"
+    ).bind(projectId).first();
+
+    if (nextQueued) {
+      const pubRes = await generateAndPublishArticle(
+        {
+          article_slug: nextQueued.article_slug,
+          article_title: nextQueued.article_title,
+          primary_keyword: nextQueued.primary_keyword,
+          intent: nextQueued.intent,
+          secondary_keywords: nextQueued.secondary_keywords,
+          brief_outline: nextQueued.brief_outline,
+        },
+        env,
+        domain
+      );
+
+      if (pubRes.success) {
+        const blogArticleUrl = `https://${domain}/blog/${nextQueued.article_slug}`;
+        await env.DB.prepare(
+          "UPDATE autonomous_content_queue SET status = 'published', published_at = datetime('now'), article_url = ?, updated_at = datetime('now') WHERE id = ?"
+        ).bind(blogArticleUrl, nextQueued.id).run();
+
+        // 4. Instant IndexNow Notification for search engines
+        try {
+          await dispatchIndexNow({
+            domain,
+            urls: [blogArticleUrl],
+          });
+        } catch (idxErr) {
+          console.warn("[Scheduled Tick] IndexNow dispatch error:", idxErr);
+        }
+
+        // 5. Trigger Google Search Console URL inspection & sitemap synchronization
+        try {
+          const gscRow: any = await env.DB.prepare(
+            "SELECT connected_by_user_id, gsc_account_id, site_url FROM gsc_connections WHERE project_id = ?"
+          ).bind(projectId).first();
+
+          if (gscRow) {
+            await syncWithGoogleSearchConsole({
+              userId: gscRow.connected_by_user_id || "local-admin",
+              gscAccountId: gscRow.gsc_account_id || undefined,
+              domain,
+              siteUrl: gscRow.site_url || `https://${domain}/`,
+              articleUrl: blogArticleUrl,
+            });
+          }
+        } catch (gscErr) {
+          console.warn("[Scheduled Tick] GSC sync error:", gscErr);
+        }
+
+        // 6. Trigger Google Analytics 4 event dispatch
+        try {
+          const ga4Row: any = await env.DB.prepare(
+            "SELECT property_id FROM ga4_connections WHERE project_id = ?"
+          ).bind(projectId).first();
+
+          await syncWithGoogleAnalytics4({
+            measurementId: ga4Row?.property_id?.replace("properties/", ""),
+            articleSlug: nextQueued.article_slug,
+            primaryKeyword: nextQueued.primary_keyword,
+            intent: nextQueued.intent,
+          });
+        } catch (ga4Err) {
+          console.warn("[Scheduled Tick] GA4 sync error:", ga4Err);
+        }
+
+        console.log(`[Scheduled Autonomous Tick] Published, synced with GSC/GA4, and indexed: ${blogArticleUrl}`);
+      } else {
+        console.warn(`[Scheduled Autonomous Tick] Article publish failed for ${nextQueued.article_slug}: ${pubRes.error || 'Unknown error'}`);
+        // Self-Healing Watchdog: Demote failed article to end of queue to avoid blocking subsequent articles
+        await env.DB.prepare(
+          "UPDATE autonomous_content_queue SET queue_order = queue_order + 1000, updated_at = datetime('now') WHERE id = ?"
+        ).bind(nextQueued.id).run();
+      }
+    }
+  } catch (tickErr) {
+    console.warn("[Scheduled Autonomous Tick] Error during background execution:", tickErr);
   }
 }
 

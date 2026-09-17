@@ -10,6 +10,7 @@ import {
 import { useSamAccess } from "./useSamAccess";
 import { SamSetupGate } from "./SamSetupGate";
 import { SamConversation } from "./SamConversation";
+import { ModelQuotaBadge } from "./components/ModelQuotaBadge";
 
 /**
  * The SAM route's content: the active conversation, full-width. The chat
@@ -80,10 +81,10 @@ export function SamChat({
     )?.title;
     return (
       <div className="flex h-full min-h-0 flex-col">
-        {/* Session title + Google Antigravity Connected Status + Project Memory */}
-        <div className="flex items-center justify-between gap-3 border-b border-base-300 px-5 py-3.5">
-          <div className="flex items-center gap-3 min-w-0">
-            <span className="truncate text-sm font-medium text-base-content/80">
+        {/* Session title + Google Antigravity Connected Status + Model Quota Switcher + Project Memory */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-base-300 px-4 md:px-5 py-2.5 md:py-3.5 bg-base-100/50">
+          <div className="flex items-center gap-2.5 min-w-0 flex-wrap">
+            <span className="truncate text-sm font-medium text-base-content/80 max-w-[150px] sm:max-w-[200px]">
               {activeTitle ?? "Chat"}
             </span>
             <div className="hidden sm:inline-flex items-center gap-2 rounded-lg border border-base-300/80 bg-base-200/50 px-2.5 py-1 text-xs font-medium text-base-content/85 shadow-sm">
@@ -95,6 +96,8 @@ export function SamChat({
               <span className="text-base-content/40">•</span>
               <span className="text-xs text-primary font-semibold">متصل</span>
             </div>
+            {/* Dynamic Model Switcher & Quota Hub */}
+            <ModelQuotaBadge sessionId={activeSessionId} />
           </div>
           <div className="flex items-center gap-2.5">
             <div className="hidden md:flex items-center gap-1 text-[11px] text-base-content/60">
@@ -166,6 +169,9 @@ export function SamChat({
         <p className="text-sm text-base-content/70 leading-relaxed">
           مرتبط بـ Google Search Console و Google Analytics 4 وسياق المشروع المحفوظ لتحليل الكلمات، رفع التحويلات (SXO) عبر واتساب، وتوسيع ظهور البورتفوليو.
         </p>
+        <div className="pt-2 flex justify-center">
+          <ModelQuotaBadge />
+        </div>
       </div>
       <button
         type="button"

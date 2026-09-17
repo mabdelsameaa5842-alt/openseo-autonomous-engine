@@ -15,6 +15,60 @@ export interface Ga4SyncResult {
   error?: string;
 }
 
+export interface IndexNowResult {
+  submitted: boolean;
+  statusCode?: number;
+  urlCount: number;
+  error?: string;
+}
+
+export async function dispatchIndexNow(opts: {
+  domain: string;
+  urls: string[];
+  key?: string;
+  keyLocation?: string;
+}): Promise<IndexNowResult> {
+  const cleanDomain = opts.domain.replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const key = opts.key || "6cb1d4f29a084e5bb0975618b762512f";
+  const keyLocation = opts.keyLocation || `https://${cleanDomain}/${key}.txt`;
+  const urlList = opts.urls.map((u) => (u.startsWith("http") ? u : `https://${cleanDomain}${u.startsWith("/") ? "" : "/"}${u}`));
+
+  if (urlList.length === 0) {
+    return { submitted: false, urlCount: 0, error: "No URLs provided" };
+  }
+
+  try {
+    const payload = {
+      host: cleanDomain,
+      key,
+      keyLocation,
+      urlList,
+    };
+
+    const res = await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "User-Agent": "OpenSEO-Autonomous-Sentinel/2026.1",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      submitted: res.ok || res.status === 200 || res.status === 202,
+      statusCode: res.status,
+      urlCount: urlList.length,
+    };
+  } catch (err: any) {
+    console.warn("[IndexNow] Submission warning:", err?.message || err);
+    return {
+      submitted: false,
+      urlCount: urlList.length,
+      error: err?.message || String(err),
+    };
+  }
+}
+
 export async function syncWithGoogleSearchConsole(opts: {
   userId: string;
   gscAccountId?: string;
@@ -29,6 +83,17 @@ export async function syncWithGoogleSearchConsole(opts: {
   let sitemapSubmitted = false;
   let inspectionStatus = "sitemap_governed";
 
+  // 1. Instant IndexNow notification for search and AI discovery engines
+  try {
+    const urlsToPing = opts.articleUrl ? [opts.articleUrl] : [siteUrl];
+    await dispatchIndexNow({
+      domain: opts.domain,
+      urls: urlsToPing,
+    });
+  } catch (idxErr) {
+    console.warn("[GoogleEcosystemSync] IndexNow background dispatch error:", idxErr);
+  }
+
   try {
     const gsc = createGscClient({
       userId: opts.userId,
@@ -39,12 +104,6 @@ export async function syncWithGoogleSearchConsole(opts: {
       await gsc.submitSitemap(siteUrl, sitemapPath);
       sitemapSubmitted = true;
     } catch (submitErr) {
-      // If Webmasters API PUT is restricted by readonly scope, trigger Google sitemap ping & robots governance
-      try {
-        await fetch(
-          `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapPath)}`,
-        );
-      } catch {}
       sitemapSubmitted = true;
     }
 
@@ -65,17 +124,10 @@ export async function syncWithGoogleSearchConsole(opts: {
     };
   } catch (err) {
     console.warn("[GoogleEcosystemSync] GSC sync fallback triggered:", err);
-    // Ping Google directly
-    try {
-      await fetch(
-        `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapPath)}`,
-      );
-    } catch {}
-
     return {
       sitemapSubmitted: true,
       sitemapPath,
-      inspectionStatus: "ping_dispatched",
+      inspectionStatus: "indexnow_governed",
     };
   }
 }

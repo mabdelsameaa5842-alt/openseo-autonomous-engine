@@ -29,23 +29,73 @@ export interface GeneratedArticleCluster {
   };
 }
 
+// Circuit Breaker & Cooldown Watchdog for Gemini Rate Limits
+const modelCooldowns = new Map<string, number>();
+const promptCache = new Map<string, { data: any; expiresAt: number }>();
+
+export interface AdaptiveModelCandidate {
+  id: string;
+  provider: "google" | "openrouter";
+  modelName: string;
+  description: string;
+}
+
+const ADAPTIVE_MODEL_CASCADE: AdaptiveModelCandidate[] = [
+  { id: "gemini-2.0-flash", provider: "google", modelName: "gemini-2.0-flash", description: "Gemini 2.0 Flash (Primary High-Speed Free Tier)" },
+  { id: "gemini-2.0-flash-lite", provider: "google", modelName: "gemini-2.0-flash-lite", description: "Gemini 2.0 Flash-Lite (High RPM / RPD Free Tier)" },
+  { id: "gemini-1.5-flash", provider: "google", modelName: "gemini-1.5-flash", description: "Gemini 1.5 Flash (Reliable Secondary Backup)" },
+  { id: "openrouter-flash", provider: "openrouter", modelName: "google/gemini-2.0-flash-001", description: "OpenRouter Backup Model" },
+];
+
 /**
- * Resolves the AI model for Gemini generation (via direct Gemini key or OpenRouter Gemini model).
+ * Returns the currently healthiest Gemini model candidates, filtering out any on cooldown.
  */
-async function resolveGeminiModel(env?: any) {
+export function getAvailableModelCandidates(): AdaptiveModelCandidate[] {
+  const now = Date.now();
+  return ADAPTIVE_MODEL_CASCADE.filter((c) => {
+    const cooldownUntil = modelCooldowns.get(c.id);
+    return !cooldownUntil || cooldownUntil <= now;
+  });
+}
+
+/**
+ * Marks a model as rate-limited, engaging a circuit breaker cooldown period.
+ */
+export function triggerModelCooldown(modelId: string, durationMs: number = 15 * 60 * 1000) {
+  const cooldownUntil = Date.now() + durationMs;
+  modelCooldowns.set(modelId, cooldownUntil);
+  console.warn(`[Gemini CircuitBreaker] Model ${modelId} rate limited! Placed on cooldown until ${new Date(cooldownUntil).toISOString()}`);
+}
+
+/**
+ * Resolves an AI model instance with automatic cascade fallback.
+ */
+export async function resolveGeminiModel(env?: any, candidate?: AdaptiveModelCandidate) {
+  const target = candidate || getAvailableModelCandidates()[0] || ADAPTIVE_MODEL_CASCADE[0];
+
   const geminiKey =
     (env && env.GEMINI_API_KEY) || (await getOptionalEnvValue("GEMINI_API_KEY"));
-  if (geminiKey) {
+  const openrouterKey =
+    (env && env.OPENROUTER_API_KEY) || (await getOptionalEnvValue("OPENROUTER_API_KEY"));
+
+  if (target.provider === "google" && geminiKey) {
     const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-    return google("gemini-2.0-flash");
+    return { model: google(target.modelName), candidate: target };
   }
 
-  const openrouterKey =
-    (env && env.OPENROUTER_API_KEY) ||
-    (await getOptionalEnvValue("OPENROUTER_API_KEY"));
+  if (target.provider === "openrouter" && openrouterKey) {
+    const openrouter = createOpenRouter({ apiKey: openrouterKey });
+    return { model: openrouter(target.modelName), candidate: target };
+  }
+
+  // Fallback to whichever key exists
+  if (geminiKey) {
+    const google = createGoogleGenerativeAI({ apiKey: geminiKey });
+    return { model: google("gemini-2.0-flash"), candidate: ADAPTIVE_MODEL_CASCADE[0] };
+  }
   if (openrouterKey) {
     const openrouter = createOpenRouter({ apiKey: openrouterKey });
-    return openrouter("google/gemini-2.0-flash-001");
+    return { model: openrouter("google/gemini-2.0-flash-001"), candidate: ADAPTIVE_MODEL_CASCADE[3] };
   }
 
   return null;
@@ -69,11 +119,15 @@ export async function generateKeywordUniverse(opts: {
       ? "مصر والشرق الأوسط"
       : "الشرق الأوسط وشمال أفريقيا";
 
-  const model = await resolveGeminiModel(opts.env);
+  // 1. Edge In-Memory Prompt Cache (TTL: 7 days)
+  const cacheKey = `kw_${opts.prompt.trim().toLowerCase()}_${market}_${targetCount}`;
+  const cached = promptCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    console.log(`[Gemini PromptCache] Returning ${cached.data.length} keywords from cache for "${opts.prompt}" (0 API calls, 0 cost)`);
+    return cached.data;
+  }
 
-  if (model) {
-    try {
-      const systemPrompt = `You are a Principal SEO Architect and Growth Engineer specializing in Arabic & English Search Intelligence.
+  const systemPrompt = `You are a Principal SEO Architect and Growth Engineer specializing in Arabic & English Search Intelligence.
 The user wants to generate high-intent, modern SEO and performance keywords for: "${opts.prompt}"
 Target Market: ${marketLabel}.
 Current Year: 2026.
@@ -92,8 +146,14 @@ Return ONLY a valid JSON array of objects. No markdown wraps, no extra explanati
   { "keyword": "...", "monthlyVolume": 1200, "intent": "transactional", "difficulty": "LOW", "category": "..." }
 ]`;
 
+  const candidates = getAvailableModelCandidates();
+  for (const candidate of candidates) {
+    try {
+      const resolved = await resolveGeminiModel(opts.env, candidate);
+      if (!resolved) continue;
+
       const { text } = await generateText({
-        model,
+        model: resolved.model,
         prompt: systemPrompt,
       });
 
@@ -105,20 +165,35 @@ Return ONLY a valid JSON array of objects. No markdown wraps, no extra explanati
 
       const parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed) && parsed.length >= 20) {
-        return parsed.map((item) => ({
+        const results = parsed.map((item) => ({
           keyword: String(item.keyword || "").trim(),
           monthlyVolume: Number(item.monthlyVolume) || Math.floor(Math.random() * 800) + 150,
-          intent: ["commercial", "transactional", "informational"].includes(item.intent)
+          intent: (["commercial", "transactional", "informational"].includes(item.intent)
             ? item.intent
-            : "informational",
-          difficulty: ["LOW", "MEDIUM", "HIGH"].includes(item.difficulty)
+            : "informational") as StudioKeyword["intent"],
+          difficulty: (["LOW", "MEDIUM", "HIGH"].includes(item.difficulty)
             ? item.difficulty
-            : "MEDIUM",
+            : "MEDIUM") as StudioKeyword["difficulty"],
           category: String(item.category || "General SEO").trim(),
         }));
+
+        promptCache.set(cacheKey, { data: results, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+        return results;
       }
-    } catch (err) {
-      console.warn("[GeminiArticleStudio] Gemini keyword generation fallback triggered:", err);
+    } catch (err: any) {
+      const errMsg = String(err?.message || err);
+      if (
+        errMsg.includes("429") ||
+        errMsg.includes("quota") ||
+        errMsg.includes("RESOURCE_EXHAUSTED") ||
+        errMsg.includes("Rate limit") ||
+        errMsg.includes("rate-limit")
+      ) {
+        triggerModelCooldown(candidate.id);
+        console.warn(`[Gemini Failover] Rate limit hit on ${candidate.id}. Failing over to next model in cascade...`);
+        continue;
+      }
+      console.warn(`[GeminiArticleStudio] Error on model ${candidate.id}:`, err);
     }
   }
 

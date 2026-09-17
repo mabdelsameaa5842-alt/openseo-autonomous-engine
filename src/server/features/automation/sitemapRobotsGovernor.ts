@@ -43,12 +43,28 @@ Sitemap: https://${domain}/sitemap-articles.xml
 `;
 }
 
+export function formatW3cDate(rawDate?: string): string {
+  if (!rawDate) return new Date().toISOString().split("T")[0];
+  if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) return rawDate;
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(rawDate)) {
+    return rawDate.split(" ")[0];
+  }
+  try {
+    const d = new Date(rawDate);
+    if (!isNaN(d.getTime())) return d.toISOString().split("T")[0];
+  } catch {}
+  return new Date().toISOString().split("T")[0];
+}
+
 export function generateSitemapXml(
   domain: string,
   articles: PublishedArticleRecord[],
-  staticPages: string[] = ["", "about", "services", "contact", "portfolio"],
+  staticPages?: string[],
 ): string {
-  const nowIso = new Date().toISOString();
+  const nowW3c = formatW3cDate();
+  const effectiveStaticPages =
+    staticPages ??
+    (domain.includes("mohamed-abdelsamee") ? ["", "blog"] : ["", "about", "services", "contact", "portfolio"]);
 
   let xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
@@ -58,12 +74,12 @@ export function generateSitemapXml(
 `;
 
   // 1. Static Pages
-  for (const page of staticPages) {
+  for (const page of effectiveStaticPages) {
     const url = page ? `https://${domain}/${page}` : `https://${domain}/`;
-    const priority = page === "" ? "1.00" : "0.80";
+    const priority = page === "" ? "1.00" : "0.90";
     xml += `  <url>
     <loc>${url}</loc>
-    <lastmod>${nowIso}</lastmod>
+    <lastmod>${nowW3c}</lastmod>
     <changefreq>daily</changefreq>
     <priority>${priority}</priority>
   </url>
@@ -73,7 +89,7 @@ export function generateSitemapXml(
   // 2. Programmatic Tactical Articles
   for (const art of articles) {
     const artUrl = `https://${domain}/blog/${art.slug}`;
-    const artDate = art.publishedAt || nowIso;
+    const artDate = formatW3cDate(art.publishedAt);
     xml += `  <url>
     <loc>${artUrl}</loc>
     <lastmod>${artDate}</lastmod>

@@ -8,6 +8,7 @@ export const GSC_OAUTH_SCOPES = [
   "email",
   "profile",
   "https://www.googleapis.com/auth/webmasters.readonly",
+  "https://www.googleapis.com/auth/webmasters",
 ] as const;
 
 export const GSC_SELF_HOSTED_SETUP_DOCS_URL =

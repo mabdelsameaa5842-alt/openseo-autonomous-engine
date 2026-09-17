@@ -57,7 +57,7 @@ export function SkillsHubPage({ projectId }: { projectId: string }) {
           projectId,
           startUrl: auditUrl,
           maxPages: 25,
-          lighthouseStrategy: "auto",
+          lighthouseStrategy: "none",
         },
       });
 
@@ -72,8 +72,8 @@ export function SkillsHubPage({ projectId }: { projectId: string }) {
           ? "جاري زحف الصفحات والتحقق من الميتادات ووسوم Canonical وملفات robots.txt و sitemap.xml..."
           : "Crawling pages, inspecting canonicals, meta tags, robots.txt, and sitemaps...",
         isRtl
-          ? "جاري تشغيل محرك Google Lighthouse لاحتساب Core Web Vitals في الخلفية..."
-          : "Computing Google Lighthouse Core Web Vitals in background...",
+          ? "✓ فحص السيو التقني مكتمل ونظيف بدون أي متطلبات مدفوعة خارجية."
+          : "✓ Technical SEO crawl active, completely free with zero external API dependencies.",
         isRtl
           ? "🎉 الفحص قيد المعالجة الآن، يمكنك متابعة النتائج بالضغط على الزر أدناه."
           : "🎉 Audit is processing. You can inspect live results via the button below.",

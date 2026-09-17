@@ -27,6 +27,7 @@ import { buildSamSystemPrompt } from "@/server/features/sam/samSystemPrompt";
 import {
   buildChatAgentModel,
   buildGeminiChatAgentModel,
+  reportModelRateLimited,
 } from "@/server/lib/openrouter";
 import {
   getEnvValueSync,
@@ -106,6 +107,7 @@ export class SamChatAgent extends Think {
   // meters the spend.
   private turnCostUsd = 0;
   private turnMonthlyRemaining: number | null = null;
+  private activeModel: string | null = null;
 
   /** Permanently remove this session's transcript for an account erasure. */
   async destroyForErasure(): Promise<void> {
@@ -134,7 +136,7 @@ export class SamChatAgent extends Think {
     if (geminiKey) {
       return buildGeminiChatAgentModel(
         geminiKey,
-        getEnvValueSync(this.env, "GEMINI_MODEL"),
+        this.activeModel || getEnvValueSync(this.env, "GEMINI_MODEL"),
       );
     }
     const apiKey = getEnvValueSync(this.env, "OPENROUTER_API_KEY");
@@ -326,7 +328,20 @@ export class SamChatAgent extends Think {
         scopes: [MCP_SCOPE],
       };
 
+      if (!this.activeModel) {
+        this.activeModel =
+          (await this.ctx.storage.get<string>("selected_model")) ?? null;
+      }
+      const geminiKey = getEnvValueSync(this.env, "GEMINI_API_KEY");
+      const model = geminiKey
+        ? buildGeminiChatAgentModel(
+            geminiKey,
+            this.activeModel || getEnvValueSync(this.env, "GEMINI_MODEL"),
+          )
+        : undefined;
+
       return {
+        model,
         tools: buildSamMcpTools(authContext, {
           id: ctx.project.id,
           domain: ctx.project.domain,
@@ -408,6 +423,23 @@ export class SamChatAgent extends Think {
       responseBody: errObj?.responseBody,
       data: errObj?.data,
     });
+
+    const isRateLimit =
+      errObj?.status === 429 ||
+      errObj?.statusCode === 429 ||
+      String(errObj?.message).includes("429") ||
+      String(errObj?.message).includes("quota") ||
+      String(errObj?.message).includes("RESOURCE_EXHAUSTED");
+
+    if (isRateLimit && this.activeModel) {
+      console.warn(
+        `[sam] Rate limit 429 detected for ${this.activeModel}. Activating failover circuit breaker.`,
+      );
+      reportModelRateLimited(this.activeModel);
+      this.activeModel = "gemini-3.5-flash-lite";
+      void this.ctx.storage.put("selected_model", "gemini-3.5-flash-lite");
+    }
+
     return error;
   }
 
@@ -417,9 +449,36 @@ export class SamChatAgent extends Think {
   // every other HTTP request to this DO. Think's own onRequest wrapper handles
   // /get-messages before delegating here.
   async onRequest(request: Request): Promise<Response> {
+    const url = new URL(request.url);
+
+    if (request.method === "POST" && url.pathname.endsWith("/set-model")) {
+      const body = (await request.json().catch(() => null)) as {
+        model?: string;
+      } | null;
+      if (body?.model) {
+        this.activeModel = body.model;
+        await this.ctx.storage.put("selected_model", body.model);
+        return Response.json({ ok: true, model: body.model });
+      }
+      return Response.json({ error: "model required" }, { status: 400 });
+    }
+
+    if (request.method === "GET" && url.pathname.endsWith("/get-model")) {
+      if (!this.activeModel) {
+        this.activeModel =
+          (await this.ctx.storage.get<string>("selected_model")) ?? null;
+      }
+      return Response.json({
+        model:
+          this.activeModel ||
+          getEnvValueSync(this.env, "GEMINI_MODEL") ||
+          "gemini-3.5-flash-lite",
+      });
+    }
+
     if (
       request.method === "POST" &&
-      new URL(request.url).pathname.endsWith("/rewind")
+      url.pathname.endsWith("/rewind")
     ) {
       const body = z
         .object({ messageId: z.string().min(1) })

@@ -73,18 +73,27 @@ export function clusterKeywordsIntoArticles(
       .replace(/\s+/g, "-")
       .slice(0, 60);
 
-    // Format professional title
-    const capitalized = primary.keyword
+    // Format professional concise title (<= 36 chars to ensure total title with brand is <= 58 chars)
+    let cleanKw = primary.keyword
+      .replace(/^(guide to|how to|top|best|expert)\s+/i, "")
+      .trim();
+    const capitalized = cleanKw
       .split(" ")
       .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
 
-    const title =
-      intent === "transactional"
-        ? `${capitalized}: Complete Strategic Guide & Implementation`
-        : intent === "commercial"
-          ? `Top ${capitalized} Comparison & Expert Evaluation (2026)`
-          : `The Ultimate Guide to ${capitalized} for Modern Businesses`;
+    let title = "";
+    if (intent === "transactional") {
+      title = `${capitalized} Strategy Guide`;
+    } else if (intent === "commercial") {
+      title = `Top ${capitalized} (2026)`;
+    } else {
+      title = `${capitalized} Guide 2026`;
+    }
+
+    if (title.length > 37) {
+      title = capitalized.length <= 37 ? capitalized : `${capitalized.slice(0, 32)}...`;
+    }
 
     clusters.push({
       queueOrder: i + 1,

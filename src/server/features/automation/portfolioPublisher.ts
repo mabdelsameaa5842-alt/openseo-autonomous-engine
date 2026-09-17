@@ -299,6 +299,13 @@ export async function generateAndPublishArticle(
     };
   }
 
+  // Pre-warm Edge CDN cache immediately so first crawler or visitor gets sub-30ms response
+  try {
+    fetch(publicUrl, {
+      headers: { "User-Agent": "OpenSEO-EdgePrewarmer/1.0" },
+    }).catch(() => {});
+  } catch {}
+
   return {
     success: true,
     slug: item.article_slug,

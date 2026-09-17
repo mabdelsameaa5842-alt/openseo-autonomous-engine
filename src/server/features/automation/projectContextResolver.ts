@@ -48,10 +48,10 @@ export async function resolveProjectContext(
           .first();
       }
 
-      // If project was not found by ID or ID was not provided, get the primary active project
+      // If project was not found by ID or ID was not provided, get the primary active production project
       if (!dbProject) {
         dbProject = await env.DB.prepare(
-          "SELECT id, name, domain FROM projects WHERE archived_at IS NULL ORDER BY created_at ASC LIMIT 1"
+          "SELECT id, name, domain FROM projects WHERE domain NOT LIKE '%.demo-seed.test' AND archived_at IS NULL ORDER BY CASE WHEN domain LIKE '%mohamed-abdelsamee%' THEN 0 ELSE 1 END, created_at ASC LIMIT 1"
         ).first();
 
         if (dbProject) {

@@ -24,7 +24,7 @@
   --apple-sidebar: #FAFAFC;
   --apple-sidebar-border: #E5E5EA;
   --apple-text-primary: #1D1D1F;
-  --apple-text-secondary: #86868B;
+  --apple-text-secondary: #52525B;
   --apple-pill: #E5E5EA;
   --apple-pill-hover: #D8D8DC;
 }
@@ -259,6 +259,29 @@ html[data-theme="openseo"]
    currentColor; use the primary accent instead (PostHog-style). */
 .tabs-border > .tab.tab-active::before {
   --tab-border-color: var(--color-primary);
+}
+
+/* Light mode high-contrast enhancements (WCAG AA Compliance) */
+html[data-theme="openseo"] .tabs-border > .tab:not(.tab-active) {
+  color: #52525B;
+  opacity: 0.9;
+}
+html[data-theme="openseo"] .tabs-border > .tab:not(.tab-active):hover {
+  color: #18181B;
+  opacity: 1;
+}
+
+html[data-theme="openseo"] .text-base-content\/40 {
+  color: #52525B !important;
+}
+html[data-theme="openseo"] .text-base-content\/50 {
+  color: #3F3F46 !important;
+}
+html[data-theme="openseo"] .text-base-content\/60 {
+  color: #27272A !important;
+}
+html[data-theme="openseo"] .text-base-content\/70 {
+  color: #18181B !important;
 }
 
 /* Custom alert styling with darker borders and transparent background */

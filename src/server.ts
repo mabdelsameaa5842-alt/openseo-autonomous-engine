@@ -49,6 +49,7 @@ import {
   handlePublicAutonomousArticles,
   handleDualPipelinesTelemetry,
   handleSiteWideRankAudit,
+  executeScheduledAutonomousTick,
 } from "@/server/features/automation/autonomousHandler";
 import {
   handleSuperAdminLogin,
@@ -359,6 +360,14 @@ export default {
     }
     // Scope a per-request Postgres client for the cron run (no-op in D1 mode).
     await withPgClient(() => runScheduledRankChecks(env));
+
+    // Autonomous SEO, Self-Healing Pipeline & IndexNow Scheduled Tick (Every 30 min)
+    try {
+      await executeScheduledAutonomousTick(env);
+    } catch (autoErr) {
+      console.warn("[cron] Autonomous pipeline scheduled tick warning:", autoErr);
+    }
+
     if (watchdogError) throw watchdogError;
   },
 };
