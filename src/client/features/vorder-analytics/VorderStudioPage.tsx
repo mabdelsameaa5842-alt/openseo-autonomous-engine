@@ -1688,7 +1688,9 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
 
         {/* Tab: Real Stepped AI Tasks Pipeline (Flowise 1-9) */}
         {activeArticleTab === "ai_tasks" && (
-          <SteppedAiTasksWorkflow projectId={projectId} isRtl={isRtl} />
+          <div className="transition-all duration-500 ease-out animate-in fade-in-50 slide-in-from-bottom-2">
+            <SteppedAiTasksWorkflow projectId={projectId} isRtl={isRtl} />
+          </div>
         )}
 
         {/* Tab: Harvested Keywords Explorer (500 Keywords) */}
