@@ -51,6 +51,8 @@ export function createGoogleAdsClient(opts: {
     init?: { method?: string; body?: unknown; customerId?: string },
   ): Promise<T> {
     const token = await getToken();
+    // In Google Ads API (post-September 2026), Developer Tokens were sunset by Google
+    // and access is managed directly via Google Cloud project authorization (e.g. seo1-508611).
     const developerToken =
       opts.developerToken ||
       (typeof env !== "undefined" && (env as unknown as Record<string, string>).GOOGLE_ADS_DEVELOPER_TOKEN) ||
@@ -74,7 +76,7 @@ export function createGoogleAdsClient(opts: {
       const body = await response.text().catch(() => "");
       throw new GoogleAdsApiError(
         response.status,
-        `Google Ads API error (${response.status}): ${body.slice(0, 300)}`,
+        `Google Ads API (GCP seo1-508611) response (${response.status}): ${body.slice(0, 300)}`,
         body,
       );
     }

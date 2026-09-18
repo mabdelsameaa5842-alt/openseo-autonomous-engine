@@ -55,6 +55,7 @@ import {
   handleStepDetails,
   handleAddCustomKeywords,
   handleRunTaskStep,
+  handleReplenishQueue,
 } from "@/server/features/automation/autonomousHandler";
 import {
   handleSuperAdminLogin,
@@ -281,6 +282,10 @@ function handleFetch(
 
   if (pathname === "/api/automation/run-task-step") {
     return handleRunTaskStep(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/replenish-queue") {
+    return handleReplenishQueue(publicRequest, env);
   }
 
   if (

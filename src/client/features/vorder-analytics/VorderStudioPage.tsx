@@ -258,6 +258,46 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
     refetchOnWindowFocus: false,
   });
 
+  // 8. Autonomous Task Executions Query (for dynamic status pill in tab)
+  const taskExecutionsQuery = useQuery<{ success: boolean; executions: any[] }>({
+    queryKey: ["autonomous-task-executions", projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/automation/task-executions?projectId=${encodeURIComponent(projectId)}`);
+      if (!res.ok) throw new Error("Failed to fetch task executions");
+      return res.json();
+    },
+    refetchInterval: 15000,
+    refetchOnWindowFocus: false,
+  });
+
+  const [isReplenishing, setIsReplenishing] = useState(false);
+
+  const handleReplenishQueue = async () => {
+    setIsReplenishing(true);
+    try {
+      const res = await fetch("/api/automation/replenish-queue", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      const data = (await res.json()) as any;
+      if (data?.success) {
+        toast.success(
+          isRtl
+            ? `تم تعبئة الطابور فورياً إلى ${data.queuedCount} مقال استراتيجي!`
+            : `Queue replenished successfully to ${data.queuedCount} articles!`
+        );
+        void queueQuery.refetch();
+      } else {
+        toast.error(isRtl ? "تعذر تعبئة الطابور" : "Failed to replenish queue");
+      }
+    } catch {
+      toast.error(isRtl ? "خطأ في الاتصال بالخادم" : "Server communication error");
+    } finally {
+      setIsReplenishing(false);
+    }
+  };
+
   const handlePublishNow = async (articleId: string) => {
     setPublishingId(articleId);
     try {
@@ -1146,16 +1186,25 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
             onClick={() => setActiveArticleTab("ai_tasks")}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "ai_tasks"
-                ? "bg-gradient-to-r from-red-600 via-emerald-600 to-teal-600 text-white shadow-md shadow-emerald-500/20"
+                ? taskExecutionsQuery.data?.executions?.[0]?.has_fallbacks
+                  ? "bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 text-white shadow-md shadow-red-500/20"
+                  : "bg-gradient-to-r from-emerald-600 via-teal-600 to-indigo-600 text-white shadow-md shadow-emerald-500/20"
                 : "bg-zinc-100 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
             <Shield className="h-3.5 w-3.5 text-emerald-400" />
             <span>{isRtl ? "تاسكات الذكاء الاصطناعي (خطوات 1–9)" : "Stepped AI Tasks (1–9)"}</span>
-            <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
-              <AlertTriangle className="h-2.5 w-2.5" />
-              <span>1 {isRtl ? "بديل نشط" : "Fallback"}</span>
-            </span>
+            {taskExecutionsQuery.data?.executions?.[0]?.has_fallbacks ? (
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-red-500/20 text-red-300 border border-red-500/30 flex items-center gap-1">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                <span>1 {isRtl ? "بديل نشط" : "Fallback"}</span>
+              </span>
+            ) : (
+              <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
+                <CheckCircle2 className="h-2.5 w-2.5" />
+                <span>9/9 Primary OK</span>
+              </span>
+            )}
           </button>
 
           <button
@@ -1468,8 +1517,44 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
 
         {/* Tab 3: Scheduled Content Queue */}
         {activeArticleTab === "queue" && (
-          <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
-            <table className="w-full text-xs">
+          <div className="mt-4 space-y-3">
+            {/* Rolling Buffer 100 System Banner & Quick Replenish */}
+            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 dark:bg-indigo-950/20">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-500 shrink-0">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-zinc-800 dark:text-zinc-100 flex items-center gap-2">
+                    <span>{isRtl ? "نظام التخزين المتجدد (Rolling Buffer 100)" : "Rolling Buffer 100 System"}</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                      🟢 {queueQuery.data?.summary?.queued_articles ?? queuedArticles.length} / 100
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    {isRtl
+                      ? "يحافظ النظام على مخزون دائم من 100 مقال استراتيجي مجدول بنسب (40% مصر، 40% الخليج، 20% الوطن العربي) لتفادي نفاد الطابور."
+                      : "Maintains a rolling buffer of 100 scheduled articles (40% Egypt, 40% Gulf, 20% MENA) preventing queue exhaustion."}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleReplenishQueue}
+                disabled={isReplenishing}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-sm transition-all disabled:opacity-50 cursor-pointer shrink-0"
+              >
+                {isReplenishing ? (
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Plus className="h-3.5 w-3.5" />
+                )}
+                <span>{isRtl ? "تعبئة الطابور فورياً إلى 100" : "Replenish Queue to 100"}</span>
+              </button>
+            </div>
+
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
+              <table className="w-full text-xs">
               <thead className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800">
                 <tr className="text-zinc-500 dark:text-zinc-400 font-semibold">
                   <th className="w-14 text-center py-2.5 px-3">{t("perf.col_order", "Queue #")}</th>
@@ -1598,7 +1683,8 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Tab: Real Stepped AI Tasks Pipeline (Flowise 1-9) */}
         {activeArticleTab === "ai_tasks" && (
