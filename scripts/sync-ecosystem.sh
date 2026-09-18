@@ -1,24 +1,22 @@
 #!/usr/bin/env bash
 set -e
 
-echo "=== [1/4] Checking OpenSEO Engine Git Status ==="
+echo "=== [1/4] Checking OpenSEO Engine Local Git Status ==="
 cd "/home/mohamed-ahmed/Desktop/CODE_ENGINEERING_HUB/ai seo skills/open-seo"
 git add .
 if git status --porcelain | grep -q .; then
-  git commit -m "feat(ai-tasks): 9-step flowise workflows, red fallback logs, 500 keywords explorer, and market reasoning"
-  git push origin main
-  echo "✔ OpenSEO Engine repository synced to GitHub."
+  git commit -m "feat(edge-security): cloudflare edge ledger verification, apple hig motion, and secure local versioning"
+  echo "✔ OpenSEO Engine local repository versioned safely (No remote push)."
 else
-  echo "✔ OpenSEO Engine repository up to date."
+  echo "✔ OpenSEO Engine repository clean and up to date."
 fi
 
-echo "=== [2/4] Checking Portfolio Production Git Status ==="
+echo "=== [2/4] Checking Portfolio Production Local Git Status ==="
 cd "/home/mohamed-ahmed/.gemini/antigravity/scratch/portfolio-prod"
 git add .
 if git status --porcelain | grep -q .; then
-  git commit -m "feat(sync): dynamic sitemap 384 URLs and dual CTA verification"
-  git push origin main
-  echo "✔ Portfolio repository synced to GitHub."
+  git commit -m "feat(edge-security): edge snapshot verification and zero external push"
+  echo "✔ Portfolio local repository versioned safely (No remote push)."
 else
   echo "✔ Portfolio repository up to date."
 fi

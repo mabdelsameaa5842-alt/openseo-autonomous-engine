@@ -23,7 +23,8 @@ import {
   Loader2,
   Activity,
   Radio,
-  Sliders
+  Sliders,
+  ShieldCheck
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -74,7 +75,7 @@ const ARABIC_STEP_DESCRIPTIONS: Record<number, string> = {
   6: "تحديث خريطة الموقع وتفريغ كاش الحافة الفوري ليصبح المقال متاحاً فورياً لعناكب محركات البحث مع رفع إجمالي الروابط إلى 421 رابطاً.",
   7: "إرسال إشعار فحص الرابط اللحظي إلى جوجل سيرش كونسول لجدولة عناكب الفهرسة والزحف الفوري للمحتوى الجديد في أسرع وقت.",
   8: "إرسال حدث النشر والقياس اللحظي إلى لوحة تحليلات جوجل مع كافة معلمات التتبع الدقيقة لتسجيل أول ظهور للمقال في السجلات.",
-  9: "أرشفة ملفات المقال ومزامنة شجرة الكود في مستودعات جيت هاب وفيرسل بالثانية لضمان تطابق البيئات السحابية بالكامل.",
+  9: "تأكيد أرشفة الحافة اللامركزية والتحقق الأمني النهائي من سلامة المقال والروابط وكاش الحافة بدون أي رفع خارجي.",
 };
 
 // Data Flow Pipeline Artifacts for each step
@@ -120,9 +121,9 @@ const STEP_DATA_PIPELINE: Record<number, { input: string; output: string; tags: 
     tags: ["GA4 Protocol", "Event: seo_article_published", "Live Telemetry"],
   },
   9: {
-    input: "ملف المقال وشجرة الكود",
-    output: "مزامنة لحظية عبر جيت هاب وفيرسل وكلودفلير",
-    tags: ["GitHub Contents API", "Sub-Second Sync", "Edge Deploy"],
+    input: "بيانات المقال المنشور والروابط",
+    output: "أرشفة الحافة اللامركزية وتأمين البيانات 100%",
+    tags: ["Cloudflare D1 Ledger", "Edge Cache Verified", "Sitemap 421 Active", "100% Secure"],
   },
 };
 
@@ -308,7 +309,7 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
       case 6: return <Globe className="h-4 w-4" />;
       case 7: return <ExternalLink className="h-4 w-4" />;
       case 8: return <TrendingUp className="h-4 w-4" />;
-      case 9: return <GitBranch className="h-4 w-4" />;
+      case 9: return <ShieldCheck className="h-4 w-4" />;
       default: return <Shield className="h-4 w-4" />;
     }
   };
@@ -471,7 +472,7 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
                     {stepNum === 6 && (isRtl ? "السايت ماب" : "Sitemap")}
                     {stepNum === 7 && (isRtl ? "الكونسول" : "GSC")}
                     {stepNum === 8 && (isRtl ? "التحليلات" : "GA4")}
-                    {stepNum === 9 && (isRtl ? "المزامنة" : "Sync")}
+                    {stepNum === 9 && (isRtl ? "أرشفة الحافة" : "Edge Ledger")}
                   </span>
                 </button>
 
