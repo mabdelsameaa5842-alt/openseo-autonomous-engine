@@ -29,6 +29,11 @@ import {
   History,
   Radio,
   Terminal,
+  Trash2,
+  Edit3,
+  CheckSquare,
+  Square,
+  Download,
 } from "lucide-react";
 import { toast } from "sonner";
 import { getSearchPerformanceReport, getSearchPerformanceTable } from "@/serverFunctions/searchPerformance";
@@ -43,6 +48,9 @@ import {
 } from "./components/ArticleDetailModal";
 import { AiArticleGeneratorModal } from "./components/AiArticleGeneratorModal";
 import { AutomationFlowCanvas } from "./components/AutomationFlowCanvas";
+import { ApplePaginationBar } from "./components/ApplePaginationBar";
+import { ArticleCrudModal } from "./components/ArticleCrudModal";
+import { BatchActionBar } from "./components/BatchActionBar";
 import { SteppedAiTasksWorkflow } from "./components/SteppedAiTasksWorkflow";
 import { HarvestedKeywordsExplorer } from "./components/HarvestedKeywordsExplorer";
 import { GscRealtimeIndexingCard } from "./components/GscRealtimeIndexingCard";
@@ -230,7 +238,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
     queryKey: ["autonomousContentQueue", projectId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/automation/queue?projectId=${encodeURIComponent(projectId)}&limit=100`,
+        `/api/automation/queue?projectId=${encodeURIComponent(projectId)}&limit=1000`,
       );
       if (!res.ok) throw new Error("Failed to load queue");
       return (await res.json()) as {
@@ -322,8 +330,8 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
       if (data.success) {
         toast.success(
           isRtl
-            ? `✅ تم السكرابينج العميق بنجاح! العدد الفعلي الموثق: ${data.telemetry?.portfolio_live_count ?? "464"} مقال`
-            : `✅ Deep scraper verified: ${data.telemetry?.portfolio_live_count ?? "464"} live articles`
+            ? `✅ تم السكرابينج العميق بنجاح! العدد الفعلي الموثق: ${data.telemetry?.portfolio_live_count ?? 0} مقال`
+            : `✅ Deep scraper verified: ${data.telemetry?.portfolio_live_count ?? 0} live articles`
         );
         void groundTruthQuery.refetch();
         void queueQuery.refetch();
@@ -393,6 +401,163 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
     }
   };
 
+  // Pagination, Selection & CRUD State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [currentRankPage, setCurrentRankPage] = useState(1);
+  const [rankPageSize, setRankPageSize] = useState(10);
+  const [selectedArticleIds, setSelectedArticleIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isBulkPublishing, setIsBulkPublishing] = useState(false);
+  const [isCrudModalOpen, setIsCrudModalOpen] = useState(false);
+  const [crudModalMode, setCrudModalMode] = useState<"create" | "edit">("create");
+  const [selectedArticleForEdit, setSelectedArticleForEdit] = useState<any>(null);
+
+  const toggleSelectAll = (list: any[]) => {
+    if (selectedArticleIds.size === list.length && list.length > 0) {
+      setSelectedArticleIds(new Set());
+    } else {
+      setSelectedArticleIds(new Set(list.map((item) => item.id)));
+    }
+  };
+
+  const toggleSelectRow = (id: string) => {
+    setSelectedArticleIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleSingleDelete = async (articleId: string, articleTitle?: string) => {
+    if (
+      !confirm(
+        isRtl
+          ? `هل أنت متأكد من حذف المقال "${articleTitle || articleId}" نهائياً من النظام؟`
+          : `Permanently delete article "${articleTitle || articleId}"?`
+      )
+    ) {
+      return;
+    }
+    try {
+      const res = await fetch("/api/automation/delete-articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, id: articleId }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success) {
+        toast.success(isRtl ? "تم حذف المقال بنجاح" : "Article deleted successfully");
+        void queueQuery.refetch();
+        void dualTelemetryQuery.refetch();
+      } else {
+        throw new Error(data.error || "Failed to delete article");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Delete failed");
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedArticleIds.size === 0) return;
+    if (
+      !confirm(
+        isRtl
+          ? `هل أنت متأكد من حذف ${selectedArticleIds.size} مقالاً محدداً؟`
+          : `Delete ${selectedArticleIds.size} selected articles?`
+      )
+    ) {
+      return;
+    }
+    setIsBulkDeleting(true);
+    try {
+      const res = await fetch("/api/automation/delete-articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, ids: Array.from(selectedArticleIds) }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success) {
+        toast.success(
+          isRtl
+            ? `تم حذف ${data.deletedCount} مقال بنجاح`
+            : `Deleted ${data.deletedCount} articles successfully`
+        );
+        setSelectedArticleIds(new Set());
+        void queueQuery.refetch();
+        void dualTelemetryQuery.refetch();
+      } else {
+        throw new Error(data.error || "Bulk delete failed");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error deleting articles");
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleBulkPublish = async () => {
+    if (selectedArticleIds.size === 0) return;
+    setIsBulkPublishing(true);
+    try {
+      const res = await fetch("/api/automation/bulk-update-articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId,
+          ids: Array.from(selectedArticleIds),
+          updates: { status: "published" },
+        }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success) {
+        toast.success(
+          isRtl
+            ? `تم نشر ${data.updatedCount} مقالاً فورياً وتحديث السايت ماب بنجاح! 🚀`
+            : `Published ${data.updatedCount} articles successfully!`
+        );
+        setSelectedArticleIds(new Set());
+        void queueQuery.refetch();
+        void dualTelemetryQuery.refetch();
+      } else {
+        throw new Error(data.error || "Bulk publish failed");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error publishing articles");
+    } finally {
+      setIsBulkPublishing(false);
+    }
+  };
+
+  const handleBulkExportCsv = (list: any[]) => {
+    const targetItems = list.filter((item) => selectedArticleIds.has(item.id));
+    if (targetItems.length === 0) return;
+    const headers = ["Title", "Slug", "Focus Keyword", "Market", "Category", "Status"];
+    const rows = targetItems.map((item) => [
+      `"${(item.title || item.article_title || "").replace(/"/g, '""')}"`,
+      `"${(item.slug || item.article_slug || "").replace(/"/g, '""')}"`,
+      `"${(item.focusKeyword || item.primary_keyword || "").replace(/"/g, '""')}"`,
+      `"${(item.country || item.target_market || "").replace(/"/g, '""')}"`,
+      `"${(item.category || "").replace(/"/g, '""')}"`,
+      `"${(item.status || "published").replace(/"/g, '""')}"`,
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `openseo_articles_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(
+      isRtl
+        ? `تم تصدير ${targetItems.length} مقالاً كـ CSV بنجاح`
+        : `Exported ${targetItems.length} articles as CSV`
+    );
+  };
+
   // 8. Fetch Real Articles
   useEffect(() => {
     async function loadPortfolioArticles() {
@@ -418,7 +583,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                 category: a.category || "Performance SEO",
                 focusKeyword: a.focusKeyword || a.title?.split(" ")[0] || "SEO",
                 country: a.targetCountry || "🇸🇦 السعودية",
-                views: a.views || Math.floor(Math.random() * 300) + 50,
+                views: a.views || 0,
                 clicks: a.clicks || 0,
                 impressions: a.impressions || 0,
                 ctr: a.ctr || "0.0%",
@@ -472,6 +637,20 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
       a.article_slug.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
+  // Paginated Slices with graduation scale support
+  const paginatedArticles = filteredArticles.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+  const paginatedAutonomousPublished = filteredAutonomousPublished.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+  const paginatedQueued = filteredQueued.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
+
   // Site-Wide Real Ranks (Discovered from sitemap.xml & Google Search Console)
   const siteWideRanks = (dualTelemetryQuery.data?.flowisePipeline?.siteWideRanks && dualTelemetryQuery.data.flowisePipeline.siteWideRanks.length > 0)
     ? dualTelemetryQuery.data.flowisePipeline.siteWideRanks
@@ -506,6 +685,11 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
     }
     return true;
   });
+
+  const paginatedRankItems = filteredRankItems.slice(
+    (currentRankPage - 1) * rankPageSize,
+    currentRankPage * rankPageSize
+  );
 
   const gscTotals =
     gscReportQuery.data && "totals" in gscReportQuery.data
@@ -661,8 +845,8 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           {(() => {
             const liveScraped = groundTruthQuery.data?.telemetry?.portfolio_live_count;
             const d1Count = queueQuery.data?.summary?.published_articles;
-            const displayCount = liveScraped || d1Count || 464;
-            const queuedCount = queueQuery.data?.summary?.queued_articles ?? 98;
+            const displayCount = liveScraped ?? d1Count ?? 0;
+            const queuedCount = queueQuery.data?.summary?.queued_articles ?? 0;
             const isSync = groundTruthQuery.data?.telemetry?.is_synchronized ?? false;
 
             return (
@@ -684,7 +868,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                     </span>
                   </div>
                   <span className="text-[11px] font-mono text-zinc-400">
-                    364 {isRtl ? "أساسي" : "base"} + {Math.max(0, displayCount - 364)} {isRtl ? "أتمتة حية" : "auto"}
+                    {isRtl ? `موثق بالسيرفر: ${displayCount}` : `Verified: ${displayCount}`}
                   </span>
                 </div>
               </>
@@ -694,7 +878,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <div className="mt-2 text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between pt-2 border-t border-zinc-100 dark:border-zinc-800">
             <span>{isRtl ? "طابور المقالات الاستراتيجية:" : "Strategic content queue:"}</span>
             <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-              {queueQuery.data?.summary?.queued_articles ?? 98} {isRtl ? "في الطابور" : "in queue"}
+              {queueQuery.data?.summary?.queued_articles ?? 0} {isRtl ? "في الطابور" : "in queue"}
             </span>
           </div>
 
@@ -963,7 +1147,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                   {isRtl ? "حصاد الكلمات المفتاحية" : "Harvested Keywords"}
                 </div>
                 <div className="mt-1 text-lg font-bold text-zinc-900 dark:text-zinc-100 flex items-center gap-1.5 font-mono">
-                  <span>{dualTelemetryQuery.data?.flowisePipeline?.harvestedKeywords ?? 1743}</span>
+                  <span>{dualTelemetryQuery.data?.flowisePipeline?.harvestedKeywords ?? 0}</span>
                   <span className="text-[10px] font-normal text-emerald-500">Google Ads</span>
                 </div>
                 <div className="text-[10px] text-zinc-600 dark:text-zinc-400 font-medium mt-0.5">
@@ -1173,6 +1357,19 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <div className="flex flex-wrap items-center gap-2.5">
             <button
               type="button"
+              onClick={() => {
+                setSelectedArticleForEdit(null);
+                setCrudModalMode("create");
+                setIsCrudModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-2 text-xs font-semibold transition-all shadow-sm active:scale-95 cursor-pointer"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span>{isRtl ? "+ مقال جديد" : "+ New Article"}</span>
+            </button>
+
+            <button
+              type="button"
               onClick={() => setIsAiGeneratorOpen(true)}
               className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3.5 py-2 text-xs font-semibold text-white transition-all shadow-sm active:scale-95 cursor-pointer"
             >
@@ -1186,7 +1383,10 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                 type="text"
                 placeholder={t("perf.table_search_placeholder", "Search articles and keywords...")}
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setCurrentPage(1);
+                }}
                 className={`w-full rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/50 ${isRtl ? "pr-9 pl-4" : "pl-9 pr-4"} py-2 text-xs font-medium text-zinc-900 dark:text-zinc-100 focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
               />
             </div>
@@ -1238,7 +1438,10 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <button
             type="button"
             data-tab="all"
-            onClick={() => setActiveArticleTab("all")}
+            onClick={() => {
+              setActiveArticleTab("all");
+              setCurrentPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "all"
                 ? "bg-zinc-900 dark:bg-white text-white dark:text-zinc-900 shadow-sm"
@@ -1251,14 +1454,17 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                 ? "bg-zinc-700 dark:bg-zinc-200 text-white dark:text-zinc-900"
                 : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
             }`}>
-              {Math.max(articles.length, queueQuery.data?.summary?.published_articles ?? 0, 365)}
+              {Math.max(articles.length, queueQuery.data?.summary?.published_articles ?? 0)}
             </span>
           </button>
 
           <button
             type="button"
             data-tab="published"
-            onClick={() => setActiveArticleTab("published")}
+            onClick={() => {
+              setActiveArticleTab("published");
+              setCurrentPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "published"
                 ? "bg-emerald-600 text-white shadow-sm"
@@ -1279,7 +1485,10 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <button
             type="button"
             data-tab="queue"
-            onClick={() => setActiveArticleTab("queue")}
+            onClick={() => {
+              setActiveArticleTab("queue");
+              setCurrentPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "queue"
                 ? "bg-indigo-600 text-white shadow-sm"
@@ -1300,7 +1509,10 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <button
             type="button"
             data-tab="ai_tasks"
-            onClick={() => setActiveArticleTab("ai_tasks")}
+            onClick={() => {
+              setActiveArticleTab("ai_tasks");
+              setCurrentPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "ai_tasks"
                 ? taskExecutionsQuery.data?.executions?.[0]?.has_fallbacks
@@ -1327,7 +1539,10 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <button
             type="button"
             data-tab="history_inspector"
-            onClick={() => setActiveArticleTab("history_inspector")}
+            onClick={() => {
+              setActiveArticleTab("history_inspector");
+              setCurrentPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "history_inspector"
                 ? "bg-gradient-to-r from-amber-600 via-orange-600 to-red-600 text-white shadow-md shadow-amber-500/20 font-bold"
@@ -1341,14 +1556,17 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                 ? "bg-amber-900/40 text-white"
                 : "bg-zinc-200 dark:bg-zinc-700 text-zinc-700 dark:text-zinc-300"
             }`}>
-              {taskExecutionsQuery.data?.executions?.length ?? 10}
+              {taskExecutionsQuery.data?.executions?.length ?? 0}
             </span>
           </button>
 
           <button
             type="button"
             data-tab="keywords_500"
-            onClick={() => setActiveArticleTab("keywords_500")}
+            onClick={() => {
+              setActiveArticleTab("keywords_500");
+              setCurrentPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "keywords_500"
                 ? "bg-gradient-to-r from-amber-500 to-indigo-600 text-white shadow-md shadow-amber-500/20"
@@ -1356,20 +1574,23 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
             }`}
           >
             <Sparkles className="h-3.5 w-3.5 text-amber-400" />
-            <span>{isRtl ? "مستكشف الكلمات الـ 500 (مصر والخليج)" : "Harvested Keywords (500)"}</span>
+            <span>{isRtl ? "مستكشف الكلمات المحصودة (مصر والخليج)" : "Harvested Keywords Explorer"}</span>
             <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${
               activeArticleTab === "keywords_500"
                 ? "bg-amber-700 text-white"
                 : "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20"
             }`}>
-              500
+              {dualTelemetryQuery.data?.flowisePipeline?.harvestedKeywords || 0}
             </span>
           </button>
 
           <button
             type="button"
             data-tab="canvas"
-            onClick={() => setActiveArticleTab("canvas")}
+            onClick={() => {
+              setActiveArticleTab("canvas");
+              setCurrentPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "canvas"
                 ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-indigo-500/20"
@@ -1386,7 +1607,10 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <button
             type="button"
             data-tab="ranks"
-            onClick={() => setActiveArticleTab("ranks")}
+            onClick={() => {
+              setActiveArticleTab("ranks");
+              setCurrentRankPage(1);
+            }}
             className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition-all cursor-pointer shrink-0 whitespace-nowrap ${
               activeArticleTab === "ranks"
                 ? "bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md shadow-amber-500/20"
@@ -1435,221 +1659,366 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
 
         {/* Tab 1: All Articles */}
         {activeArticleTab === "all" && (
-          <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
-            <table className="w-full text-xs">
-              <thead className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800">
-                <tr className="text-zinc-500 dark:text-zinc-400 font-semibold">
-                  <th className="w-10 text-center py-2.5 px-3">#</th>
-                  <th className="min-w-[280px] text-start py-2.5 px-3">{t("perf.col_article", "Article")}</th>
-                  <th className="min-w-[180px] text-start py-2.5 px-3 whitespace-nowrap">{t("perf.col_keyword", "Focus Keyword")}</th>
-                  <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "السوق" : "Market"}</th>
-                  <th className="min-w-[130px] text-start py-2.5 px-3 whitespace-nowrap">{isRtl ? "التصنيف" : "Category"}</th>
-                  <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_views", "Views")}</th>
-                  <th className="w-28 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_impressions", "Impressions")}</th>
-                  <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_clicks", "Clicks")}</th>
-                  <th className="w-20 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_ctr", "CTR")}</th>
-                  <th className="w-24 text-center py-2.5 px-3">{t("perf.col_actions", "Actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                {filteredArticles.length === 0 ? (
-                  <tr>
-                    <td colSpan={10} className="text-center py-10 text-zinc-400">
-                      {loading ? (isRtl ? "جاري جلب بيانات المقالات من البورتفوليو..." : "Fetching articles...") : (isRtl ? "لا توجد نتائج مطابقة لبحثك" : "No results matching your query")}
-                    </td>
+          <div className="mt-4 space-y-3">
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
+              <table className="w-full text-xs">
+                <thead className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800">
+                  <tr className="text-zinc-500 dark:text-zinc-400 font-semibold">
+                    <th className="w-8 text-center py-2.5 px-3">
+                      <input
+                        type="checkbox"
+                        checked={
+                          paginatedArticles.length > 0 &&
+                          paginatedArticles.every((a) => selectedArticleIds.has(a.id))
+                        }
+                        onChange={() => toggleSelectAll(paginatedArticles)}
+                        className="rounded border-zinc-300 dark:border-zinc-700 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        title={isRtl ? "تحديد الكل في هذه الصفحة" : "Select all on this page"}
+                      />
+                    </th>
+                    <th className="w-10 text-center py-2.5 px-3">#</th>
+                    <th className="min-w-[280px] text-start py-2.5 px-3">{t("perf.col_article", "Article")}</th>
+                    <th className="min-w-[180px] text-start py-2.5 px-3 whitespace-nowrap">{t("perf.col_keyword", "Focus Keyword")}</th>
+                    <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "السوق" : "Market"}</th>
+                    <th className="min-w-[130px] text-start py-2.5 px-3 whitespace-nowrap">{isRtl ? "التصنيف" : "Category"}</th>
+                    <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_views", "Views")}</th>
+                    <th className="w-28 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_impressions", "Impressions")}</th>
+                    <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_clicks", "Clicks")}</th>
+                    <th className="w-20 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_ctr", "CTR")}</th>
+                    <th className="w-32 text-center py-2.5 px-3">{t("perf.col_actions", "Actions")}</th>
                   </tr>
-                ) : (
-                  filteredArticles.map((art, index) => (
-                    <tr key={art.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors">
-                      <td className="font-mono text-zinc-500 dark:text-zinc-400 text-center py-2.5 px-3">
-                        {index + 1}
-                      </td>
-                      <td className="max-w-xs py-2.5 px-3">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                            {art.title}
-                          </div>
-                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
-                            <Shield className="h-2.5 w-2.5" />
-                            <span>Flowise 30m</span>
-                          </span>
-                        </div>
-                        <div className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 truncate" dir="ltr">
-                          /blog/{art.slug}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
-                          {art.focusKeyword}
-                        </span>
-                      </td>
-                      <td className="text-center py-2.5 px-3 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
-                        {art.country}
-                      </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="rounded-md border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-indigo-600 dark:text-indigo-400 font-medium text-xs">
-                          {art.category}
-                        </span>
-                      </td>
-                      <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
-                        {art.views > 0 ? art.views.toLocaleString() : 0}
-                      </td>
-                      <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
-                        {art.impressions > 0 ? art.impressions.toLocaleString() : 0}
-                      </td>
-                      <td className="text-center font-mono font-semibold py-2.5 px-3 text-emerald-600 dark:text-emerald-400">
-                        {art.clicks > 0 ? art.clicks.toLocaleString() : 0}
-                      </td>
-                      <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
-                        {art.ctr !== "0.0%" ? art.ctr : "0.0%"}
-                      </td>
-                      <td className="text-center py-2.5 px-3">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedArticleDetail({
-                                id: art.id,
-                                title: art.title,
-                                slug: art.slug,
-                                url: art.url || (activeDomainUrl ? `${activeDomainUrl}/blog/${art.slug}` : `/blog/${art.slug}`),
-                                primaryKeyword: art.focusKeyword,
-                                status: "published",
-                                publishedAt: art.publishedAt || "2026-03-01",
-                              });
-                              setIsDetailModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
-                            title={t("perf.inspect_details", "Inspect Details")}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </button>
-                          <a
-                            href={art.url || (activeDomainUrl ? `${activeDomainUrl}/blog/${art.slug}` : `/blog/${art.slug}`)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 transition-colors"
-                            title={t("perf.open_article", "Open")}
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                  {filteredArticles.length === 0 ? (
+                    <tr>
+                      <td colSpan={11} className="text-center py-10 text-zinc-400">
+                        {loading ? (isRtl ? "جاري جلب بيانات المقالات من البورتفوليو..." : "Fetching articles...") : (isRtl ? "لا توجد نتائج مطابقة لبحثك" : "No results matching your query")}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    paginatedArticles.map((art, index) => {
+                      const isSelected = selectedArticleIds.has(art.id);
+                      return (
+                        <tr
+                          key={art.id}
+                          style={pageSize >= 250 ? { contentVisibility: "auto", containIntrinsicSize: "0 48px" } : undefined}
+                          className={`hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors ${
+                            isSelected ? "bg-amber-500/5 dark:bg-amber-500/10" : ""
+                          }`}
+                        >
+                          <td className="text-center py-2.5 px-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectRow(art.id)}
+                              className="rounded border-zinc-300 dark:border-zinc-700 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                            />
+                          </td>
+                          <td className="font-mono text-zinc-500 dark:text-zinc-400 text-center py-2.5 px-3">
+                            {(currentPage - 1) * pageSize + index + 1}
+                          </td>
+                          <td className="max-w-xs py-2.5 px-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                                {art.title}
+                              </div>
+                              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                                <Shield className="h-2.5 w-2.5" />
+                                <span>Flowise 30m</span>
+                              </span>
+                            </div>
+                            <div className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 truncate" dir="ltr">
+                              /blog/{art.slug}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
+                              {art.focusKeyword}
+                            </span>
+                          </td>
+                          <td className="text-center py-2.5 px-3 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
+                            {art.country}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="rounded-md border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-indigo-600 dark:text-indigo-400 font-medium text-xs">
+                              {art.category}
+                            </span>
+                          </td>
+                          <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
+                            {art.views > 0 ? art.views.toLocaleString() : 0}
+                          </td>
+                          <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
+                            {art.impressions > 0 ? art.impressions.toLocaleString() : 0}
+                          </td>
+                          <td className="text-center font-mono font-semibold py-2.5 px-3 text-emerald-600 dark:text-emerald-400">
+                            {art.clicks > 0 ? art.clicks.toLocaleString() : 0}
+                          </td>
+                          <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
+                            {art.ctr !== "0.0%" ? art.ctr : "0.0%"}
+                          </td>
+                          <td className="text-center py-2.5 px-3">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedArticleForEdit({
+                                    id: art.id,
+                                    title: art.title,
+                                    slug: art.slug,
+                                    primaryKeyword: art.focusKeyword,
+                                    category: art.category,
+                                    country: art.country,
+                                    status: "published",
+                                  });
+                                  setCrudModalMode("edit");
+                                  setIsCrudModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-amber-600 dark:text-amber-400 transition-colors cursor-pointer"
+                                title={isRtl ? "تعديل المقال" : "Edit Article"}
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedArticleDetail({
+                                    id: art.id,
+                                    title: art.title,
+                                    slug: art.slug,
+                                    url: art.url || (activeDomainUrl ? `${activeDomainUrl}/blog/${art.slug}` : `/blog/${art.slug}`),
+                                    primaryKeyword: art.focusKeyword,
+                                    status: "published",
+                                    publishedAt: art.publishedAt || "2026-03-01",
+                                  });
+                                  setIsDetailModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors"
+                                title={t("perf.inspect_details", "Inspect Details")}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                              <a
+                                href={art.url || (activeDomainUrl ? `${activeDomainUrl}/blog/${art.slug}` : `/blog/${art.slug}`)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 transition-colors"
+                                title={t("perf.open_article", "Open")}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleSingleDelete(art.id, art.title)}
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                                title={isRtl ? "حذف نهائي" : "Delete"}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <ApplePaginationBar
+              currentPage={currentPage}
+              pageSize={pageSize}
+              totalItems={filteredArticles.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(sz) => {
+                setPageSize(sz);
+                setCurrentPage(1);
+              }}
+              isRtl={isRtl}
+            />
           </div>
         )}
 
         {/* Tab 2: Autonomous Published Articles */}
         {activeArticleTab === "published" && (
-          <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
-            <table className="w-full text-xs">
-              <thead className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800">
-                <tr className="text-zinc-500 dark:text-zinc-400 font-semibold">
-                  <th className="w-12 text-center py-2.5 px-3">#</th>
-                  <th className="min-w-[280px] text-start py-2.5 px-3">{t("perf.col_article", "Article")}</th>
-                  <th className="min-w-[180px] text-start py-2.5 px-3 whitespace-nowrap">{t("perf.col_keyword", "Focus Keyword")}</th>
-                  <th className="w-28 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "الكلمات المكملة" : "LSI Keywords"}</th>
-                  <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "النية" : "Intent"}</th>
-                  <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "البحث الشهري" : "Volume"}</th>
-                  <th className="w-28 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_status", "Status")}</th>
-                  <th className="w-28 text-center py-2.5 px-3">{t("perf.col_actions", "Actions")}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-                {filteredAutonomousPublished.length === 0 ? (
-                  <tr>
-                    <td colSpan={8} className="text-center py-10 text-zinc-400">
-                      {t("perf.empty_published", "No autonomous articles published yet.")}
-                    </td>
+          <div className="mt-4 space-y-3">
+            <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
+              <table className="w-full text-xs">
+                <thead className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800">
+                  <tr className="text-zinc-500 dark:text-zinc-400 font-semibold">
+                    <th className="w-8 text-center py-2.5 px-3">
+                      <input
+                        type="checkbox"
+                        checked={
+                          paginatedAutonomousPublished.length > 0 &&
+                          paginatedAutonomousPublished.every((a) => selectedArticleIds.has(a.id))
+                        }
+                        onChange={() => toggleSelectAll(paginatedAutonomousPublished)}
+                        className="rounded border-zinc-300 dark:border-zinc-700 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                        title={isRtl ? "تحديد الكل في هذه الصفحة" : "Select all on this page"}
+                      />
+                    </th>
+                    <th className="w-12 text-center py-2.5 px-3">#</th>
+                    <th className="min-w-[280px] text-start py-2.5 px-3">{t("perf.col_article", "Article")}</th>
+                    <th className="min-w-[180px] text-start py-2.5 px-3 whitespace-nowrap">{t("perf.col_keyword", "Focus Keyword")}</th>
+                    <th className="w-28 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "الكلمات المكملة" : "LSI Keywords"}</th>
+                    <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "النية" : "Intent"}</th>
+                    <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "البحث الشهري" : "Volume"}</th>
+                    <th className="w-28 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_status", "Status")}</th>
+                    <th className="w-32 text-center py-2.5 px-3">{t("perf.col_actions", "Actions")}</th>
                   </tr>
-                ) : (
-                  filteredAutonomousPublished.map((art, index) => (
-                    <tr key={art.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors">
-                      <td className="font-mono text-zinc-500 dark:text-zinc-400 text-center py-2.5 px-3">
-                        {art.queue_order || index + 1}
-                      </td>
-                      <td className="max-w-xs py-2.5 px-3">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                            {art.article_title}
-                          </div>
-                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
-                            <Shield className="h-2.5 w-2.5" />
-                            <span>Flowise 30m</span>
-                          </span>
-                        </div>
-                        <div className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 truncate" dir="ltr">
-                          /blog/{art.article_slug}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
-                          {art.primary_keyword}
-                        </span>
-                      </td>
-                      <td className="text-center py-2.5 px-3 whitespace-nowrap font-mono text-zinc-500">
-                        {art.secondary_keywords?.length || 0} {isRtl ? "كلمة" : "keys"}
-                      </td>
-                      <td className="text-center py-2.5 px-3 whitespace-nowrap">
-                        <span className="rounded-md border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-indigo-600 dark:text-indigo-400 font-medium text-[11px]">
-                          {art.intent}
-                        </span>
-                      </td>
-                      <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
-                        {art.monthly_volume?.toLocaleString() || "—"}
-                      </td>
-                      <td className="text-center py-2.5 px-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
-                          <CheckCircle2 className="h-3 w-3" />
-                          {t("perf.status_published", "Live Published")}
-                        </span>
-                      </td>
-                      <td className="text-center py-2.5 px-3">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedArticleDetail({
-                                id: art.id,
-                                title: art.article_title,
-                                slug: art.article_slug,
-                                url: art.article_url,
-                                primaryKeyword: art.primary_keyword,
-                                secondaryKeywords: art.secondary_keywords,
-                                intent: art.intent,
-                                monthlyVolume: art.monthly_volume,
-                                status: "published",
-                                publishedAt: art.published_at,
-                                queueOrder: art.queue_order,
-                                briefOutline: art.brief_outline,
-                              });
-                              setIsDetailModalOpen(true);
-                            }}
-                            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
-                            title={t("perf.inspect_details", "Inspect Details")}
-                          >
-                            <Eye className="h-3.5 w-3.5" />
-                          </button>
-                          <a
-                            href={art.article_url ? art.article_url.replace("/articles/", "/blog/") : (activeDomainUrl ? `${activeDomainUrl}/blog/${art.article_slug}` : `/blog/${art.article_slug}`)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 transition-colors"
-                            title={t("perf.open_article", "Open")}
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
+                  {filteredAutonomousPublished.length === 0 ? (
+                    <tr>
+                      <td colSpan={9} className="text-center py-10 text-zinc-400">
+                        {t("perf.empty_published", "No autonomous articles published yet.")}
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    paginatedAutonomousPublished.map((art, index) => {
+                      const isSelected = selectedArticleIds.has(art.id);
+                      return (
+                        <tr
+                          key={art.id}
+                          style={pageSize >= 250 ? { contentVisibility: "auto", containIntrinsicSize: "0 48px" } : undefined}
+                          className={`hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors ${
+                            isSelected ? "bg-amber-500/5 dark:bg-amber-500/10" : ""
+                          }`}
+                        >
+                          <td className="text-center py-2.5 px-3">
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={() => toggleSelectRow(art.id)}
+                              className="rounded border-zinc-300 dark:border-zinc-700 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                            />
+                          </td>
+                          <td className="font-mono text-zinc-500 dark:text-zinc-400 text-center py-2.5 px-3">
+                            {art.queue_order || (currentPage - 1) * pageSize + index + 1}
+                          </td>
+                          <td className="max-w-xs py-2.5 px-3">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                                {art.article_title}
+                              </div>
+                              <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                                <Shield className="h-2.5 w-2.5" />
+                                <span>Flowise 30m</span>
+                              </span>
+                            </div>
+                            <div className="font-mono text-[11px] text-zinc-500 dark:text-zinc-400 truncate" dir="ltr">
+                              /blog/{art.article_slug}
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
+                              {art.primary_keyword}
+                            </span>
+                          </td>
+                          <td className="text-center py-2.5 px-3 whitespace-nowrap font-mono text-zinc-500">
+                            {art.secondary_keywords?.length || 0} {isRtl ? "كلمة" : "keys"}
+                          </td>
+                          <td className="text-center py-2.5 px-3 whitespace-nowrap">
+                            <span className="rounded-md border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-indigo-600 dark:text-indigo-400 font-medium text-[11px]">
+                              {art.intent}
+                            </span>
+                          </td>
+                          <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
+                            {art.monthly_volume?.toLocaleString() || "—"}
+                          </td>
+                          <td className="text-center py-2.5 px-3 whitespace-nowrap">
+                            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold">
+                              <CheckCircle2 className="h-3 w-3" />
+                              {t("perf.status_published", "Live Published")}
+                            </span>
+                          </td>
+                          <td className="text-center py-2.5 px-3">
+                            <div className="flex items-center justify-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedArticleForEdit({
+                                    id: art.id,
+                                    title: art.article_title,
+                                    slug: art.article_slug,
+                                    primaryKeyword: art.primary_keyword,
+                                    secondaryKeywords: art.secondary_keywords,
+                                    intent: art.intent,
+                                    monthlyVolume: art.monthly_volume,
+                                    targetMarket: art.target_market,
+                                    strategicRationale: art.strategic_rationale,
+                                    status: "published",
+                                  });
+                                  setCrudModalMode("edit");
+                                  setIsCrudModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-amber-600 dark:text-amber-400 transition-colors cursor-pointer"
+                                title={isRtl ? "تعديل المقال" : "Edit Article"}
+                              >
+                                <Edit3 className="h-3.5 w-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedArticleDetail({
+                                    id: art.id,
+                                    title: art.article_title,
+                                    slug: art.article_slug,
+                                    url: art.article_url,
+                                    primaryKeyword: art.primary_keyword,
+                                    secondaryKeywords: art.secondary_keywords,
+                                    intent: art.intent,
+                                    monthlyVolume: art.monthly_volume,
+                                    status: "published",
+                                    publishedAt: art.published_at,
+                                    queueOrder: art.queue_order,
+                                    briefOutline: art.brief_outline,
+                                  });
+                                  setIsDetailModalOpen(true);
+                                }}
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-600 dark:text-zinc-300 transition-colors cursor-pointer"
+                                title={t("perf.inspect_details", "Inspect Details")}
+                              >
+                                <Eye className="h-3.5 w-3.5" />
+                              </button>
+                              <a
+                                href={art.article_url ? art.article_url.replace("/articles/", "/blog/") : (activeDomainUrl ? `${activeDomainUrl}/blog/${art.article_slug}` : `/blog/${art.article_slug}`)}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-indigo-600 dark:text-indigo-400 transition-colors"
+                                title={t("perf.open_article", "Open")}
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                              <button
+                                type="button"
+                                onClick={() => handleSingleDelete(art.id, art.article_title)}
+                                className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                                title={isRtl ? "حذف نهائي" : "Delete"}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <ApplePaginationBar
+              currentPage={currentPage}
+              pageSize={pageSize}
+              totalItems={filteredAutonomousPublished.length}
+              onPageChange={setCurrentPage}
+              onPageSizeChange={(sz) => {
+                setPageSize(sz);
+                setCurrentPage(1);
+              }}
+              isRtl={isRtl}
+            />
           </div>
         )}
 
@@ -1695,6 +2064,18 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
               <table className="w-full text-xs">
               <thead className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800">
                 <tr className="text-zinc-500 dark:text-zinc-400 font-semibold">
+                  <th className="w-8 text-center py-2.5 px-3">
+                    <input
+                      type="checkbox"
+                      checked={
+                        paginatedQueued.length > 0 &&
+                        paginatedQueued.every((a) => selectedArticleIds.has(a.id))
+                      }
+                      onChange={() => toggleSelectAll(paginatedQueued)}
+                      className="rounded border-zinc-300 dark:border-zinc-700 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                      title={isRtl ? "تحديد الكل في هذه الصفحة" : "Select all on this page"}
+                    />
+                  </th>
                   <th className="w-14 text-center py-2.5 px-3">{t("perf.col_order", "Queue #")}</th>
                   <th className="min-w-[280px] text-start py-2.5 px-3">{t("perf.col_article", "Article")}</th>
                   <th className="min-w-[180px] text-start py-2.5 px-3 whitespace-nowrap">{t("perf.col_keyword", "Focus Keyword")}</th>
@@ -1703,124 +2084,184 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                   <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "النية" : "Intent"}</th>
                   <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{isRtl ? "البحث الشهري" : "Volume"}</th>
                   <th className="w-24 text-center py-2.5 px-3 whitespace-nowrap">{t("perf.col_status", "Status")}</th>
-                  <th className="w-36 text-center py-2.5 px-3">{t("perf.col_actions", "Actions")}</th>
+                  <th className="w-44 text-center py-2.5 px-3">{t("perf.col_actions", "Actions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
                 {filteredQueued.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-10 text-zinc-400">
+                    <td colSpan={10} className="text-center py-10 text-zinc-400">
                       {t("perf.empty_queue", "No articles in queue.")}
                     </td>
                   </tr>
                 ) : (
-                  filteredQueued.map((art) => (
-                    <tr key={art.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors">
-                      <td className="text-center py-2.5 px-3">
-                        <span className="font-mono text-[11px] font-bold rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
-                          #{art.queue_order}
-                        </span>
-                      </td>
-                      <td className="max-w-xs py-2.5 px-3">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
-                            {art.article_title}
-                          </div>
-                          <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
-                            <Shield className="h-2.5 w-2.5" />
-                            <span>Flowise 30m</span>
+                  paginatedQueued.map((art) => {
+                    const isSelected = selectedArticleIds.has(art.id);
+                    return (
+                      <tr
+                        key={art.id}
+                        style={pageSize >= 250 ? { contentVisibility: "auto", containIntrinsicSize: "0 48px" } : undefined}
+                        className={`hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors ${
+                          isSelected ? "bg-amber-500/5 dark:bg-amber-500/10" : ""
+                        }`}
+                      >
+                        <td className="text-center py-2.5 px-3">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleSelectRow(art.id)}
+                            className="rounded border-zinc-300 dark:border-zinc-700 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className="text-center py-2.5 px-3">
+                          <span className="font-mono text-[11px] font-bold rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-600 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700">
+                            #{art.queue_order}
                           </span>
-                        </div>
-                        <div className="font-mono text-[11px] text-zinc-400 truncate" dir="ltr">
-                          /blog/{art.article_slug}
-                        </div>
-                      </td>
-                      <td className="py-2.5 px-3 whitespace-nowrap">
-                        <span className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
-                          {art.primary_keyword}
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <div className="flex flex-col gap-1 max-w-xs">
-                          <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-zinc-800 dark:text-zinc-200">
-                            {art.target_market?.includes("مصر") && "🇪🇬"}
-                            {art.target_market?.includes("الخليج") && "🇸🇦"}
-                            {art.target_market?.includes("الوطن") && "🌍"}
-                            <span>{art.target_market || (isRtl ? "مصر والخليج" : "Egypt & Gulf")}</span>
-                          </span>
-                          {art.strategic_rationale && (
-                            <div className="text-[10px] text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 p-1.5 rounded-md line-clamp-2" title={art.strategic_rationale}>
-                              <span className="font-bold text-indigo-500">{isRtl ? "لماذا؟: " : "Why: "}</span>
-                              {art.strategic_rationale}
+                        </td>
+                        <td className="max-w-xs py-2.5 px-3">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="font-semibold text-zinc-900 dark:text-zinc-100 truncate">
+                              {art.article_title}
                             </div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-center py-2.5 px-3 whitespace-nowrap font-mono text-zinc-500">
-                        {art.secondary_keywords?.length || 0} {isRtl ? "كلمة" : "keys"}
-                      </td>
-                      <td className="text-center py-2.5 px-3 whitespace-nowrap">
-                        <span className="rounded-md border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-indigo-600 dark:text-indigo-400 font-medium text-[11px]">
-                          {art.intent}
-                        </span>
-                      </td>
-                      <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
-                        {art.monthly_volume?.toLocaleString() || "—"}
-                      </td>
-                      <td className="text-center py-2.5 px-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
-                          <Clock className="h-3 w-3" />
-                          {t("perf.status_queued", "In Queue")}
-                        </span>
-                      </td>
-                      <td className="text-center py-2.5 px-3">
-                        <div className="flex items-center justify-center gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setSelectedArticleDetail({
-                                id: art.id,
-                                title: art.article_title,
-                                slug: art.article_slug,
-                                url: art.article_url,
-                                primaryKeyword: art.primary_keyword,
-                                secondaryKeywords: art.secondary_keywords,
-                                intent: art.intent,
-                                monthlyVolume: art.monthly_volume,
-                                status: "queued",
-                                publishedAt: null,
-                                queueOrder: art.queue_order,
-                                briefOutline: art.brief_outline,
-                              });
-                              setIsDetailModalOpen(true);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2 py-1 text-zinc-700 dark:text-zinc-300 transition-colors text-[11px] cursor-pointer"
-                            title={t("perf.inspect_details", "Inspect Details")}
-                          >
-                            <Eye className="h-3 w-3" />
-                            <span>{isRtl ? "الهيكل" : "Outline"}</span>
-                          </button>
-                          <button
-                            type="button"
-                            disabled={publishingId === art.id}
-                            onClick={() => handlePublishNow(art.id)}
-                            className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
-                          >
-                            {publishingId === art.id ? (
-                              <RefreshCw className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <Zap className="h-3 w-3" />
+                            <span className="inline-flex items-center gap-1 rounded-md border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold shrink-0">
+                              <Shield className="h-2.5 w-2.5" />
+                              <span>Flowise 30m</span>
+                            </span>
+                          </div>
+                          <div className="font-mono text-[11px] text-zinc-400 truncate" dir="ltr">
+                            /blog/{art.article_slug}
+                          </div>
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          <span className="rounded-md border border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-zinc-700 dark:text-zinc-300 font-medium text-xs">
+                            {art.primary_keyword}
+                          </span>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <div className="flex flex-col gap-1 max-w-xs">
+                            <span className="inline-flex items-center gap-1 font-semibold text-[11px] text-zinc-800 dark:text-zinc-200">
+                              {art.target_market?.includes("مصر") && "🇪🇬"}
+                              {art.target_market?.includes("الخليج") && "🇸🇦"}
+                              {art.target_market?.includes("الوطن") && "🌍"}
+                              <span>{art.target_market || (isRtl ? "مصر والخليج" : "Egypt & Gulf")}</span>
+                            </span>
+                            {art.strategic_rationale && (
+                              <div className="text-[10px] text-zinc-500 dark:text-zinc-400 bg-zinc-100 dark:bg-zinc-800/80 p-1.5 rounded-md line-clamp-2" title={art.strategic_rationale}>
+                                <span className="font-bold text-indigo-500">{isRtl ? "لماذا؟: " : "Why: "}</span>
+                                {art.strategic_rationale}
+                              </div>
                             )}
-                            <span>{t("perf.btn_publish_now", "Publish Now")}</span>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                          </div>
+                        </td>
+                        <td className="text-center py-2.5 px-3 whitespace-nowrap font-mono text-zinc-500">
+                          {art.secondary_keywords?.length || 0} {isRtl ? "كلمة" : "keys"}
+                        </td>
+                        <td className="text-center py-2.5 px-3 whitespace-nowrap">
+                          <span className="rounded-md border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 text-indigo-600 dark:text-indigo-400 font-medium text-[11px]">
+                            {art.intent}
+                          </span>
+                        </td>
+                        <td className="text-center font-mono font-semibold py-2.5 px-3 text-zinc-700 dark:text-zinc-300">
+                          {art.monthly_volume?.toLocaleString() || "—"}
+                        </td>
+                        <td className="text-center py-2.5 px-3 whitespace-nowrap">
+                          <span className="inline-flex items-center gap-1 rounded-md border border-indigo-500/20 bg-indigo-500/10 px-2 py-0.5 text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">
+                            <Clock className="h-3 w-3" />
+                            {t("perf.status_queued", "In Queue")}
+                          </span>
+                        </td>
+                        <td className="text-center py-2.5 px-3">
+                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedArticleForEdit({
+                                  id: art.id,
+                                  title: art.article_title,
+                                  slug: art.article_slug,
+                                  primaryKeyword: art.primary_keyword,
+                                  secondaryKeywords: art.secondary_keywords,
+                                  intent: art.intent,
+                                  monthlyVolume: art.monthly_volume,
+                                  targetMarket: art.target_market,
+                                  strategicRationale: art.strategic_rationale,
+                                  status: "queued",
+                                });
+                                setCrudModalMode("edit");
+                                setIsCrudModalOpen(true);
+                              }}
+                              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 text-amber-600 dark:text-amber-400 transition-colors cursor-pointer"
+                              title={isRtl ? "تعديل المقال" : "Edit Article"}
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSelectedArticleDetail({
+                                  id: art.id,
+                                  title: art.article_title,
+                                  slug: art.article_slug,
+                                  url: art.article_url,
+                                  primaryKeyword: art.primary_keyword,
+                                  secondaryKeywords: art.secondary_keywords,
+                                  intent: art.intent,
+                                  monthlyVolume: art.monthly_volume,
+                                  status: "queued",
+                                  publishedAt: null,
+                                  queueOrder: art.queue_order,
+                                  briefOutline: art.brief_outline,
+                                });
+                                setIsDetailModalOpen(true);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2 py-1 text-zinc-700 dark:text-zinc-300 transition-colors text-[11px] cursor-pointer"
+                              title={t("perf.inspect_details", "Inspect Details")}
+                            >
+                              <Eye className="h-3.5 w-3.5" />
+                              <span>{isRtl ? "الهيكل" : "Outline"}</span>
+                            </button>
+                            <button
+                              type="button"
+                              disabled={publishingId === art.id}
+                              onClick={() => handlePublishNow(art.id)}
+                              className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 text-[11px] font-semibold transition-colors disabled:opacity-50 cursor-pointer"
+                            >
+                              {publishingId === art.id ? (
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Zap className="h-3.5 w-3.5" />
+                              )}
+                              <span>{t("perf.btn_publish_now", "Publish Now")}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleSingleDelete(art.id, art.article_title)}
+                              className="p-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 hover:bg-red-50 dark:hover:bg-red-950/40 text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                              title={isRtl ? "حذف نهائي" : "Delete"}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
+
+          <ApplePaginationBar
+            currentPage={currentPage}
+            pageSize={pageSize}
+            totalItems={filteredQueued.length}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={(sz) => {
+              setPageSize(sz);
+              setCurrentPage(1);
+            }}
+            isRtl={isRtl}
+          />
         </div>
       )}
 
@@ -2009,73 +2450,98 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800 bg-white dark:bg-zinc-900">
-                  {filteredRankItems.map((item: any) => (
-                    <tr key={item.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="font-semibold text-zinc-900 dark:text-zinc-100 max-w-xs truncate">
-                          {item.title}
-                        </div>
-                        <a
-                          href={activeDomainUrl ? `${activeDomainUrl}${item.path}` : item.path}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-0.5"
-                        >
-                          <span>{item.path}</span>
-                          <ExternalLink className="h-2.5 w-2.5 inline" />
-                        </a>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="inline-block px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-mono font-medium text-[11px]">
-                          {item.targetKeyword}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        {item.rank != null ? (
-                          <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black font-mono ${
-                            item.rank <= 3
-                              ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
-                              : item.rank <= 10
-                              ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                              : item.rank <= 20
-                              ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
-                              : "bg-purple-500/15 text-purple-400 border border-purple-500/30"
-                          }`}>
-                            <TrendingUp className="h-3 w-3" />
-                            <span>{item.statusLabelAr}</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-500/15 text-zinc-400 border border-zinc-500/20">
-                            <Clock className="h-3 w-3" />
-                            <span>{isRtl ? "قيد الفهرسة والزحف (Pending SERP)" : "Pending SERP"}</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-center font-mono font-semibold text-zinc-700 dark:text-zinc-300">
-                        {item.searchVolume ? item.searchVolume.toLocaleString() : "—"} / {isRtl ? "شهر" : "mo"}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
-                          <CheckCircle2 className="h-3.5 w-3.5" />
-                          <span>{item.gscStatus === "indexed" ? (isRtl ? "مفهرس ومعتمد في GSC" : "Indexed in GSC") : (isRtl ? "مقدم في السايت ماب" : "In Sitemap")}</span>
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          type="button"
-                          onClick={() => handleLiveCheckKeyword(item.targetKeyword)}
-                          disabled={liveCheckingKeyword === item.targetKeyword}
-                          className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
-                        >
-                          <Search className={`h-3 w-3 ${liveCheckingKeyword === item.targetKeyword ? "animate-spin" : ""}`} />
-                          <span>{liveCheckingKeyword === item.targetKeyword ? (isRtl ? "جاري الفحص..." : "Auditing...") : (isRtl ? "فحص SERP الآن" : "Live Check")}</span>
-                        </button>
+                  {filteredRankItems.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-10 text-zinc-400">
+                        {isRtl ? "لا توجد نتائج مطابقة لبحثك في السيرب" : "No ranking items matching your search"}
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    paginatedRankItems.map((item: any) => (
+                      <tr
+                        key={item.id}
+                        style={rankPageSize >= 250 ? { contentVisibility: "auto", containIntrinsicSize: "0 48px" } : undefined}
+                        className="hover:bg-zinc-50/60 dark:hover:bg-zinc-800/40 transition-colors"
+                      >
+                        <td className="px-4 py-3">
+                          <div className="font-semibold text-zinc-900 dark:text-zinc-100 max-w-xs truncate">
+                            {item.title}
+                          </div>
+                          <a
+                            href={activeDomainUrl ? `${activeDomainUrl}${item.path}` : item.path}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 mt-0.5"
+                          >
+                            <span>{item.path}</span>
+                            <ExternalLink className="h-2.5 w-2.5 inline" />
+                          </a>
+                        </td>
+                        <td className="px-4 py-3">
+                          <span className="inline-block px-2.5 py-1 rounded-lg bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 font-mono font-medium text-[11px]">
+                            {item.targetKeyword}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          {item.rank != null ? (
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-black font-mono ${
+                              item.rank <= 3
+                                ? "bg-amber-500/15 text-amber-500 border border-amber-500/30"
+                                : item.rank <= 10
+                                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                : item.rank <= 20
+                                ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                                : "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                            }`}>
+                              <TrendingUp className="h-3 w-3" />
+                              <span>{item.statusLabelAr}</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium bg-zinc-500/15 text-zinc-400 border border-zinc-500/20">
+                              <Clock className="h-3 w-3" />
+                              <span>{isRtl ? "قيد الفهرسة والزحف (Pending SERP)" : "Pending SERP"}</span>
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-center font-mono font-semibold text-zinc-700 dark:text-zinc-300">
+                          {item.searchVolume ? item.searchVolume.toLocaleString() : "—"} / {isRtl ? "شهر" : "mo"}
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>{item.gscStatus === "indexed" ? (isRtl ? "مفهرس ومعتمد في GSC" : "Indexed in GSC") : (isRtl ? "مقدم في السايت ماب" : "In Sitemap")}</span>
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => handleLiveCheckKeyword(item.targetKeyword)}
+                            disabled={liveCheckingKeyword === item.targetKeyword}
+                            className="inline-flex items-center justify-center gap-1 px-2.5 py-1 rounded-lg text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer disabled:opacity-50"
+                          >
+                            <Search className={`h-3 w-3 ${liveCheckingKeyword === item.targetKeyword ? "animate-spin" : ""}`} />
+                            <span>{liveCheckingKeyword === item.targetKeyword ? (isRtl ? "جاري الفحص..." : "Auditing...") : (isRtl ? "فحص SERP الآن" : "Live Check")}</span>
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
+
+            <ApplePaginationBar
+              currentPage={currentRankPage}
+              pageSize={rankPageSize}
+              totalItems={filteredRankItems.length}
+              onPageChange={setCurrentRankPage}
+              onPageSizeChange={(sz) => {
+                setRankPageSize(sz);
+                setCurrentRankPage(1);
+              }}
+              isRtl={isRtl}
+              itemLabel={isRtl ? "صفحة / كلمة" : "page"}
+            />
           </div>
         )}
 
@@ -2122,6 +2588,43 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           );
         }}
         projectId={projectId}
+      />
+
+      {/* Article CRUD Create & Edit Modal (Apple HIG Sheet) */}
+      <ArticleCrudModal
+        isOpen={isCrudModalOpen}
+        onClose={() => {
+          setIsCrudModalOpen(false);
+          setSelectedArticleForEdit(null);
+        }}
+        projectId={projectId}
+        initialData={selectedArticleForEdit}
+        mode={crudModalMode}
+        onSuccess={() => {
+          void queueQuery.refetch();
+          void dualTelemetryQuery.refetch();
+        }}
+        isRtl={isRtl}
+      />
+
+      {/* Floating Liquid Glass Batch Action Bar */}
+      <BatchActionBar
+        selectedCount={selectedArticleIds.size}
+        onClearSelection={() => setSelectedArticleIds(new Set())}
+        onBulkDelete={handleBulkDelete}
+        onBulkPublish={handleBulkPublish}
+        onBulkExportCsv={() => {
+          const list =
+            activeArticleTab === "all"
+              ? filteredArticles
+              : activeArticleTab === "published"
+              ? filteredAutonomousPublished
+              : filteredQueued;
+          handleBulkExportCsv(list);
+        }}
+        isDeleting={isBulkDeleting}
+        isPublishing={isBulkPublishing}
+        isRtl={isRtl}
       />
     </div>
   );

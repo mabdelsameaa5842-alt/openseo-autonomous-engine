@@ -146,7 +146,7 @@ function AuthenticatedAppLayoutInner({
         color: "var(--apple-text-primary)",
       }}
     >
-      <div className="hidden shrink-0 md:block">
+      <div className="hidden shrink-0 md:block transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
         <Sidebar projectId={sidebarProjectId} />
       </div>
 

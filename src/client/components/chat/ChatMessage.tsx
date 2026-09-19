@@ -167,7 +167,7 @@ function ReasoningBlock({
         <span>{isStreaming ? "Thinking…" : "Thought process"}</span>
       </button>
       {expanded ? (
-        <div className="mt-1.5 whitespace-pre-wrap border-l-2 border-base-300 pl-3 text-xs text-base-content/50">
+        <div className="mt-2 whitespace-pre-wrap rounded-xl bg-zinc-100/70 dark:bg-white/[0.04] border border-zinc-200/60 dark:border-white/10 p-3 text-xs text-zinc-600 dark:text-zinc-400 font-mono">
           {part.text}
         </div>
       ) : null}
@@ -199,16 +199,20 @@ function ToolBadge({
   const isRunning = !isError && !isDone;
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs ${
-        isError ? "bg-error/10 text-error" : "bg-base-200 text-base-content/70"
+      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium backdrop-blur-md shadow-sm transition-colors ${
+        isError
+          ? "bg-red-500/15 text-red-500 border border-red-500/25"
+          : isRunning
+          ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+          : "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25"
       }`}
     >
       {isRunning ? (
-        <Loader2 className="size-3 animate-spin" />
+        <Loader2 className="size-3 animate-spin text-amber-500" />
       ) : isError ? (
-        <AlertTriangle className="size-3" />
+        <AlertTriangle className="size-3 text-red-500" />
       ) : (
-        <Check className="size-3" />
+        <Check className="size-3 text-emerald-500" />
       )}
       <span>{isRunning ? `${runningText}…` : doneText}</span>
     </span>
@@ -289,7 +293,7 @@ export function ChatMessage({
     return (
       <div className="group flex flex-col gap-1">
         <div className="flex justify-end pl-8 sm:pl-16">
-          <div className="rounded-box rounded-br-sm bg-primary px-4 py-2.5 text-sm text-primary-content">
+          <div className="rounded-2xl rounded-br-sm bg-gradient-to-r from-amber-500 to-amber-600 dark:from-amber-600 dark:to-amber-700 px-4 py-2.5 text-sm text-white font-medium shadow-md shadow-amber-500/10 leading-relaxed">
             {message.parts.map((part, index) =>
               part.type === "text" ? (
                 <span key={index} className="whitespace-pre-wrap">

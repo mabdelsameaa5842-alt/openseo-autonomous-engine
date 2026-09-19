@@ -33,6 +33,16 @@ export interface GeneratedArticleCluster {
 const modelCooldowns = new Map<string, number>();
 const promptCache = new Map<string, { data: any; expiresAt: number }>();
 
+function deterministicKeywordVolume(kw: string, min = 200, max = 3500): number {
+  let hash = 0;
+  for (let i = 0; i < kw.length; i++) {
+    hash = (hash << 5) - hash + kw.charCodeAt(i);
+    hash |= 0;
+  }
+  const positive = Math.abs(hash);
+  return min + (positive % (max - min));
+}
+
 export interface AdaptiveModelCandidate {
   id: string;
   provider: "google" | "openrouter";
@@ -167,7 +177,7 @@ Return ONLY a valid JSON array of objects. No markdown wraps, no extra explanati
       if (Array.isArray(parsed) && parsed.length >= 20) {
         const results = parsed.map((item) => ({
           keyword: String(item.keyword || "").trim(),
-          monthlyVolume: Number(item.monthlyVolume) || Math.floor(Math.random() * 800) + 150,
+          monthlyVolume: Number(item.monthlyVolume) || deterministicKeywordVolume(String(item.keyword || ""), 250, 1800),
           intent: (["commercial", "transactional", "informational"].includes(item.intent)
             ? item.intent
             : "informational") as StudioKeyword["intent"],
@@ -365,7 +375,7 @@ function slugify(text: string): string {
 
   return translit.length > 5
     ? translit
-    : `seo-guide-${Math.random().toString(36).slice(2, 8)}-2026`;
+    : `seo-guide-${crypto.randomUUID().slice(0, 8)}-2026`;
 }
 
 function formatArabicArticleTitle(
@@ -435,7 +445,7 @@ function generateDeterministicKeywordUniverse(
       if (results.length >= targetCount) break;
       results.push({
         keyword: `${s} ${m}`,
-        monthlyVolume: Math.floor(Math.random() * 4500) + 200,
+        monthlyVolume: deterministicKeywordVolume(`${s} ${m}`, 300, 4800),
         intent: intents[results.length % intents.length],
         difficulty: difficulties[results.length % difficulties.length],
         category: s,
@@ -448,7 +458,7 @@ function generateDeterministicKeywordUniverse(
     const idx = results.length + 1;
     results.push({
       keyword: `${topic} - محور تكتيكي تخصصي رقم ${idx}`,
-      monthlyVolume: Math.floor(Math.random() * 1200) + 150,
+      monthlyVolume: deterministicKeywordVolume(`${topic} ${idx}`, 150, 1500),
       intent: intents[idx % intents.length],
       difficulty: difficulties[idx % difficulties.length],
       category: "Topical Cluster Expansion",

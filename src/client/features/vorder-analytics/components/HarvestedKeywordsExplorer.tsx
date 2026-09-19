@@ -13,9 +13,14 @@ import {
   BarChart3,
   X,
   Send,
-  HelpCircle
+  HelpCircle,
+  Trash2,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 import { toast } from "sonner";
+import { ApplePaginationBar } from "./ApplePaginationBar";
+import { BatchActionBar } from "./BatchActionBar";
 
 interface KeywordItem {
   id: string;
@@ -59,10 +64,16 @@ export function HarvestedKeywordsExplorer({ projectId, isRtl = true }: Props) {
   const [newIntent, setNewIntent] = useState("commercial");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Pagination & Selection
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+  const [selectedKeywordIds, setSelectedKeywordIds] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const keywordsQuery = useQuery<ApiResponse>({
     queryKey: ["harvested-keywords", projectId, selectedMarket, searchTerm],
     queryFn: async () => {
-      let url = `/api/automation/harvested-keywords?projectId=${projectId}&limit=500`;
+      let url = `/api/automation/harvested-keywords?projectId=${projectId}&limit=1000`;
       if (selectedMarket !== "all") {
         url += `&market=${encodeURIComponent(selectedMarket)}`;
       }
@@ -77,13 +88,56 @@ export function HarvestedKeywordsExplorer({ projectId, isRtl = true }: Props) {
   });
 
   const summary = keywordsQuery.data?.summary || {
-    total_keywords: 500,
-    egypt_keywords: 200,
-    gulf_keywords: 200,
-    mena_keywords: 100,
+    total_keywords: 0,
+    egypt_keywords: 0,
+    gulf_keywords: 0,
+    mena_keywords: 0,
   };
 
   const keywords = keywordsQuery.data?.keywords || [];
+  const paginatedKeywords = keywords.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const toggleSelectAll = () => {
+    if (selectedKeywordIds.size === paginatedKeywords.length && paginatedKeywords.length > 0) {
+      setSelectedKeywordIds(new Set());
+    } else {
+      setSelectedKeywordIds(new Set(paginatedKeywords.map((k) => k.id)));
+    }
+  };
+
+  const toggleSelectRow = (id: string) => {
+    setSelectedKeywordIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleBulkDeleteKeywords = async () => {
+    if (selectedKeywordIds.size === 0) return;
+    if (!confirm(isRtl ? `هل أنت متأكد من حذف ${selectedKeywordIds.size} كلمة مفتاحية؟` : `Delete ${selectedKeywordIds.size} keywords?`)) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch("/api/automation/delete-keywords", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, ids: Array.from(selectedKeywordIds) }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success) {
+        toast.success(isRtl ? `تم حذف ${data.deletedCount} كلمة بنجاح` : `Deleted ${data.deletedCount} keywords`);
+        setSelectedKeywordIds(new Set());
+        void keywordsQuery.refetch();
+      } else {
+        throw new Error(data.error || "Delete failed");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Error deleting keywords");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleAddCustomKeywords = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -288,10 +342,24 @@ export function HarvestedKeywordsExplorer({ projectId, isRtl = true }: Props) {
       </div>
 
       {/* Keywords Table */}
-      <div className="mt-4 overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
+      <div className="mt-4 overflow-x-auto rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950/40">
         <table className="w-full text-xs">
           <thead className="bg-zinc-50 dark:bg-zinc-900/60 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 dark:text-zinc-400 font-semibold">
             <tr>
+              <th className="w-10 text-center py-2.5 px-3">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="p-1 rounded text-zinc-400 hover:text-indigo-600 transition"
+                  title={isRtl ? "تحديد كل المعروض" : "Select all visible"}
+                >
+                  {selectedKeywordIds.size === paginatedKeywords.length && paginatedKeywords.length > 0 ? (
+                    <CheckSquare className="h-4 w-4 text-indigo-600" />
+                  ) : (
+                    <Square className="h-4 w-4" />
+                  )}
+                </button>
+              </th>
               <th className="w-12 text-center py-2.5 px-3">#</th>
               <th className="min-w-[220px] text-start py-2.5 px-3">{isRtl ? "الكلمة المفتاحية" : "Keyword"}</th>
               <th className="w-32 text-center py-2.5 px-3">{isRtl ? "السوق والمدينة" : "Market & City"}</th>
@@ -302,53 +370,101 @@ export function HarvestedKeywordsExplorer({ projectId, isRtl = true }: Props) {
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800/60">
-            {keywords.length === 0 ? (
+            {paginatedKeywords.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center py-10 text-zinc-400">
+                <td colSpan={8} className="text-center py-10 text-zinc-400">
                   {isRtl ? "لا توجد كلمات مطابقة لمعايير البحث" : "No matching keywords found."}
                 </td>
               </tr>
             ) : (
-              keywords.map((kw, idx) => (
-                <tr key={kw.id} className="hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors">
-                  <td className="text-center py-2.5 px-3 font-mono text-zinc-400 text-[11px]">
-                    {idx + 1}
-                  </td>
-                  <td className="py-2.5 px-3 font-semibold text-zinc-900 dark:text-zinc-100">
-                    <span className="hover:text-indigo-500 transition-colors">{kw.keyword}</span>
-                  </td>
-                  <td className="text-center py-2.5 px-3 whitespace-nowrap">
-                    <div className="flex flex-col items-center gap-0.5">
-                      {getMarketBadge(kw.target_market)}
-                      <span className="text-[10px] text-zinc-400 font-medium">{kw.city}</span>
-                    </div>
-                  </td>
-                  <td className="text-center font-mono font-bold py-2.5 px-3 text-zinc-800 dark:text-zinc-200">
-                    {kw.monthly_volume.toLocaleString()}
-                  </td>
-                  <td className="text-center py-2.5 px-3">
-                    <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
-                      kw.competition === "HIGH"
-                        ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                        : kw.competition === "MEDIUM"
-                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
-                        : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
-                    }`}>
-                      {kw.competition}
-                    </span>
-                  </td>
-                  <td className="text-center font-mono py-2.5 px-3 text-emerald-600 dark:text-emerald-400 font-semibold">
-                    ${kw.cpc_usd.toFixed(2)}
-                  </td>
-                  <td className="py-2.5 px-3 text-[11px] text-zinc-600 dark:text-zinc-400 max-w-sm">
-                    {kw.strategic_reason || (isRtl ? "استهداف تجاري مباشر لزيادة المبيعات والعائد الإعلاني." : "Commercial intent targeting.")}
-                  </td>
-                </tr>
-              ))
+              paginatedKeywords.map((kw, idx) => {
+                const isSelected = selectedKeywordIds.has(kw.id);
+                return (
+                  <tr
+                    key={kw.id}
+                    className={`hover:bg-zinc-50/60 dark:hover:bg-zinc-900/40 transition-colors ${
+                      isSelected ? "bg-indigo-50/40 dark:bg-indigo-950/20" : ""
+                    }`}
+                  >
+                    <td className="text-center py-2.5 px-3">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelectRow(kw.id)}
+                        className="p-1 rounded text-zinc-400 hover:text-indigo-600 transition"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4 text-indigo-600" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                    </td>
+                    <td className="text-center py-2.5 px-3 font-mono text-zinc-400 text-[11px]">
+                      {(currentPage - 1) * pageSize + idx + 1}
+                    </td>
+                    <td className="py-2.5 px-3 font-semibold text-zinc-900 dark:text-zinc-100">
+                      <span className="hover:text-indigo-500 transition-colors">{kw.keyword}</span>
+                    </td>
+                    <td className="text-center py-2.5 px-3 whitespace-nowrap">
+                      <div className="flex flex-col items-center gap-0.5">
+                        {getMarketBadge(kw.target_market)}
+                        <span className="text-[10px] text-zinc-400 font-medium">{kw.city}</span>
+                      </div>
+                    </td>
+                    <td className="text-center font-mono font-bold py-2.5 px-3 text-zinc-800 dark:text-zinc-200">
+                      {kw.monthly_volume.toLocaleString()}
+                    </td>
+                    <td className="text-center py-2.5 px-3">
+                      <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                        kw.competition === "HIGH"
+                          ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                          : kw.competition === "MEDIUM"
+                          ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                          : "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20"
+                      }`}>
+                        {kw.competition}
+                      </span>
+                    </td>
+                    <td className="text-center font-mono py-2.5 px-3 text-emerald-600 dark:text-emerald-400 font-semibold">
+                      ${kw.cpc_usd.toFixed(2)}
+                    </td>
+                    <td className="py-2.5 px-3 text-[11px] text-zinc-600 dark:text-zinc-400 max-w-sm">
+                      {kw.strategic_reason || (isRtl ? "استهداف تجاري مباشر لزيادة المبيعات والعائد الإعلاني." : "Commercial intent targeting.")}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Apple Pagination Bar */}
+      <div className="mt-3">
+        <ApplePaginationBar
+          currentPage={currentPage}
+          totalItems={keywords.length}
+          pageSize={pageSize}
+          pageSizeOptions={[10, 25, 50, 100, 250, 500, 1000]}
+          onPageChange={setCurrentPage}
+          onPageSizeChange={(newSize) => {
+            setPageSize(newSize);
+            setCurrentPage(1);
+          }}
+          isRtl={isRtl}
+          itemLabel={isRtl ? "كلمة مفتاحية" : "keyword"}
+        />
+      </div>
+
+      {/* Floating Batch Action Bar */}
+      <BatchActionBar
+        selectedCount={selectedKeywordIds.size}
+        onClearSelection={() => setSelectedKeywordIds(new Set())}
+        onBulkDelete={handleBulkDeleteKeywords}
+        isDeleting={isDeleting}
+        isRtl={isRtl}
+        itemLabel={isRtl ? "كلمة مفتاحية" : "keyword"}
+      />
 
       {/* Add Custom Keywords Modal */}
       {isAddModalOpen && (

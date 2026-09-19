@@ -64,7 +64,14 @@ import {
   handleForceSyncPortfolio,
   handleStartTaskExecution,
   scrapePortfolioGroundTruth,
+  handleCreateCustomArticle,
+  handleUpdateArticle,
+  handleDeleteArticles,
+  handleBulkUpdateArticles,
+  handleDeleteKeywords,
+  handleSyncLiveSitemap,
 } from "@/server/features/automation/autonomousHandler";
+import { handleGoogleAdsTestPermissions } from "@/server/features/google-ads/testPermissionsHandler";
 import {
   handleSuperAdminLogin,
   handleSuperAdminSession,
@@ -337,6 +344,34 @@ function handleFetch(
 
   if (pathname === "/api/automation/resubmit-sitemap") {
     return handleResubmitSitemap(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/create-custom-article" && publicRequest.method === "POST") {
+    return handleCreateCustomArticle(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/update-article" && publicRequest.method === "POST") {
+    return handleUpdateArticle(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/delete-articles" && publicRequest.method === "POST") {
+    return handleDeleteArticles(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/bulk-update-articles" && publicRequest.method === "POST") {
+    return handleBulkUpdateArticles(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/delete-keywords" && publicRequest.method === "POST") {
+    return handleDeleteKeywords(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/sync-live-sitemap") {
+    return handleSyncLiveSitemap(publicRequest, env);
+  }
+
+  if (pathname === "/api/google-ads/test-permissions") {
+    return handleGoogleAdsTestPermissions(publicRequest, env);
   }
 
   if (

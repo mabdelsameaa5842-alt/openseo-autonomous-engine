@@ -78,7 +78,7 @@ const DEFAULT_NODES: CanvasNode[] = [
     y: 80,
     data: {
       dataSource: "Google Ads Official API",
-      harvestCount: 1743,
+      harvestCount: 0,
       minVolume: 100,
       cpcTracking: true,
     },
@@ -92,8 +92,8 @@ const DEFAULT_NODES: CanvasNode[] = [
     x: 280,
     y: 280,
     data: {
-      totalQueued: 38,
-      totalPublished: 76,
+      totalQueued: 0,
+      totalPublished: 0,
       nextTopic: "استراتيجيات السيو والتسويق الرقمي B2B في السعودية 2026",
     },
     status: "idle",
@@ -136,7 +136,7 @@ const DEFAULT_NODES: CanvasNode[] = [
     y: 180,
     data: {
       domain: "",
-      totalLive: 243,
+      totalLive: 0,
       sitemapSync: "تلقائي فوري",
     },
     status: "idle",

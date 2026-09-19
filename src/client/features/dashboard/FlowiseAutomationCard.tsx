@@ -87,9 +87,9 @@ export function FlowiseAutomationCard({
     }
   };
 
-  const harvestedKeywords = telemetry?.flowisePipeline?.harvestedKeywords ?? 1743;
-  const queuedArticles = telemetry?.flowisePipeline?.totalQueued ?? 38;
-  const publishedArticles = telemetry?.flowisePipeline?.totalPublished ?? 243;
+  const harvestedKeywords = telemetry?.flowisePipeline?.harvestedKeywords ?? 0;
+  const queuedArticles = telemetry?.flowisePipeline?.totalQueued ?? 0;
+  const publishedArticles = telemetry?.flowisePipeline?.totalPublished ?? 0;
 
   return (
     <CardShell

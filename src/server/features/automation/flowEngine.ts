@@ -475,8 +475,8 @@ export function getDefaultFlowGraph(
       position: { x: 300, y: 80 },
       data: {
         dataSource: "Google Ads Official API",
-        harvestCount: 1743,
-        clusterCount: 100,
+        harvestCount: 0,
+        clusterCount: 0,
         status: "idle",
       },
     },
@@ -487,8 +487,8 @@ export function getDefaultFlowGraph(
       category: "source",
       position: { x: 300, y: 280 },
       data: {
-        totalQueued: 38,
-        totalPublished: totalLive || 76,
+        totalQueued: 0,
+        totalPublished: totalLive || 0,
         status: "idle",
       },
     },

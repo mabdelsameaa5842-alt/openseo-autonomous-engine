@@ -43,23 +43,23 @@ export function GscRealtimeIndexingCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
-  const sitemapDiscovered = gscData?.sitemapDiscovered ?? 452;
-  const sitemapLastRead = gscData?.sitemapLastRead ?? "2026/09/18";
-  const indexedPages = gscData?.indexedPages ?? 88;
-  const unindexedPages = gscData?.unindexedPages ?? 132;
-  const discoveredNotIndexed = gscData?.discoveredNotIndexed ?? 127;
-  const crawledNotIndexed = gscData?.crawledNotIndexed ?? 5;
-  const coverageLastUpdated = gscData?.coverageLastUpdated ?? "2026/09/14";
-  const d1Published = gscData?.d1Published ?? 470;
-  const liveSitemapUrls = gscData?.liveSitemapUrls ?? 472;
-  const d1Queued = gscData?.d1Queued ?? 98;
+  const sitemapDiscovered = gscData?.sitemapDiscovered ?? 0;
+  const sitemapLastRead = gscData?.sitemapLastRead ?? null;
+  const indexedPages = gscData?.indexedPages ?? 0;
+  const unindexedPages = gscData?.unindexedPages ?? 0;
+  const discoveredNotIndexed = gscData?.discoveredNotIndexed ?? 0;
+  const crawledNotIndexed = gscData?.crawledNotIndexed ?? 0;
+  const coverageLastUpdated = gscData?.coverageLastUpdated ?? null;
+  const d1Published = gscData?.d1Published ?? 0;
+  const liveSitemapUrls = gscData?.liveSitemapUrls ?? 0;
+  const d1Queued = gscData?.d1Queued ?? 0;
   const pendingSweep = Math.max(0, liveSitemapUrls - sitemapDiscovered);
 
   // Total evaluated in GSC indexing report
-  const totalEvaluated = indexedPages + unindexedPages; // 88 + 132 = 220
-  const indexedPercent = totalEvaluated > 0 ? Math.round((indexedPages / totalEvaluated) * 100) : 40;
-  const discoveredPercent = totalEvaluated > 0 ? Math.round((discoveredNotIndexed / totalEvaluated) * 100) : 58;
-  const crawledPercent = totalEvaluated > 0 ? Math.round((crawledNotIndexed / totalEvaluated) * 100) : 2;
+  const totalEvaluated = indexedPages + unindexedPages;
+  const indexedPercent = totalEvaluated > 0 ? Math.round((indexedPages / totalEvaluated) * 100) : 0;
+  const discoveredPercent = totalEvaluated > 0 ? Math.round((discoveredNotIndexed / totalEvaluated) * 100) : 0;
+  const crawledPercent = totalEvaluated > 0 ? Math.round((crawledNotIndexed / totalEvaluated) * 100) : 0;
 
   const handleResubmitSitemap = async () => {
     setIsSubmitting(true);
@@ -69,10 +69,11 @@ export function GscRealtimeIndexingCard({
         method: "POST",
       });
       const json = await res.json();
+      const count = liveSitemapUrls || d1Published || "";
       setSubmitSuccess(
         isRtl 
-          ? "تم إرسال إشعار التحديث اللحظي لـ 472 رابطاً بنجاح إلى عناكب Googlebot و IndexNow!" 
-          : "Sitemap successfully resubmitted to Googlebot and IndexNow!"
+          ? `تم إرسال إشعار التحديث اللحظي ${count ? `لـ ${count} رابطاً ` : ""}بنجاح إلى عناكب Googlebot و IndexNow!` 
+          : `Sitemap successfully resubmitted to Googlebot and IndexNow!`
       );
       if (onRefresh) onRefresh();
     } catch (err) {
@@ -319,7 +320,7 @@ export function GscRealtimeIndexingCard({
           <div className="flex items-center gap-2">
             <span className="text-indigo-600 dark:text-indigo-400 font-semibold">
               {isRtl 
-                ? `ينتظر جوجل زحف ${pendingSweep} مقالاً جديداً لتحديث الـ 452 إلى ${liveSitemapUrls}` 
+                ? `ينتظر جوجل زحف ${pendingSweep} مقالاً جديداً لتحديث إجمالي المفهرس إلى ${liveSitemapUrls}` 
                 : `Google pending crawl of ${pendingSweep} new articles to reach ${liveSitemapUrls}`}
             </span>
           </div>

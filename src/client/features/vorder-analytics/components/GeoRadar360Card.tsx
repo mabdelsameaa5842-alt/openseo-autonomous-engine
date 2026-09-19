@@ -160,7 +160,7 @@ export const GeoRadar360Card: React.FC<GeoRadar360CardProps> = ({
           </h2>
           <p className="mt-1 text-xs md:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
             {isRtl
-              ? "نظام تتبع حي 360° يرصد بالثانية زيارات روبوتات OpenAI (GPTBot) و Anthropic (ClaudeBot) و PerplexityBot لموقعك، ويحسب متوسط جودة السيو والـ GEO اللحظي لجميع مقالات D1 الـ 645، مع إمكانية استجواب النماذج حياً للتأكد من اقتباس اسمك وموقعك."
+              ? "نظام تتبع حي 360° يرصد بالثانية زيارات روبوتات OpenAI (GPTBot) و Anthropic (ClaudeBot) و PerplexityBot لموقعك، ويحسب متوسط جودة السيو والـ GEO اللحظي لجميع مقالات D1 المنشورة، مع إمكانية استجواب النماذج حياً للتأكد من اقتباس اسمك وموقعك."
               : "Continuous real-time radar tracking GPTBot, ClaudeBot, PerplexityBot visits, computing live citability index over all D1 articles, with interactive live citation benchmarking."}
           </p>
         </div>
@@ -199,15 +199,15 @@ export const GeoRadar360Card: React.FC<GeoRadar360CardProps> = ({
                   </span>
                   <span className="text-[10px] text-zinc-500 dark:text-zinc-400 block">
                     {isRtl
-                      ? `متوسط ${data?.geoQuality?.totalAuditedArticles || 645} مقال منشور بـ D1`
-                      : `Across ${data?.geoQuality?.totalAuditedArticles || 645} D1 articles`}
+                      ? `متوسط ${data?.geoQuality?.totalAuditedArticles || 0} مقال منشور بـ D1`
+                      : `Across ${data?.geoQuality?.totalAuditedArticles || 0} D1 articles`}
                   </span>
                 </div>
               </div>
 
               <div className="text-end">
                 <span className="text-2xl md:text-3xl font-black font-mono text-indigo-600 dark:text-indigo-400">
-                  <bdi dir="ltr">{data?.geoQuality?.score || 94}%</bdi>
+                  <bdi dir="ltr">{data?.geoQuality?.score != null ? `${data.geoQuality.score}%` : "—"}</bdi>
                 </span>
               </div>
             </div>
@@ -219,11 +219,14 @@ export const GeoRadar360Card: React.FC<GeoRadar360CardProps> = ({
                   {isRtl ? "فقرة الإجابة المباشرة (134-167 كلمة)" : "134-167w Direct Answer"}
                 </span>
                 <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  98%
+                  {telemetryQuery.data?.geoQuality?.criteria?.citabilitySnippet ?? (telemetryQuery.data?.geoQuality?.score || 0)}%
                 </span>
               </div>
               <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: "98%" }} />
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${telemetryQuery.data?.geoQuality?.criteria?.citabilitySnippet ?? (telemetryQuery.data?.geoQuality?.score || 0)}%` }}
+                />
               </div>
 
               <div className="flex items-center justify-between text-[11px]">
@@ -231,11 +234,14 @@ export const GeoRadar360Card: React.FC<GeoRadar360CardProps> = ({
                   {isRtl ? "تسلسل العناوين والتدرج الهيكلي (H1-H3)" : "Heading Structure (H1-H3)"}
                 </span>
                 <span className="font-mono font-bold text-emerald-600 dark:text-emerald-400">
-                  100%
+                  {telemetryQuery.data?.geoQuality?.criteria?.headingHierarchy ?? (telemetryQuery.data?.geoQuality?.score || 0)}%
                 </span>
               </div>
               <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-emerald-500 rounded-full" style={{ width: "100%" }} />
+                <div
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+                  style={{ width: `${telemetryQuery.data?.geoQuality?.criteria?.headingHierarchy ?? (telemetryQuery.data?.geoQuality?.score || 0)}%` }}
+                />
               </div>
 
               <div className="flex items-center justify-between text-[11px]">
@@ -243,11 +249,14 @@ export const GeoRadar360Card: React.FC<GeoRadar360CardProps> = ({
                   {isRtl ? "تكامل الـ Schema ورسم الكيان الموحد" : "Schema & Entity Graph"}
                 </span>
                 <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                  100%
+                  {telemetryQuery.data?.geoQuality?.criteria?.schemaAndEntityGraph ?? (telemetryQuery.data?.geoQuality?.score || 0)}%
                 </span>
               </div>
               <div className="h-1.5 w-full bg-zinc-200 dark:bg-zinc-800 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 rounded-full" style={{ width: "100%" }} />
+                <div
+                  className="h-full bg-indigo-500 rounded-full transition-all duration-500"
+                  style={{ width: `${telemetryQuery.data?.geoQuality?.criteria?.schemaAndEntityGraph ?? (telemetryQuery.data?.geoQuality?.score || 0)}%` }}
+                />
               </div>
             </div>
           </div>
