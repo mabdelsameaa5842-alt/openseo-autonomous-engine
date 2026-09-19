@@ -57,6 +57,9 @@ import {
   handleRunTaskStep,
   handleReplenishQueue,
   handleResubmitSitemap,
+  handleGeoRadarTelemetry,
+  handleRunCitationBenchmark,
+  recordAiCrawlerVisit,
 } from "@/server/features/automation/autonomousHandler";
 import {
   handleSuperAdminLogin,
@@ -181,9 +184,36 @@ function handleFetch(
 ): Response | Promise<Response> {
   ctx.waitUntil(maybeSendSelfHostHeartbeat());
 
+  // Non-blocking Edge AI Crawler Interceptor (GPTBot, ClaudeBot, PerplexityBot, etc.)
+  const userAgent = request.headers.get("user-agent") || "";
+  if (userAgent) {
+    let matchedBot: string | null = null;
+    if (/GPTBot/i.test(userAgent)) matchedBot = "GPTBot";
+    else if (/ChatGPT-User/i.test(userAgent)) matchedBot = "ChatGPT-User";
+    else if (/ClaudeBot|Claude-Web|Anthropic-AI/i.test(userAgent)) matchedBot = "ClaudeBot";
+    else if (/PerplexityBot/i.test(userAgent)) matchedBot = "PerplexityBot";
+    else if (/Google-Extended/i.test(userAgent)) matchedBot = "Google-Extended";
+    else if (/Bytespider/i.test(userAgent)) matchedBot = "Bytespider";
+    else if (/Applebot-Extended|Applebot/i.test(userAgent)) matchedBot = "Applebot";
+
+    if (matchedBot) {
+      const url = new URL(request.url);
+      const country = (request as any).cf?.country || request.headers.get("cf-ipcountry") || "Unknown";
+      ctx.waitUntil(recordAiCrawlerVisit(env, matchedBot, userAgent, url.pathname, country));
+    }
+  }
+
   const authMode = getAuthMode(env.AUTH_MODE);
   const publicRequest = requestWithPublicOrigin(request);
   const pathname = new URL(publicRequest.url).pathname;
+
+  if (pathname === "/api/automation/geo-radar-telemetry") {
+    return handleGeoRadarTelemetry(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/run-citation-benchmark") {
+    return handleRunCitationBenchmark(publicRequest, env);
+  }
 
   if (pathname === GDPR_STORAGE_ERASURE_PATH) {
     return handleGdprStorageErasure(publicRequest, env);

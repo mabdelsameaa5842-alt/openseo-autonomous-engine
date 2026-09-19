@@ -43,6 +43,7 @@ import { AutomationFlowCanvas } from "./components/AutomationFlowCanvas";
 import { SteppedAiTasksWorkflow } from "./components/SteppedAiTasksWorkflow";
 import { HarvestedKeywordsExplorer } from "./components/HarvestedKeywordsExplorer";
 import { GscRealtimeIndexingCard } from "./components/GscRealtimeIndexingCard";
+import { GeoRadar360Card } from "./components/GeoRadar360Card";
 
 interface ArticleItem {
   id: string;
@@ -693,6 +694,12 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
         isRtl={isRtl}
         gscData={dualTelemetryQuery.data?.gscIndexingTelemetry}
         onRefresh={() => dualTelemetryQuery.refetch()}
+      />
+
+      {/* 360° Real-Time GEO & AI Search Radar */}
+      <GeoRadar360Card
+        projectId={projectId}
+        isRtl={isRtl}
       />
 
       {/* Smart Early Warning & Prescription Engine - Unified Restrained Design */}

@@ -1,13 +1,15 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Cpu,
   Zap,
   Activity,
   ShieldCheck,
+  Check,
   CheckCircle2,
-  AlertCircle,
+  ChevronDown,
   ExternalLink,
   Sparkles,
+  Layers,
   ArrowRightLeft,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +24,9 @@ interface AIModelsQuotaRadarProps {
 export const AIModelsQuotaRadar: React.FC<AIModelsQuotaRadarProps> = ({
   isRtl = true,
 }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const [activeModelId, setActiveModelId] = useState<string>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -43,179 +48,241 @@ export const AIModelsQuotaRadar: React.FC<AIModelsQuotaRadarProps> = ({
     return "gemini-3.5-flash-lite";
   });
 
+  const activeModel =
+    AVAILABLE_MODELS.find((m) => m.id === activeModelId) || AVAILABLE_MODELS[0];
+
   const handleSelectModel = (model: AIModelOption) => {
     setActiveModelId(model.id);
     if (typeof window !== "undefined") {
       localStorage.setItem(LOCAL_STORAGE_KEY, model.id);
     }
+    setIsOpen(false);
     toast.success(
       isRtl
-        ? `✅ تم اعتماد ${model.name} كموديل افتراضي لمحادثات SAM وأدوات التحليل!`
+        ? `✅ تم اعتماد ${model.name} كموديل افتراضي لمحادثات SAM ورادارات التحليل!`
         : `Switched active default model to ${model.name}`,
     );
   };
 
+  // Close on outside click
+  useEffect(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleOutsideClick);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
   return (
     <div
-      className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-5 md:p-6 shadow-sm mb-6"
+      ref={containerRef}
+      className="relative rounded-2xl border border-zinc-200/80 dark:border-zinc-800/80 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl p-3.5 md:p-4 shadow-2xs transition-all mb-5"
       dir={isRtl ? "rtl" : "ltr"}
     >
-      {/* Top Banner Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-5">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/20 bg-indigo-50 dark:bg-indigo-950/40 px-3 py-1 text-xs font-semibold text-indigo-600 dark:text-indigo-400">
-              <Sparkles className="h-3.5 w-3.5" />
-              {isRtl
-                ? "رادار كوتا ونماذج الذكاء الاصطناعي (AI Models Quota Radar)"
-                : "AI Models Quota Radar & Failover Guard"}
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/20 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck className="h-3 w-3" />
-              {isRtl ? "التبديل التلقائي والحماية الذاتية نشطة" : "Circuit Breaker Active"}
-            </span>
+      {/* Apple HIG Control Bar */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
+        {/* Left / Primary: Active Model Selector Trigger */}
+        <div className="flex items-center gap-3 flex-wrap sm:flex-nowrap">
+          {/* Apple Squircle Icon */}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500/15 to-purple-500/15 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 shadow-2xs">
+            <Cpu className="h-5 w-5" />
           </div>
-          <h2 className="mt-2.5 text-lg md:text-xl font-bold text-zinc-900 dark:text-zinc-100">
-            {isRtl
-              ? "مراقبة حدود الاستخدام والتبديل اليدوي بين نماذج Gemini & Antigravity"
-              : "Monitor Free Quotas and Select Active AI Model"}
-          </h2>
-          <p className="mt-1 text-xs md:text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed max-w-3xl">
-            {isRtl
-              ? "يمكنك التبديل يدوياً بين النماذج بنقرة زر واحدة لتوزيع الأحمال ومضاعفة السرعة. في حالة وصول أي موديل للحدود المسموحة (Rate Limit 429) يقوم النظام بالتحويل الفوري الصامت للبديل المتاح دون انقطاع."
-              : "Switch between models anytime to optimize speed and capacity. If any model reaches its rate limit, automatic circuit breaker seamlessly routes turns to the healthiest candidate."}
-          </p>
+
+          {/* Model Title & Pull-down Trigger */}
+          <div className="relative">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                {isRtl ? "نموذج الذكاء الاصطناعي النشط:" : "Active AI Model:"}
+              </span>
+
+              {/* Apple HIG Dropdown Trigger Button */}
+              <button
+                type="button"
+                onClick={() => setIsOpen(!isOpen)}
+                aria-expanded={isOpen}
+                aria-haspopup="listbox"
+                className="group inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700/80 bg-zinc-50/90 dark:bg-zinc-800/90 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100 shadow-2xs transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500/40"
+              >
+                <bdi dir="ltr" className="font-bold text-indigo-600 dark:text-indigo-400">
+                  {activeModel.name}
+                </bdi>
+                <span className="text-[11px] text-zinc-500 dark:text-zinc-400 font-normal">
+                  ({activeModel.tag})
+                </span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-zinc-400 transition-transform duration-200 ${
+                    isOpen ? "rotate-180 text-indigo-500" : ""
+                  }`}
+                />
+              </button>
+
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                {isRtl ? "نشط" : "Active"}
+              </span>
+            </div>
+
+            {/* Active Model Specs Strip */}
+            <div className="mt-1 flex items-center gap-2 text-[11px] text-zinc-500 dark:text-zinc-400 font-mono flex-wrap">
+              <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5">
+                <Zap className="h-2.5 w-2.5 text-amber-500" />
+                <bdi dir="ltr">{activeModel.rpm} RPM</bdi>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5">
+                <Activity className="h-2.5 w-2.5 text-blue-500" />
+                <bdi dir="ltr">{activeModel.rpd.toLocaleString()} RPD</bdi>
+              </span>
+              <span className="inline-flex items-center gap-1 rounded-md bg-zinc-100 dark:bg-zinc-800/60 px-1.5 py-0.5">
+                <Layers className="h-2.5 w-2.5 text-purple-500" />
+                <bdi dir="ltr">{activeModel.tpm} TPM</bdi>
+              </span>
+            </div>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        {/* Right / Secondary: Circuit Breaker Status & AI Studio Link */}
+        <div className="flex items-center gap-2.5 self-end lg:self-center shrink-0">
+          <div className="hidden sm:inline-flex items-center gap-1.5 rounded-xl border border-emerald-500/20 bg-emerald-50/60 dark:bg-emerald-950/30 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+            <span>
+              {isRtl ? "الحماية الذاتية والتبديل الصامت مفعل" : "Circuit Breaker Active"}
+            </span>
+          </div>
+
           <a
             href="https://aistudio.google.com/"
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 px-3 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-200/90 dark:border-zinc-700/80 bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800 px-2.5 py-1.5 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors shadow-2xs"
           >
             <Cpu className="h-3.5 w-3.5 text-indigo-500" />
-            <span>Google AI Studio</span>
+            <span className="text-[11px]">Google AI Studio</span>
             <ExternalLink className="h-3 w-3 opacity-60" />
           </a>
         </div>
       </div>
 
-      {/* Model Cards Grid */}
-      <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
-        {AVAILABLE_MODELS.map((model) => {
-          const isActive = model.id === activeModelId;
-          const isWarningModel = model.id === "gemini-3.6-flash";
+      {/* Apple HIG Pull-Down Popover / Dropdown Menu */}
+      {isOpen && (
+        <div
+          role="listbox"
+          className="absolute z-50 top-full mt-2 inset-x-2 md:inset-x-auto md:w-[580px] rounded-2xl border border-zinc-200/90 dark:border-zinc-700/90 bg-white/95 dark:bg-zinc-900/95 backdrop-blur-2xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-150"
+          style={isRtl ? { right: 0 } : { left: 0 }}
+        >
+          {/* Dropdown Menu Header */}
+          <div className="px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+              <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+              <span>{isRtl ? "اختر موديل الذكاء الاصطناعي الأساسي" : "Select Active AI Model"}</span>
+            </div>
+            <span className="text-[10px] text-zinc-400">
+              {isRtl ? "تبديل فوري دون انقطاع" : "Instant seamless failover"}
+            </span>
+          </div>
 
-          return (
-            <div
-              key={model.id}
-              className={`relative rounded-xl border p-4 flex flex-col justify-between transition-all ${
-                isActive
-                  ? "border-indigo-500/80 bg-indigo-50/40 dark:bg-indigo-950/20 ring-1 ring-indigo-500/50 shadow-sm"
-                  : isWarningModel
-                    ? "border-amber-200 dark:border-amber-900/40 bg-amber-50/30 dark:bg-amber-950/10 hover:border-amber-300 dark:hover:border-amber-800"
-                    : "border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-zinc-300 dark:hover:border-zinc-700"
-              }`}
-            >
-              <div>
-                {/* Header */}
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
+          {/* Model Items List */}
+          <div className="py-1 space-y-1 max-h-[380px] overflow-y-auto">
+            {AVAILABLE_MODELS.map((model) => {
+              const isActive = model.id === activeModelId;
+              const isWarningModel = model.id === "gemini-3.6-flash";
+
+              return (
+                <button
+                  key={model.id}
+                  type="button"
+                  onClick={() => handleSelectModel(model)}
+                  className={`w-full text-start p-2.5 rounded-xl transition-all flex items-start justify-between gap-3 cursor-pointer ${
+                    isActive
+                      ? "bg-indigo-50/80 dark:bg-indigo-950/40 border border-indigo-500/30 text-indigo-950 dark:text-indigo-100 shadow-2xs"
+                      : "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80 border border-transparent text-zinc-800 dark:text-zinc-200"
+                  }`}
+                >
+                  <div className="flex items-start gap-2.5 min-w-0">
                     <div
-                      className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg mt-0.5 ${
                         isActive
                           ? "bg-indigo-600 text-white"
                           : isWarningModel
-                            ? "bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-300"
-                            : "bg-zinc-200 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300"
+                            ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600"
+                            : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400"
                       }`}
                     >
-                      <Cpu className="h-4 w-4" />
+                      <Cpu className="h-3.5 w-3.5" />
                     </div>
-                    <div>
+
+                    <div className="min-w-0">
                       <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-sm font-bold text-zinc-900 dark:text-zinc-100">
-                          {model.name}
+                        <span className="text-xs font-bold text-zinc-900 dark:text-zinc-100">
+                          <bdi dir="ltr">{model.name}</bdi>
                         </span>
-                        {isActive && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-indigo-600 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-                            <CheckCircle2 className="h-2.5 w-2.5" />
-                            {isRtl ? "الموديل النشط" : "Active"}
+                        <span className="text-[10px] font-medium text-indigo-600 dark:text-indigo-400">
+                          {model.tag}
+                        </span>
+                        {model.recommended && (
+                          <span className="rounded-md bg-emerald-100 dark:bg-emerald-950/60 px-1.5 py-0.2 text-[9px] font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                            {isRtl ? "موصى به" : "Recommended"}
                           </span>
                         )}
                       </div>
-                      <span className="text-[11px] font-medium text-indigo-600 dark:text-indigo-400">
-                        {model.tag}
-                      </span>
+                      <p className="mt-0.5 text-[11px] text-zinc-500 dark:text-zinc-400 leading-normal line-clamp-1">
+                        {model.description}
+                      </p>
                     </div>
                   </div>
 
-                  {model.recommended && !isActive && (
-                    <span className="rounded-md bg-emerald-100 dark:bg-emerald-950/60 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                      {isRtl ? "موصى به" : "Recommended"}
-                    </span>
-                  )}
-                </div>
+                  {/* Right: Metrics & Active Checkmark */}
+                  <div className="shrink-0 flex items-center gap-2">
+                    <div className="hidden sm:flex items-center gap-1 text-[10px] font-mono text-zinc-500 dark:text-zinc-400">
+                      <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5">
+                        <bdi dir="ltr">{model.rpm} RPM</bdi>
+                      </span>
+                      <span className="rounded bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5">
+                        <bdi dir="ltr">{model.rpd.toLocaleString()} RPD</bdi>
+                      </span>
+                    </div>
 
-                {/* Description */}
-                <p className="mt-2.5 text-xs text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                  {model.description}
-                </p>
-
-                {/* Limits & Quotas Spec Pills */}
-                <div className="mt-3.5 grid grid-cols-3 gap-2 border-t border-zinc-200/60 dark:border-zinc-800/60 pt-3">
-                  <div className="rounded-lg bg-white dark:bg-zinc-800/80 p-2 text-center border border-zinc-200/60 dark:border-zinc-700/60">
-                    <span className="block text-[10px] text-zinc-500 dark:text-zinc-400">
-                      {isRtl ? "حد الدقيقة" : "RPM"}
-                    </span>
-                    <span className="block text-xs font-bold font-mono text-zinc-900 dark:text-zinc-100 mt-0.5">
-                      {model.rpm} RPM
-                    </span>
+                    {isActive ? (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-600 text-white">
+                        <Check className="h-3.5 w-3.5" />
+                      </div>
+                    ) : (
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 opacity-40 hover:opacity-100">
+                        <ArrowRightLeft className="h-3 w-3 text-zinc-500" />
+                      </div>
+                    )}
                   </div>
+                </button>
+              );
+            })}
+          </div>
 
-                  <div className="rounded-lg bg-white dark:bg-zinc-800/80 p-2 text-center border border-zinc-200/60 dark:border-zinc-700/60">
-                    <span className="block text-[10px] text-zinc-500 dark:text-zinc-400">
-                      {isRtl ? "حد اليوم" : "RPD"}
-                    </span>
-                    <span className="block text-xs font-bold font-mono text-zinc-900 dark:text-zinc-100 mt-0.5">
-                      {model.rpd.toLocaleString()} RPD
-                    </span>
-                  </div>
-
-                  <div className="rounded-lg bg-white dark:bg-zinc-800/80 p-2 text-center border border-zinc-200/60 dark:border-zinc-700/60">
-                    <span className="block text-[10px] text-zinc-500 dark:text-zinc-400">
-                      {isRtl ? "السياق" : "TPM"}
-                    </span>
-                    <span className="block text-xs font-bold font-mono text-zinc-900 dark:text-zinc-100 mt-0.5">
-                      {model.tpm}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Button */}
-              <div className="mt-4 pt-2">
-                {isActive ? (
-                  <div className="w-full flex items-center justify-center gap-1.5 rounded-lg bg-indigo-500/10 dark:bg-indigo-950/50 py-1.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
-                    <CheckCircle2 className="h-3.5 w-3.5 text-indigo-600" />
-                    <span>{isRtl ? "الموديل المعتمد حالياً" : "Currently Active"}</span>
-                  </div>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => handleSelectModel(model)}
-                    className="w-full flex items-center justify-center gap-1.5 rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 py-1.5 text-xs font-semibold text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-700 transition-colors shadow-2xs"
-                  >
-                    <ArrowRightLeft className="h-3.5 w-3.5 text-zinc-500" />
-                    <span>{isRtl ? "تفعيل هذا الموديل" : "Select Model"}</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+          {/* Footer Notice */}
+          <div className="mt-1 px-3 py-1.5 border-t border-zinc-100 dark:border-zinc-800/80 bg-zinc-50/50 dark:bg-zinc-800/20 rounded-b-xl flex items-center justify-between text-[10px] text-zinc-500 dark:text-zinc-400">
+            <span>
+              {isRtl
+                ? "⚡ في حال وصول الموديل لحد 429 يتحول النظام تلقائياً للبديل"
+                : "⚡ On 429 rate limit, system seamlessly routes to alternate"}
+            </span>
+            <span className="font-mono text-emerald-600 dark:text-emerald-400 font-semibold">
+              Zero Downtime
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
