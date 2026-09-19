@@ -26,8 +26,8 @@ curl -s "https://open-seo.abdelsameaa.workers.dev/api/automation/dual-pipelines-
 echo "✔ Cloudflare In-Memory & Edge Telemetry Cache Purged in 0.2s."
 
 echo "=== [4/4] Verifying Live Health Across Clouds ==="
-SITEMAP_COUNT=$(curl -s "https://mohamed-abdelsamee-portfolio.vercel.app/sitemap.xml" | grep -c "<loc>")
+SITEMAP_COUNT=$(curl --compressed -s "https://mohamed-abdelsamee-portfolio.vercel.app/sitemap.xml" | grep -c "<loc>" || echo 0)
 QUEUE_COUNT=$(curl -s "https://open-seo.abdelsameaa.workers.dev/api/automation/queue?projectId=cc58e018-8ef9-4be7-8f3a-2af2bc158d62&status=queued" | jq '.queue | length')
-echo "✔ Vercel Sitemap URLs: $SITEMAP_COUNT (Target: 384)"
+echo "✔ Vercel Sitemap URLs: $SITEMAP_COUNT (Healthy > 400)"
 echo "✔ Cloudflare Queued Articles: $QUEUE_COUNT (Target: 100)"
-echo "🎉 Ecosystem Synchronization Complete Across Vercel, Cloudflare, and GitHub!"
+echo "🎉 Ecosystem Synchronization Complete Across Vercel, Cloudflare, and Local Ledger!"
