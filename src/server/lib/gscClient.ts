@@ -206,5 +206,16 @@ export function createGscClient(opts: {
       }>(`${GSC_API_BASE}/sites/${encodeURIComponent(siteUrl)}/sitemaps`);
       return data.sitemap ?? [];
     },
+
+    /** Webmasters API `sitemaps.get` — retrieves details of a specific sitemap including submitted count and lastDownloaded. */
+    async getSitemap(
+      siteUrl: string,
+      feedpath: string,
+    ): Promise<any> {
+      const data = await request<any>(
+        `${GSC_API_BASE}/sites/${encodeURIComponent(siteUrl)}/sitemaps/${encodeURIComponent(feedpath)}`,
+      );
+      return data;
+    },
   };
 }
