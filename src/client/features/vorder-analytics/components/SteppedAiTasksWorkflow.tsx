@@ -216,9 +216,27 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
     setIsLiveRunning(true);
     toast.info(
       isRtl
-        ? "🚀 انطلاق دورة الأتمتة الحية: توجيه الشاشة وحساب توقيت كل خطوة بالمللي ثانية..."
-        : "🚀 Launching Live Stepped Execution: auto-focusing and timing each step..."
+        ? "🚀 انطلاق دورة الأتمتة الحية: توجيه الشاشة وفحص كل خطوة مع تتبع مسارات الفول باك..."
+        : "🚀 Launching Live Stepped Execution: validating each step & verifying fallback routes..."
     );
+
+    let activeExecutionId = latestExecution?.id;
+
+    // 1. Initialize execution record in D1 (Status: processing / running)
+    try {
+      const initRes = await fetch("/api/automation/start-task-execution", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId }),
+      });
+      if (initRes.ok) {
+        const initData = (await initRes.json()) as any;
+        if (initData.executionId) {
+          activeExecutionId = initData.executionId;
+          void taskQuery.refetch();
+        }
+      }
+    } catch {}
 
     try {
       for (let stepNum = 1; stepNum <= 9; stepNum++) {
@@ -231,27 +249,41 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
           el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
 
-        // Real Execution Calls for Step 2 (Google Ads) and Step 9 (Cloudflare Edge Ledger)
-        if (stepNum === 2 || stepNum === 9) {
-          try {
-            await fetch("/api/automation/run-task-step", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                projectId,
-                executionId: latestExecution?.id,
-                stepNumber: stepNum,
-              }),
-            });
-          } catch {}
+        // Execute Real Step Verification on Backend
+        try {
+          const stepRes = await fetch("/api/automation/run-task-step", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              projectId,
+              executionId: activeExecutionId,
+              stepNumber: stepNum,
+            }),
+          });
+          const stepData = (await stepRes.json()) as any;
+          if (stepData.status === "fallback_active") {
+            toast.warning(
+              isRtl
+                ? `⚠️ الخطوة ${stepNum} قامت بتفعيل المسار الاحتياطي (Fallback Active)`
+                : `⚠️ Step ${stepNum} switched to Fallback Route`
+            );
+          } else if (stepData.status === "failed") {
+            toast.error(
+              isRtl
+                ? `❌ فشلت الخطوة ${stepNum}، يرجى مراجعة اللوج`
+                : `❌ Step ${stepNum} failed, check logs`
+            );
+          }
+        } catch (stepErr: any) {
+          console.warn(`[Stepped Task] Step ${stepNum} execution warning:`, stepErr);
         }
 
         // Realistic stepped pipeline pause per step
-        const stepDelay = stepNum === 4 ? 1500 : stepNum === 2 ? 1200 : 900;
+        const stepDelay = stepNum === 4 ? 1200 : stepNum === 2 ? 1000 : 700;
         await new Promise((r) => setTimeout(r, stepDelay));
       }
 
-      // Trigger cycle completion on backend
+      // Trigger cycle completion & content publish on backend
       try {
         await fetch("/api/automation/trigger-run", {
           method: "POST",

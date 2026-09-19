@@ -60,6 +60,10 @@ import {
   handleGeoRadarTelemetry,
   handleRunCitationBenchmark,
   recordAiCrawlerVisit,
+  handleGroundTruthTelemetry,
+  handleForceSyncPortfolio,
+  handleStartTaskExecution,
+  scrapePortfolioGroundTruth,
 } from "@/server/features/automation/autonomousHandler";
 import {
   handleSuperAdminLogin,
@@ -209,6 +213,18 @@ function handleFetch(
 
   if (pathname === "/api/automation/geo-radar-telemetry") {
     return handleGeoRadarTelemetry(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/ground-truth-telemetry") {
+    return handleGroundTruthTelemetry(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/force-sync-portfolio") {
+    return handleForceSyncPortfolio(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/start-task-execution") {
+    return handleStartTaskExecution(publicRequest, env);
   }
 
   if (pathname === "/api/automation/run-citation-benchmark") {
@@ -431,6 +447,13 @@ export default {
       await executeScheduledAutonomousTick(env);
     } catch (autoErr) {
       console.warn("[cron] Autonomous pipeline scheduled tick warning:", autoErr);
+    }
+
+    // Ground-Truth 360° Portfolio Deep Scraper (Every 15 min ground-truth verification)
+    try {
+      await scrapePortfolioGroundTruth(env, true);
+    } catch (scrapeErr) {
+      console.warn("[cron] Ground-Truth Portfolio Scraper warning:", scrapeErr);
     }
 
     if (watchdogError) throw watchdogError;

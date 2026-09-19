@@ -95,9 +95,9 @@
     },
   ],
   "triggers": {
-    // Every 30 min: rank checks + stale-audit reconcile. Daily: OAuth KV GC.
+    // Every 15 min: ground-truth portfolio scraper. Every 30 min: rank checks + autonomous tick. Daily: OAuth KV GC.
     // Dispatched on controller.cron in src/server.ts `scheduled`.
-    "crons": ["*/30 * * * *", "17 3 * * *"],
+    "crons": ["*/15 * * * *", "*/30 * * * *", "17 3 * * *"],
   },
   // This config serves local dev and Docker self-host only. All Cloudflare
   // deployments — previews, prod, self-host — go through Alchemy
