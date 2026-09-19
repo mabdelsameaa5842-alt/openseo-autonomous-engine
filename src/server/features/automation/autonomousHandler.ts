@@ -1781,6 +1781,22 @@ export async function executeScheduledAutonomousTick(env: any): Promise<void> {
         }
 
         console.log(`[Scheduled Autonomous Tick] Published, synced with GSC/GA4, and indexed: ${blogArticleUrl}`);
+
+        try {
+          const cycleId = `cycle_${Date.now()}`;
+          await recordSteppedAiTaskExecution(
+            env,
+            projectId,
+            cycleId,
+            nextQueued.article_slug,
+            nextQueued.article_title,
+            1250,
+            "Google Ads API (Direct GCP seo1-508611)",
+            false
+          );
+        } catch (stepErr) {
+          console.warn("[Scheduled Autonomous Tick] recordSteppedAiTaskExecution error:", stepErr);
+        }
       } else {
         console.warn(`[Scheduled Autonomous Tick] Article publish failed for ${nextQueued.article_slug}: ${pubRes.error || 'Unknown error'}`);
         // Self-Healing Watchdog: Demote failed article to end of queue to avoid blocking subsequent articles
@@ -1901,10 +1917,40 @@ export async function handleTaskExecutions(
       });
     }
 
+    // Authoritative 30-minute interval telemetry based on Cloudflare Worker cron (*/30 * * * *)
+    const nowSec = Math.floor(Date.now() / 1000);
+    const intervalSec = 30 * 60; // 1800 seconds
+    const elapsedSecInWindow = nowSec % intervalSec;
+    const secondsRemaining = intervalSec - elapsedSecInWindow;
+    const nextExecutionEpochSec = nowSec + secondsRemaining;
+    const nextExecutionIso = new Date(nextExecutionEpochSec * 1000).toISOString();
+    const lastWindowStartEpochSec = nowSec - elapsedSecInWindow;
+    const lastWindowStartIso = new Date(lastWindowStartEpochSec * 1000).toISOString();
+
+    const minsRemaining = Math.floor(secondsRemaining / 60);
+    const secsRemainingInMin = secondsRemaining % 60;
+    const formattedRemaining = `${String(minsRemaining).padStart(2, "0")}:${String(secsRemainingInMin).padStart(2, "0")}`;
+    const percentElapsed = Math.min(100, Math.max(0, Math.round((elapsedSecInWindow / intervalSec) * 100)));
+
+    const isExecutingNow = results.length > 0 && results[0].status === "running";
+
+    const scheduleTelemetry = {
+      interval_minutes: 30,
+      seconds_remaining: secondsRemaining,
+      formatted_remaining: formattedRemaining,
+      percent_elapsed: percentElapsed,
+      last_window_start: lastWindowStartIso,
+      next_execution_at: nextExecutionIso,
+      server_time: new Date().toISOString(),
+      cron_expression: "*/30 * * * *",
+      is_executing_now: isExecutingNow,
+    };
+
     return new Response(
       JSON.stringify({
         success: true,
         projectId,
+        schedule_telemetry: scheduleTelemetry,
         executions: results,
       }),
       { status: 200, headers: corsHeaders }

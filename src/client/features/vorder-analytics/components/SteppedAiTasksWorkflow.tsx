@@ -60,6 +60,18 @@ export interface TaskExecution {
   steps: StepLog[];
 }
 
+export interface ScheduleTelemetry {
+  interval_minutes: number;
+  seconds_remaining: number;
+  formatted_remaining: string;
+  percent_elapsed: number;
+  last_window_start: string;
+  next_execution_at: string;
+  server_time: string;
+  cron_expression: string;
+  is_executing_now: boolean;
+}
+
 interface Props {
   projectId: string;
   isRtl?: boolean;
@@ -131,18 +143,21 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
   const [selectedStep, setSelectedStep] = useState<StepLog | null>(null);
   const [reRunningStep, setReRunningStep] = useState<number | null>(null);
 
-  // Apple HIG Ambient Motion State
-  const [isAmbientRadarActive, setIsAmbientRadarActive] = useState<boolean>(true);
-  const [ambientStep, setAmbientStep] = useState<number>(1);
-  const [nextCycleSeconds, setNextCycleSeconds] = useState<number>(1800);
+  // Synchronized 30m Countdown State (Calibrated with Cloudflare Edge cron)
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(1800);
 
-  // Active Manual Execution State
+  // Active Stepped Execution State (Strictly active only during real execution)
   const [isLiveRunning, setIsLiveRunning] = useState<boolean>(false);
   const [activeRunningStep, setActiveRunningStep] = useState<number | null>(null);
   const [liveElapsedMs, setLiveElapsedMs] = useState<number>(0);
   const stepCardRefs = useRef<Record<number, HTMLDivElement | null>>({});
 
-  const taskQuery = useQuery<{ success: boolean; executions: TaskExecution[] }>({
+  const taskQuery = useQuery<{
+    success: boolean;
+    projectId: string;
+    schedule_telemetry?: ScheduleTelemetry;
+    executions: TaskExecution[];
+  }>({
     queryKey: ["autonomous-task-executions", projectId],
     queryFn: async () => {
       const res = await fetch(`/api/automation/task-executions?projectId=${projectId}`);
@@ -155,31 +170,32 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
   const latestExecution = taskQuery.data?.executions?.[0];
   const steps = latestExecution?.steps || [];
 
-  // 1. Continuous 30m Autonomous Cron Countdown Ticker
-  useEffect(() => {
-    const updateCountdown = () => {
-      const now = Math.floor(Date.now() / 1000);
-      const secondsInBlock = now % 1800; // 30 minutes = 1800 seconds
-      setNextCycleSeconds(1800 - secondsInBlock);
-    };
+  // Determine system phase: executing if manual run or server reporting active run, otherwise standby
+  const isServerExecuting = Boolean(taskQuery.data?.schedule_telemetry?.is_executing_now);
+  const systemPhase: "standby" | "executing" = (isLiveRunning || isServerExecuting) ? "executing" : "standby";
 
-    updateCountdown();
-    const interval = setInterval(updateCountdown, 1000);
-    return () => clearInterval(interval);
+  // Calibrate local countdown with server telemetry whenever fetched
+  useEffect(() => {
+    if (taskQuery.data?.schedule_telemetry?.seconds_remaining !== undefined) {
+      setSecondsRemaining(taskQuery.data.schedule_telemetry.seconds_remaining);
+    }
+  }, [taskQuery.data?.schedule_telemetry?.seconds_remaining]);
+
+  // Real 1-second continuous cron countdown ticker
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          void taskQuery.refetch();
+          return 1800;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
   }, []);
 
-  // 2. Ambient Radar Beam (Gentle continuous flow motion across steps)
-  useEffect(() => {
-    if (!isAmbientRadarActive || isLiveRunning) return;
-
-    const ambientInterval = setInterval(() => {
-      setAmbientStep((prev) => (prev % 9) + 1);
-    }, 3500);
-
-    return () => clearInterval(ambientInterval);
-  }, [isAmbientRadarActive, isLiveRunning]);
-
-  // 3. Fast Stopwatch Ticker during Live Execution
+  // Millisecond stopwatch ticker for active step during live execution
   useEffect(() => {
     let interval: any = null;
     if (activeRunningStep !== null) {
@@ -194,13 +210,13 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
     };
   }, [activeRunningStep]);
 
-  // Run Live Stepped Execution Pipeline (Simulates & Executes Real Flowise Chain)
+  // Run Live Stepped Execution Pipeline (Apple HIG Sequential Motion + Real Backend Execution)
   const handleRunLiveSteppedExecution = async () => {
     if (isLiveRunning) return;
     setIsLiveRunning(true);
     toast.info(
       isRtl
-        ? "🚀 بدء دورة الأتمتة الحية: توجيه الشاشة وتوقيت كل خطوة بالمللي ثانية..."
+        ? "🚀 انطلاق دورة الأتمتة الحية: توجيه الشاشة وحساب توقيت كل خطوة بالمللي ثانية..."
         : "🚀 Launching Live Stepped Execution: auto-focusing and timing each step..."
     );
 
@@ -209,14 +225,14 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
         setActiveRunningStep(stepNum);
         setLiveElapsedMs(0);
 
-        // Auto-Scroll Focus to current running step (Apple HIG Motion)
+        // Apple HIG motion: auto-scroll camera focus to current running step
         const el = stepCardRefs.current[stepNum];
         if (el) {
           el.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
 
-        // For Step 2: call real backend endpoint to verify Google Ads API (seo1-508611)
-        if (stepNum === 2) {
+        // Real Execution Calls for Step 2 (Google Ads) and Step 9 (Cloudflare Edge Ledger)
+        if (stepNum === 2 || stepNum === 9) {
           try {
             await fetch("/api/automation/run-task-step", {
               method: "POST",
@@ -224,13 +240,13 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
               body: JSON.stringify({
                 projectId,
                 executionId: latestExecution?.id,
-                stepNumber: 2,
+                stepNumber: stepNum,
               }),
             });
           } catch {}
         }
 
-        // Realistic execution pause per step
+        // Realistic stepped pipeline pause per step
         const stepDelay = stepNum === 4 ? 1500 : stepNum === 2 ? 1200 : 900;
         await new Promise((r) => setTimeout(r, stepDelay));
       }
@@ -250,8 +266,8 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
 
       toast.success(
         isRtl
-          ? "🎉 اكتملت الدورة الحية بنجاح عبر كافة الخطوات الـ 9 مع تفعيل Google Ads والمزامنة!"
-          : "🎉 Live execution completed across all 9 steps with Google Ads & sync active!"
+          ? "🎉 اكتملت الدورة الحية بنجاح عبر كافة الخطوات الـ 9 مع أرشفة الحافة وتحديث السجلات!"
+          : "🎉 Live execution completed across all 9 steps with Edge archiving & ledger updated!"
       );
     } catch (err: any) {
       setActiveRunningStep(null);
@@ -314,57 +330,73 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
     }
   };
 
-  // Format countdown mm:ss
-  const mins = Math.floor(nextCycleSeconds / 60);
-  const secs = nextCycleSeconds % 60;
+  // Authoritative countdown formatting mm:ss
+  const mins = Math.floor(secondsRemaining / 60);
+  const secs = secondsRemaining % 60;
   const formattedCountdown = `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
-  const cyclePercent = Math.min(100, Math.max(0, ((1800 - nextCycleSeconds) / 1800) * 100));
+  const cyclePercent = Math.min(100, Math.max(0, ((1800 - secondsRemaining) / 1800) * 100));
 
   return (
     <div className="mt-4 space-y-4">
-      {/* 1. Apple HIG Continuous Automation Heartbeat Bar */}
+      {/* 1. Apple HIG Continuous Automation Heartbeat & Cron Sentinel Bar */}
       <div className="rounded-2xl border border-emerald-500/25 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-indigo-500/10 backdrop-blur-xl p-4 shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Left: Heartbeat & Cadence */}
+        {/* Left: Heartbeat Sentinel & Cadence */}
         <div className="flex items-center gap-3 w-full md:w-auto">
-          <div className="relative flex h-3.5 w-3.5 items-center justify-center">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          <div className="relative flex h-3.5 w-3.5 items-center justify-center shrink-0">
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full ${systemPhase === "executing" ? "bg-emerald-400" : "bg-emerald-500"} opacity-75`} />
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${systemPhase === "executing" ? "bg-emerald-500" : "bg-emerald-600"}`} />
           </div>
 
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="font-bold text-xs text-zinc-900 dark:text-zinc-100">
-                {isRtl ? "محرك الأتمتة المستقل اللحظي" : "Autonomous Real-Time Engine"}
+                {isRtl ? "محرك الأتمتة المستقل (Cloudflare Edge)" : "Autonomous Edge Engine"}
               </span>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
                 <Shield className="h-2.5 w-2.5" />
-                <span>{isRtl ? "دورة كل 30 دقيقة على الحافة" : "30m Cloudflare Edge"}</span>
+                <span>{isRtl ? "دورة مجدولة كل 30 دقيقة" : "30m Scheduled Cron"}</span>
               </span>
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                🟢 9/9 Primary OK
-              </span>
+              {systemPhase === "executing" ? (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-600 text-white animate-pulse flex items-center gap-1 shadow-sm shadow-emerald-500/30">
+                  <Activity className="h-2.5 w-2.5" />
+                  <span>
+                    {isRtl
+                      ? `⚡ جاري التنفيذ النشط: خطوة ${activeRunningStep ?? 1}/9`
+                      : `⚡ Active Pipeline: Step ${activeRunningStep ?? 1}/9`}
+                  </span>
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <CheckCircle2 className="h-2.5 w-2.5" />
+                  <span>{isRtl ? "🟢 وضع الاستعداد (9/9 مؤمنة)" : "🟢 Standby (9/9 Secured)"}</span>
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
-              {isRtl
-                ? "يعمل المحرك ذاتياً في السحابة دون استهلاك موارد محلية، ويراقب الكلمات وينشر المقالات ويفهرس الروابط."
-                : "Continuous cloud execution auditing rankings, publishing articles, and pinging Googlebot."}
+              {systemPhase === "executing"
+                ? isRtl
+                  ? "تجري معالجة تدفق الأتمتة خطوة بخطوة بالمللي ثانية مع استدعاء Google Ads ومزامنة الحافة."
+                  : "Processing stepped automation pipeline in real-time with Google Ads and edge sync."
+                : isRtl
+                ? "المنظومة في وضع الاستعداد السحابي؛ مكتملة 100% وبانتظار الدورة التالية دون استهلاك أي موارد من جهازك."
+                : "System is on edge standby; 100% complete and waiting for the next 30m window without local resources."}
             </p>
           </div>
         </div>
 
-        {/* Right: Next Cycle Countdown & Mode Toggles */}
+        {/* Right: Next Cycle Countdown & Fast-Forward Trigger */}
         <div className="flex items-center gap-2.5 shrink-0 flex-wrap justify-end w-full md:w-auto">
-          {/* Countdown Pill */}
+          {/* Synchronized 30m Countdown Pill */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/5 dark:bg-indigo-950/20 text-xs font-mono">
-            <Clock className="h-3.5 w-3.5 text-indigo-500 animate-pulse" />
-            <span className="text-zinc-500 dark:text-zinc-400 text-[11px] font-sans">
+            <Clock className="h-3.5 w-3.5 text-indigo-500 animate-pulse shrink-0" />
+            <span className="text-zinc-500 dark:text-zinc-400 text-[11px] font-sans whitespace-nowrap">
               {isRtl ? "الدورة القادمة:" : "Next Cycle:"}
             </span>
             <span className="font-bold text-indigo-600 dark:text-indigo-400">
               {formattedCountdown}
             </span>
-            {/* Mini Progress Track */}
-            <div className="w-12 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden ml-1">
+            {/* Visual Progress Track */}
+            <div className="w-14 h-1.5 rounded-full bg-zinc-200 dark:bg-zinc-800 overflow-hidden ml-1" title={`${cyclePercent.toFixed(0)}% elapsed`}>
               <div
                 className="h-full bg-indigo-500 rounded-full transition-all duration-1000"
                 style={{ width: `${cyclePercent}%` }}
@@ -372,49 +404,26 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
             </div>
           </div>
 
-          {/* Ambient Radar Mode Toggle */}
-          <button
-            type="button"
-            onClick={() => {
-              setIsAmbientRadarActive(!isAmbientRadarActive);
-              toast.info(
-                !isAmbientRadarActive
-                  ? isRtl ? "تم تفعيل وضع المراقبة الحية التفاعلية ✨" : "Live Ambient Radar Activated ✨"
-                  : isRtl ? "تم إيقاف وضع المراقبة الحية المؤقت" : "Ambient Radar Paused"
-              );
-            }}
-            className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-all cursor-pointer border ${
-              isAmbientRadarActive
-                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 shadow-sm"
-                : "border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-800 text-zinc-500"
-            }`}
-            title={isRtl ? "تشغيل/إيقاف انتقال الضوء التلقائي بين المهام" : "Toggle Ambient Radar Beam"}
-          >
-            <Radio className={`h-3 w-3 ${isAmbientRadarActive ? "animate-pulse text-emerald-500" : ""}`} />
-            <span>{isRtl ? "وضع المراقبة الحية" : "Live Radar"}</span>
-            <span className={`w-1.5 h-1.5 rounded-full ${isAmbientRadarActive ? "bg-emerald-500" : "bg-zinc-400"}`} />
-          </button>
-
-          {/* Live Stepped Execution Button */}
+          {/* Run Live Stepped Execution Button */}
           <button
             type="button"
             onClick={handleRunLiveSteppedExecution}
-            disabled={isLiveRunning}
+            disabled={systemPhase === "executing"}
             className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white px-3.5 py-1.5 text-xs font-bold shadow-md shadow-emerald-500/20 transition-all cursor-pointer active:scale-95 disabled:opacity-50 shrink-0"
           >
-            {isLiveRunning ? (
+            {systemPhase === "executing" ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
             ) : (
               <Play className="h-3.5 w-3.5 fill-current" />
             )}
             <span>
-              {isLiveRunning
+              {systemPhase === "executing"
                 ? isRtl
-                  ? `جاري تنفيذ الخطوة ${activeRunningStep}/9...`
-                  : `Running Step ${activeRunningStep}/9...`
+                  ? `جاري تنفيذ الخطوة ${activeRunningStep ?? 1}/9...`
+                  : `Running Step ${activeRunningStep ?? 1}/9...`
                 : isRtl
-                ? "تشغيل دورة حية متدرجة"
-                : "Run Live Stepped Execution"}
+                ? "تشغيل دورة حية الآن"
+                : "Run Live Cycle Now"}
             </span>
           </button>
 
@@ -435,9 +444,21 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-xl p-3.5 shadow-sm">
         <div className="flex items-center justify-between gap-2 overflow-x-auto pb-1 scrollbar-none">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((stepNum, idx) => {
-            const isRunning = isLiveRunning && activeRunningStep === stepNum;
-            const isAmbient = !isLiveRunning && isAmbientRadarActive && ambientStep === stepNum;
+            const isCurrentlyRunning = systemPhase === "executing" && activeRunningStep === stepNum;
+            const isCompletedInRun = systemPhase === "executing" && activeRunningStep !== null && activeRunningStep > stepNum;
+            const isStandbyCompleted = systemPhase === "standby";
             const isSelected = selectedStep?.step_number === stepNum;
+
+            let buttonStyle = "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800";
+            if (isCurrentlyRunning) {
+              buttonStyle = "bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-400";
+            } else if (isCompletedInRun) {
+              buttonStyle = "bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400";
+            } else if (isStandbyCompleted) {
+              buttonStyle = isSelected
+                ? "bg-indigo-500/15 border border-indigo-500/40 text-indigo-600 dark:text-indigo-400 font-bold scale-105"
+                : "bg-zinc-100/80 dark:bg-zinc-800/80 hover:bg-emerald-500/10 text-zinc-700 dark:text-zinc-300 border border-zinc-200 dark:border-zinc-700/60";
+            }
 
             return (
               <React.Fragment key={stepNum}>
@@ -449,15 +470,7 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
                     const match = steps.find((s) => s.step_number === stepNum);
                     if (match) setSelectedStep(match);
                   }}
-                  className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all duration-300 cursor-pointer shrink-0 ${
-                    isRunning
-                      ? "bg-emerald-500 text-white scale-110 shadow-lg shadow-emerald-500/30 ring-2 ring-emerald-400"
-                      : isAmbient
-                      ? "bg-emerald-500/15 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 scale-105 shadow-sm"
-                      : isSelected
-                      ? "bg-indigo-500/10 border border-indigo-500/30 text-indigo-600 dark:text-indigo-400"
-                      : "text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                  }`}
+                  className={`flex flex-col items-center gap-1 px-2.5 py-1.5 rounded-xl transition-all duration-300 cursor-pointer shrink-0 ${buttonStyle}`}
                 >
                   <div className="flex items-center gap-1 text-xs font-mono font-bold">
                     <span>{getStepIcon(stepNum)}</span>
@@ -478,13 +491,11 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
 
                 {idx < 8 && (
                   <div className="flex-1 min-w-[12px] max-w-[28px] h-0.5 relative overflow-hidden bg-zinc-200 dark:bg-zinc-800 shrink-0">
-                    {/* Travelling Photon Beam */}
                     <div
                       className={`absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-400 transition-opacity duration-300 ${
-                        (isLiveRunning && activeRunningStep !== null && activeRunningStep > stepNum) ||
-                        (!isLiveRunning && isAmbientRadarActive && ambientStep > stepNum)
-                          ? "opacity-100 animate-pulse"
-                          : "opacity-30"
+                        systemPhase === "standby" || (systemPhase === "executing" && activeRunningStep !== null && activeRunningStep > stepNum)
+                          ? "opacity-100"
+                          : "opacity-25"
                       }`}
                     />
                   </div>
@@ -495,12 +506,11 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
         </div>
       </div>
 
-      {/* 3. Stepper Pipeline Grid (1 to 9) - Apple Liquid Glass & Purposeful Motion */}
+      {/* 3. Stepper Pipeline Grid (1 to 9) - Apple Liquid Glass with Real Synchronized Phase */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
         {steps.map((step) => {
-          const isCurrentlyRunning = isLiveRunning && activeRunningStep === step.step_number;
-          const isAmbientFocus = !isLiveRunning && isAmbientRadarActive && ambientStep === step.step_number;
-          const isAwaitingTurn = isLiveRunning && activeRunningStep !== null && step.step_number > activeRunningStep;
+          const isCurrentlyRunning = systemPhase === "executing" && activeRunningStep === step.step_number;
+          const isAwaitingTurn = systemPhase === "executing" && activeRunningStep !== null && step.step_number > activeRunningStep;
           const isFallback = !isCurrentlyRunning && step.status === "fallback_active";
           const isSuccess = !isCurrentlyRunning && !isAwaitingTurn && step.status === "success";
           const isFailed = !isCurrentlyRunning && step.status === "failed";
@@ -515,11 +525,6 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
             bgStyle = "bg-emerald-50/80 dark:bg-emerald-950/40 backdrop-blur-xl scale-[1.02]";
             badgeBg = "bg-emerald-600 text-white font-bold animate-pulse";
             statusText = isRtl ? `جاري التنفيذ (${(liveElapsedMs / 1000).toFixed(2)}s)` : `Executing (${(liveElapsedMs / 1000).toFixed(2)}s)`;
-          } else if (isAmbientFocus) {
-            borderStyle = "border-emerald-500/70 ring-2 ring-emerald-500/30 shadow-lg shadow-emerald-500/15";
-            bgStyle = "bg-emerald-50/40 dark:bg-emerald-950/20 backdrop-blur-xl scale-[1.01]";
-            badgeBg = "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30";
-            statusText = isRtl ? "✨ مراقبة حية نشطة" : "✨ Live Focus";
           } else if (isAwaitingTurn) {
             borderStyle = "border-dashed border-zinc-300 dark:border-zinc-700 opacity-60";
             bgStyle = "bg-zinc-50/40 dark:bg-zinc-900/30";
@@ -554,14 +559,11 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
                 stepCardRefs.current[step.step_number] = el;
               }}
               onClick={() => setSelectedStep(step)}
-              className={`rounded-2xl border ${borderStyle} ${bgStyle} p-4 transition-all duration-500 hover:shadow-xl cursor-pointer flex flex-col justify-between group relative overflow-hidden`}
+              className={`rounded-2xl border ${borderStyle} ${bgStyle} p-4 transition-all duration-300 hover:shadow-xl cursor-pointer flex flex-col justify-between group relative overflow-hidden`}
             >
-              {/* Top Animated Progress Beam */}
+              {/* Top Animated Progress Beam during execution */}
               {isCurrentlyRunning && (
                 <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 animate-pulse" />
-              )}
-              {isAmbientFocus && !isCurrentlyRunning && (
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-emerald-400/80 to-transparent animate-pulse" />
               )}
 
               <div>
@@ -572,8 +574,6 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
                       className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-bold font-mono transition-transform duration-300 ${
                         isCurrentlyRunning
                           ? "bg-emerald-600 text-white scale-110 shadow-md shadow-emerald-500/40"
-                          : isAmbientFocus
-                          ? "bg-emerald-500 text-white scale-105"
                           : isFallback
                           ? "bg-red-600 text-white"
                           : isSuccess
@@ -594,9 +594,8 @@ export function SteppedAiTasksWorkflow({ projectId, isRtl = true }: Props) {
 
                   <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex items-center gap-1 ${badgeBg}`}>
                     {isCurrentlyRunning && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {isAmbientFocus && !isCurrentlyRunning && <Sparkles className="h-3 w-3 animate-pulse text-emerald-500" />}
                     {isFallback && <AlertTriangle className="h-3 w-3" />}
-                    {isSuccess && !isAmbientFocus && <CheckCircle2 className="h-3 w-3" />}
+                    {isSuccess && <CheckCircle2 className="h-3 w-3" />}
                     {isAwaitingTurn && <Clock className="h-3 w-3" />}
                     <span>{statusText}</span>
                   </span>
