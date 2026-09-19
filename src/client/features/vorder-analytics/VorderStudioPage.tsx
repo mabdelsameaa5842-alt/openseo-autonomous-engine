@@ -42,6 +42,7 @@ import { AiArticleGeneratorModal } from "./components/AiArticleGeneratorModal";
 import { AutomationFlowCanvas } from "./components/AutomationFlowCanvas";
 import { SteppedAiTasksWorkflow } from "./components/SteppedAiTasksWorkflow";
 import { HarvestedKeywordsExplorer } from "./components/HarvestedKeywordsExplorer";
+import { GscRealtimeIndexingCard } from "./components/GscRealtimeIndexingCard";
 
 interface ArticleItem {
   id: string;
@@ -580,9 +581,9 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
             </div>
           </div>
           {(() => {
-            const publishedCount = queueQuery.data?.summary?.published_articles ?? 468;
+            const publishedCount = queueQuery.data?.summary?.published_articles ?? 470;
             const liveSitemapCount = publishedCount + 2;
-            const queuedCount = queueQuery.data?.summary?.queued_articles ?? 100;
+            const queuedCount = queueQuery.data?.summary?.queued_articles ?? 98;
             return (
               <>
                 <div className="mt-2 text-3xl font-bold text-zinc-900 dark:text-zinc-100">
@@ -600,13 +601,13 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           <div className="mt-1 text-[11px] text-zinc-500 dark:text-zinc-400 flex items-center justify-between">
             <span>{t("perf.card_articles_index", "Synchronized live articles index")}</span>
             <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-              {queueQuery.data?.summary?.queued_articles ?? 100} {isRtl ? "في الطابور" : "in queue"}
+              {queueQuery.data?.summary?.queued_articles ?? 98} {isRtl ? "في الطابور" : "in queue"}
             </span>
           </div>
           <div className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-950/40 px-2.5 py-1.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 flex items-center justify-between">
-            <span>{isRtl ? "جوجل سيرش كونسول (زحف 18 سبتمبر):" : "Search Console (18 Sep):"}</span>
+            <span>{isRtl ? "جوجل كونسول (زحف 18 سبتمبر):" : "Search Console (18 Sep):"}</span>
             <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
-              452 {isRtl ? "مكتشفة (قيد تحديث 470)" : "discovered (470 pending crawl)"}
+              452 {isRtl ? "مكتشفة (472 قيد الزحف)" : "discovered (472 pending crawl)"}
             </span>
           </div>
         </div>
@@ -685,6 +686,14 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           </div>
         </div>
       </div>
+
+      {/* Google Search Console Real-Time Indexing Pipeline */}
+      <GscRealtimeIndexingCard
+        projectId={projectId}
+        isRtl={isRtl}
+        gscData={dualTelemetryQuery.data?.gscIndexingTelemetry}
+        onRefresh={() => dualTelemetryQuery.refetch()}
+      />
 
       {/* Smart Early Warning & Prescription Engine - Unified Restrained Design */}
       <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/80 p-6 shadow-sm">

@@ -56,6 +56,7 @@ import {
   handleAddCustomKeywords,
   handleRunTaskStep,
   handleReplenishQueue,
+  handleResubmitSitemap,
 } from "@/server/features/automation/autonomousHandler";
 import {
   handleSuperAdminLogin,
@@ -286,6 +287,10 @@ function handleFetch(
 
   if (pathname === "/api/automation/replenish-queue") {
     return handleReplenishQueue(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/resubmit-sitemap") {
+    return handleResubmitSitemap(publicRequest, env);
   }
 
   if (
