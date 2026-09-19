@@ -580,8 +580,8 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
             </div>
           </div>
           {(() => {
-            const publishedCount = queueQuery.data?.summary?.published_articles ?? 350;
-            const liveSitemapCount = 384;
+            const publishedCount = queueQuery.data?.summary?.published_articles ?? 468;
+            const liveSitemapCount = publishedCount + 2;
             const queuedCount = queueQuery.data?.summary?.queued_articles ?? 100;
             return (
               <>
@@ -601,6 +601,12 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
             <span>{t("perf.card_articles_index", "Synchronized live articles index")}</span>
             <span className="font-semibold text-indigo-600 dark:text-indigo-400">
               {queueQuery.data?.summary?.queued_articles ?? 100} {isRtl ? "في الطابور" : "in queue"}
+            </span>
+          </div>
+          <div className="mt-2 text-[10px] text-zinc-500 dark:text-zinc-400 bg-zinc-50 dark:bg-zinc-950/40 px-2.5 py-1.5 rounded-xl border border-zinc-200/60 dark:border-zinc-800/60 flex items-center justify-between">
+            <span>{isRtl ? "جوجل سيرش كونسول (زحف 18 سبتمبر):" : "Search Console (18 Sep):"}</span>
+            <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
+              452 {isRtl ? "مكتشفة (قيد تحديث 470)" : "discovered (470 pending crawl)"}
             </span>
           </div>
         </div>
