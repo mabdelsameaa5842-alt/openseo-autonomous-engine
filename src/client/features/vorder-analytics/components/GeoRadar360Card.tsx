@@ -82,13 +82,17 @@ export const GeoRadar360Card: React.FC<GeoRadar360CardProps> = ({
   const telemetryQuery = useQuery<GeoRadarTelemetryData>({
     queryKey: ["geoRadarTelemetry", projectId],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/automation/geo-radar-telemetry?projectId=${encodeURIComponent(projectId)}`
-      );
-      const json = (await res.json()) as any;
-      return json.data;
+      try {
+        const res = await fetch(
+          `/api/automation/geo-radar-telemetry?projectId=${encodeURIComponent(projectId)}`
+        );
+        if (!res.ok) return null;
+        const json = (await res.json()) as any;
+        return json?.data ?? null;
+      } catch {
+        return null;
+      }
     },
-    refetchInterval: 30000, // 30s auto live poll
     refetchOnWindowFocus: false,
   });
 

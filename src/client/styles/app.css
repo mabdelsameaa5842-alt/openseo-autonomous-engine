@@ -27,6 +27,20 @@
   --apple-text-secondary: #52525B;
   --apple-pill: #E5E5EA;
   --apple-pill-hover: #D8D8DC;
+
+  /* Apple HIG Unified Executive Palette (Light) */
+  --apple-accent: #0071E3;
+  --apple-accent-hover: #0077ED;
+  --apple-accent-subtle: rgba(0, 113, 227, 0.08);
+  --apple-accent-glow: rgba(0, 113, 227, 0.25);
+  --apple-emerald: #30D158;
+  --apple-emerald-subtle: rgba(48, 209, 88, 0.1);
+  --apple-amber: #FF9F0A;
+  --apple-amber-subtle: rgba(255, 159, 10, 0.1);
+  --apple-rose: #FF453A;
+  --apple-sky: #64D2FF;
+  --apple-glass-bg: rgba(255, 255, 255, 0.78);
+  --apple-glass-border: rgba(0, 0, 0, 0.08);
 }
 
 [data-theme="openseo-dark"] {
@@ -49,6 +63,20 @@
   --apple-text-secondary: #A1A1AA;
   --apple-pill: #1C1C1E;
   --apple-pill-hover: #2C2C2E;
+
+  /* Apple HIG Unified Executive Palette (Dark) */
+  --apple-accent: #0A84FF;
+  --apple-accent-hover: #2997FF;
+  --apple-accent-subtle: rgba(10, 132, 255, 0.12);
+  --apple-accent-glow: rgba(10, 132, 255, 0.35);
+  --apple-emerald: #30D158;
+  --apple-emerald-subtle: rgba(48, 209, 88, 0.14);
+  --apple-amber: #FF9F0A;
+  --apple-amber-subtle: rgba(255, 159, 10, 0.14);
+  --apple-rose: #FF453A;
+  --apple-sky: #64D2FF;
+  --apple-glass-bg: rgba(18, 18, 22, 0.76);
+  --apple-glass-border: rgba(255, 255, 255, 0.09);
 }
 
 /* iOS Safe Area & Mobile Optimization Utilities */
@@ -467,3 +495,59 @@ html[data-theme="openseo-dark"] .alert-success {
 html[data-theme="openseo-dark"] .alert-error {
   @apply border-error/60 bg-error/20;
 }
+
+/* ==========================================================================
+   Apple HIG Floating Island & Cascading Accordion Engine
+   ========================================================================== */
+
+.glass-island {
+  background: var(--apple-glass-bg);
+  border: 1px solid var(--apple-glass-border);
+  backdrop-filter: blur(32px) saturate(190%);
+  -webkit-backdrop-filter: blur(32px) saturate(190%);
+  box-shadow: 
+    0 4px 6px -1px rgba(0, 0, 0, 0.03),
+    0 12px 32px -4px rgba(0, 0, 0, 0.06),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.4);
+}
+
+html[data-theme="openseo-dark"] .glass-island {
+  box-shadow: 
+    0 4px 12px -2px rgba(0, 0, 0, 0.4),
+    0 16px 40px -8px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.accordion-grid {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 250ms ease;
+  opacity: 0;
+}
+
+.accordion-grid-expanded {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+
+.accordion-inner {
+  overflow: hidden;
+  min-height: 0;
+}
+
+.spring-interaction {
+  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.spring-interaction:hover {
+  transform: translateY(-0.5px) scale(1.01);
+}
+
+.spring-interaction:active {
+  transform: translateY(0.5px) scale(0.985);
+}
+
+.active-capsule-glow {
+  box-shadow: 0 0 16px var(--apple-accent-glow);
+}
+

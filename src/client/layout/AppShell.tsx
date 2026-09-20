@@ -156,11 +156,10 @@ function AuthenticatedAppLayoutInner({
           onOpenDrawer={() => setDrawerOpen(true)}
         />
 
-        {/* PostHog-style cutout: the main content sits on a raised panel with a
-            thin strip of the sidebar background above it and a hairline border. */}
-        <div className="flex min-h-0 flex-1 flex-col md:pt-2">
+        {/* Modern Apple HIG Dual-Island Layout: Main viewport sits in a floating rounded glass container */}
+        <div className="flex min-h-0 flex-1 flex-col md:py-3 md:pe-3 md:ps-0">
           <div
-            className="flex min-h-0 flex-1 flex-col overflow-hidden md:rounded-tl-lg md:border-l md:border-t transition-colors duration-200"
+            className="flex min-h-0 flex-1 flex-col overflow-hidden md:rounded-3xl md:border transition-colors duration-200 shadow-xs"
             style={{
               background: "var(--apple-canvas)",
               borderColor: "var(--apple-border)",
