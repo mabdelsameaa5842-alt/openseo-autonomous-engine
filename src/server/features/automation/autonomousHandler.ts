@@ -1054,7 +1054,7 @@ export async function handleAutonomousSitemap(
     status: 200,
     headers: {
       "Content-Type": "application/xml; charset=utf-8",
-      "Cache-Control": "public, max-age=3600",
+      "Cache-Control": "public, max-age=60, s-maxage=60, stale-while-revalidate=120",
       "Access-Control-Allow-Origin": "*",
     },
   });
