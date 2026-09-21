@@ -1,6 +1,7 @@
 import {
   Outlet,
   createFileRoute,
+  useLocation,
   useMatch,
   useNavigate,
 } from "@tanstack/react-router";
@@ -82,6 +83,13 @@ function ProjectLayout() {
 
   if (!authGate.canRenderAuthenticatedContent) {
     return null;
+  }
+
+  const location = useLocation();
+  const isSkillsHub = location.pathname.includes("/skills-hub");
+
+  if (isSkillsHub) {
+    return <Outlet />;
   }
 
   return (

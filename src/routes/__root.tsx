@@ -37,7 +37,7 @@ export const Route = createRootRoute({
   head: () => ({
     meta: [
       {
-        title: "OpenSEO",
+        title: "VORDER SEO - Autonomous AI Search Engine",
       },
       {
         charSet: "utf-8",
@@ -65,7 +65,7 @@ export const Route = createRootRoute({
       },
       {
         name: "apple-mobile-web-app-title",
-        content: "OpenSEO",
+        content: "VORDER SEO",
       },
       {
         name: "theme-color",

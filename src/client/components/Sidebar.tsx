@@ -269,9 +269,13 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
           onClick={onNavigate}
           className="group flex items-center gap-2.5 overflow-hidden transition-all duration-200"
         >
-          {/* Apple HIG Squircle App Icon */}
-          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-[var(--apple-accent)] to-[#2997FF] text-white font-bold text-sm shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform duration-200">
-            <span>O</span>
+          {/* VORDER SEO Official Brand Icon */}
+          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-[#1C1C1E] border border-zinc-200/80 dark:border-white/10 p-1 shadow-sm group-hover:scale-105 transition-transform duration-200">
+            <img
+              src="/vorder-logo.png"
+              alt="VORDER SEO"
+              className="h-full w-full object-contain"
+            />
             <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-[#30D158] border-2 border-white dark:border-[#121214] animate-pulse" />
           </div>
 
@@ -279,9 +283,9 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
             <div className="flex flex-col">
               <div className="flex items-center gap-1.5">
                 <span className="text-sm font-bold tracking-tight text-zinc-900 dark:text-white leading-none">
-                  OpenSEO
+                  VORDER SEO
                 </span>
-                <span className="text-[9px] font-medium tracking-wider px-1.5 py-0.5 rounded-full bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] border border-[var(--apple-accent)]/20 uppercase">
+                <span className="text-[9px] font-semibold tracking-wider px-1.5 py-0.5 rounded-full bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] border border-[var(--apple-accent)]/20 uppercase">
                   PRO
                 </span>
               </div>

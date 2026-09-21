@@ -28,11 +28,13 @@
   --apple-pill: #E5E5EA;
   --apple-pill-hover: #D8D8DC;
 
-  /* Apple HIG Unified Executive Palette (Light) */
-  --apple-accent: #0071E3;
-  --apple-accent-hover: #0077ED;
-  --apple-accent-subtle: rgba(0, 113, 227, 0.08);
-  --apple-accent-glow: rgba(0, 113, 227, 0.25);
+  /* VORDER SEO Unified Executive Palette (Light) */
+  --apple-accent: #97233A;
+  --apple-accent-hover: #7F1C2F;
+  --apple-accent-subtle: rgba(151, 35, 58, 0.08);
+  --apple-accent-glow: rgba(151, 35, 58, 0.28);
+  --vorder-crimson: #97233A;
+  --vorder-gradient: linear-gradient(135deg, #97233A 0%, #6E1729 100%);
   --apple-emerald: #30D158;
   --apple-emerald-subtle: rgba(48, 209, 88, 0.1);
   --apple-amber: #FF9F0A;
@@ -64,11 +66,13 @@
   --apple-pill: #1C1C1E;
   --apple-pill-hover: #2C2C2E;
 
-  /* Apple HIG Unified Executive Palette (Dark) */
-  --apple-accent: #0A84FF;
-  --apple-accent-hover: #2997FF;
-  --apple-accent-subtle: rgba(10, 132, 255, 0.12);
-  --apple-accent-glow: rgba(10, 132, 255, 0.35);
+  /* VORDER SEO Unified Executive Palette (Dark) */
+  --apple-accent: #B8324D;
+  --apple-accent-hover: #C43D59;
+  --apple-accent-subtle: rgba(184, 50, 77, 0.15);
+  --apple-accent-glow: rgba(184, 50, 77, 0.35);
+  --vorder-crimson: #B8324D;
+  --vorder-gradient: linear-gradient(135deg, #97233A 0%, #B8324D 100%);
   --apple-emerald: #30D158;
   --apple-emerald-subtle: rgba(48, 209, 88, 0.14);
   --apple-amber: #FF9F0A;

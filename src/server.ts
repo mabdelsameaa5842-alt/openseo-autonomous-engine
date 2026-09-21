@@ -70,6 +70,9 @@ import {
   handleDeleteArticles,
   handleBulkUpdateArticles,
   handleDeleteKeywords,
+  handleAutonomousCampaigns,
+  handleCampaignPerformance,
+  handleGscSearchTerms,
   handleSyncLiveSitemap,
   handleDeduplicateArticles,
 } from "@/server/features/automation/autonomousHandler";
@@ -282,6 +285,18 @@ function handleFetch(
 
   if (pathname === "/api/automation/site-wide-rank-audit") {
     return handleSiteWideRankAudit(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/campaigns") {
+    return handleAutonomousCampaigns(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/campaign-performance") {
+    return handleCampaignPerformance(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/gsc-search-terms") {
+    return handleGscSearchTerms(publicRequest, env);
   }
 
   if (pathname === "/api/automation/trigger-run") {

@@ -135,9 +135,9 @@ function SubscribePage() {
     return (
       <div className="w-full max-w-xs space-y-4 text-center">
         <img
-          src="/transparent-logo.png"
-          alt="OpenSEO"
-          className="mx-auto size-10 rounded-lg"
+          src="/vorder-logo.png"
+          alt="VORDER SEO"
+          className="mx-auto size-12 object-contain"
         />
         <h1 className="text-xl font-semibold">
           Finalizing your subscription&hellip;
@@ -162,9 +162,9 @@ function SubscribePage() {
       <div className="w-full max-w-xs space-y-4">
         <div className="text-center space-y-3">
           <img
-            src="/transparent-logo.png"
-            alt="OpenSEO"
-            className="mx-auto size-10 rounded-lg"
+            src="/vorder-logo.png"
+            alt="VORDER SEO"
+            className="mx-auto size-12 object-contain"
           />
           <h1 className="text-xl font-semibold">Billing unavailable</h1>
         </div>
@@ -222,16 +222,16 @@ function SubscribePage() {
 
       <div className="text-center space-y-3">
         <img
-          src="/transparent-logo.png"
-          alt="OpenSEO"
-          className="mx-auto size-10 rounded-lg"
+          src="/vorder-logo.png"
+          alt="VORDER SEO"
+          className="mx-auto size-12 object-contain"
         />
         <h1 className="text-xl font-semibold">
           {isUpgradeFlow
             ? "Upgrade your plan"
             : firstName
-              ? `Welcome to OpenSEO, ${firstName}!`
-              : "Welcome to OpenSEO!"}
+              ? `Welcome to VORDER SEO, ${firstName}!`
+              : "Welcome to VORDER SEO!"}
         </h1>
         <p className="text-sm text-base-content/60">
           SEO on your terms. All your SEO tools in one place at a fair price.

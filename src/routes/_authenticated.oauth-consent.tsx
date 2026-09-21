@@ -73,9 +73,9 @@ function OAuthConsentPage() {
     <div className="w-full max-w-md rounded-2xl border border-base-300 bg-base-100 p-8 shadow-sm">
       <div className="flex flex-col items-center text-center">
         <img
-          src="/transparent-logo.png"
-          alt="OpenSEO"
-          className="size-10 rounded-lg"
+          src="/vorder-logo.png"
+          alt="VORDER SEO"
+          className="size-12 object-contain"
         />
         <h1 className="mt-5 text-xl font-semibold">Authorize MCP access</h1>
         <p className="mt-2 text-sm text-base-content/70">

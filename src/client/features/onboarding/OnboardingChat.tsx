@@ -85,9 +85,9 @@ function SiteForm({ projectId }: { projectId: string }) {
       >
         <div className="space-y-3 text-center">
           <img
-            src="/transparent-logo.png"
-            alt="OpenSEO"
-            className="mx-auto size-10 rounded-lg"
+            src="/vorder-logo.png"
+            alt="VORDER SEO"
+            className="mx-auto size-12 object-contain"
           />
           <h1 className="text-xl font-semibold">Tell us about your website.</h1>
           <p className="text-sm text-base-content/60">

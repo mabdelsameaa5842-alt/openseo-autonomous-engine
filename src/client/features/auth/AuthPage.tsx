@@ -101,9 +101,9 @@ export function AuthPageCard({
     <div className="w-full max-w-xs space-y-6">
       <div className="text-center space-y-3">
         <img
-          src="/transparent-logo.png"
-          alt="OpenSEO"
-          className="mx-auto size-10 rounded-lg"
+          src="/vorder-logo.png"
+          alt="VORDER SEO"
+          className="mx-auto size-12 object-contain"
         />
         <div>
           <h1 className="text-xl font-semibold">{title}</h1>

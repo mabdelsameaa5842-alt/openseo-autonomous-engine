@@ -60,9 +60,9 @@ export function PostSignupOnboarding({
 
       <div className="text-center space-y-3">
         <img
-          src="/transparent-logo.png"
-          alt="OpenSEO"
-          className="mx-auto size-10 rounded-lg"
+          src="/vorder-logo.png"
+          alt="VORDER SEO"
+          className="mx-auto size-12 object-contain"
         />
         <p className="text-xs font-medium uppercase tracking-wide text-base-content/50">
           Step {step + 1} of {ONBOARDING_LAST_STEP + 1}
