@@ -39,8 +39,12 @@ export interface RobotsResult {
  */
 async function fetchRobotsTxtText(origin: string): Promise<string | null> {
   try {
-    const response = await fetch(`${origin}/robots.txt`, {
-      headers: { "User-Agent": "OpenSEO-Audit/1.0" },
+    const response = await fetch(`${origin}/robots.txt?_t=${Date.now()}`, {
+      headers: { 
+        "User-Agent": "OpenSEO-Audit/1.0",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache"
+      },
       signal: AbortSignal.timeout(10_000),
     });
 
@@ -172,8 +176,15 @@ async function fetchSitemapDocumentWithRetry(sitemapUrl: string): Promise<{
 
   for (let attempt = 0; attempt <= SITEMAP_RETRIES; attempt++) {
     try {
-      const response = await fetch(normalizedSitemapUrl, {
-        headers: { "User-Agent": "OpenSEO-Audit/1.0" },
+      const fetchUrl = normalizedSitemapUrl.includes("?")
+        ? `${normalizedSitemapUrl}&_t=${Date.now()}`
+        : `${normalizedSitemapUrl}?_t=${Date.now()}`;
+      const response = await fetch(fetchUrl, {
+        headers: { 
+          "User-Agent": "OpenSEO-Audit/1.0",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
+        },
         signal: AbortSignal.timeout(SITEMAP_FETCH_TIMEOUT_MS),
       });
 
