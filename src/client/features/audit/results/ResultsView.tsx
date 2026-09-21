@@ -16,6 +16,7 @@ import {
   ExportDropdown,
   PerformanceTable,
 } from "@/client/features/audit/results/ResultsTables";
+import { AiSelfHealingFallbackCard } from "@/client/features/audit/results/AiSelfHealingFallbackCard";
 
 type ResultsTab = "issues" | "pages" | "performance";
 
@@ -114,7 +115,16 @@ export function ResultsView({
             }}
           />
 
-          {activeTab === "issues" && <IssuesView issues={issues} />}
+          {activeTab === "issues" && (
+            <>
+              <AiSelfHealingFallbackCard
+                projectId={projectId}
+                auditId={audit.id}
+                issues={issues}
+              />
+              <IssuesView issues={issues} />
+            </>
+          )}
           {activeTab === "pages" && (
             <PagesTable
               pages={pages}

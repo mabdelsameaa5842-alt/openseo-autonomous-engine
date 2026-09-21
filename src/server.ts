@@ -31,6 +31,7 @@ import {
   handleAutonomousSeoCycle,
   handleTriggerCycle,
   handleAutonomousQueue,
+  handleAutonomousDeduplicate,
   handleAutonomousRobots,
   handleAutonomousSitemap,
   handlePublishQueuedArticle,
@@ -70,6 +71,7 @@ import {
   handleBulkUpdateArticles,
   handleDeleteKeywords,
   handleSyncLiveSitemap,
+  handleDeduplicateArticles,
 } from "@/server/features/automation/autonomousHandler";
 import { handleGoogleAdsTestPermissions } from "@/server/features/google-ads/testPermissionsHandler";
 import {
@@ -250,6 +252,10 @@ function handleFetch(
     return handleAutonomousQueue(publicRequest, env);
   }
 
+  if (pathname === "/api/automation/deduplicate" || pathname === "/api/autonomous/deduplicate") {
+    return handleAutonomousDeduplicate(publicRequest, env);
+  }
+
   if (pathname === "/api/automation/publish-article") {
     return handlePublishQueuedArticle(publicRequest, env);
   }
@@ -368,6 +374,10 @@ function handleFetch(
 
   if (pathname === "/api/automation/sync-live-sitemap") {
     return handleSyncLiveSitemap(publicRequest, env);
+  }
+
+  if (pathname === "/api/automation/deduplicate-articles") {
+    return handleDeduplicateArticles(publicRequest, env);
   }
 
   if (pathname === "/api/google-ads/test-permissions") {

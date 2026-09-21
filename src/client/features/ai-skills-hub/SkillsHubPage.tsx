@@ -43,6 +43,8 @@ import { useProjectMarket } from "@/client/features/projects/useProjectMarket";
 import { generateTacticalBrief } from "@/serverFunctions/skillsHub";
 import { GscRealtimeIndexingCard } from "@/client/features/vorder-analytics/components/GscRealtimeIndexingCard";
 import { GeoRadar360Card } from "@/client/features/vorder-analytics/components/GeoRadar360Card";
+import { AutonomousDeduplicationCard } from "@/client/features/automation/components/AutonomousDeduplicationCard";
+import { StrategyArticleCrudTable } from "@/client/features/automation/components/StrategyArticleCrudTable";
 import { useI18n } from "@/client/lib/i18n";
 
 export function SkillsHubPage({ projectId }: { projectId: string }) {
@@ -873,7 +875,27 @@ export function SkillsHubPage({ projectId }: { projectId: string }) {
             </div>
           </div>
 
-          {/* Sub-Campaigns & Topic Expansion Card */}
+          {/* 1. Autonomous Closed-Loop Deduplication & Self-Healing Watchdog */}
+          <AutonomousDeduplicationCard
+            projectId={projectId}
+            isRtl={isRtl}
+            uniqueCount={totalPublished}
+            onDeduplicateSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["dualPipelinesTelemetry", projectId] });
+            }}
+          />
+
+          {/* 2. Interactive Strategy Article CRUD & Queue Command Table */}
+          <StrategyArticleCrudTable
+            projectId={projectId}
+            projectDomain={projectDomain}
+            isRtl={isRtl}
+            onMutationSuccess={() => {
+              queryClient.invalidateQueries({ queryKey: ["dualPipelinesTelemetry", projectId] });
+            }}
+          />
+
+          {/* 3. Sub-Campaigns & Topic Expansion Card */}
           <div className="rounded-3xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900/90 p-6 md:p-8 shadow-sm space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>

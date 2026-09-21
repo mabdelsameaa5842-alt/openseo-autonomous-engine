@@ -433,6 +433,203 @@ export async function handleAutonomousQueue(
     url.searchParams.get("projectId") || undefined,
   );
   const projectId = ctx.projectId;
+
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers": "*",
+    "Content-Type": "application/json",
+  };
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  // 1. POST: Create New Queue Article or Publish Instantly
+  if (request.method === "POST") {
+    try {
+      const body: any = await request.json();
+      const primaryKeyword = (body.primary_keyword || body.keyword || "").trim();
+      let title = (body.article_title || body.title || primaryKeyword).trim();
+      let slug = (body.article_slug || body.slug || "").trim();
+
+      if (!primaryKeyword) {
+        return new Response(
+          JSON.stringify({ success: false, error: "primary_keyword is required" }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      if (!slug) {
+        const cleanKw = primaryKeyword.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\u0621-\u064A_-]/g, "");
+        const uniqueEntropy = Math.random().toString(36).slice(2, 7);
+        slug = `${cleanKw}-${uniqueEntropy}`;
+      }
+
+      // Check for collision to guarantee 100% uniqueness
+      const existing: any = await env.DB.prepare(
+        "SELECT id FROM autonomous_content_queue WHERE project_id = ? AND (primary_keyword = ? OR article_slug = ?) LIMIT 1"
+      ).bind(projectId, primaryKeyword, slug).first();
+
+      if (existing) {
+        return new Response(
+          JSON.stringify({ success: false, error: "الكلمة المفتاحية أو الرابط موجود بالفعل في الطابور لمنع التكرار" }),
+          { status: 409, headers: corsHeaders }
+        );
+      }
+
+      const id = "q_man_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
+      const batchId = body.batch_id || `batch_manual_${Date.now()}`;
+      const maxOrderRow: any = await env.DB.prepare(
+        "SELECT COALESCE(MAX(queue_order), 0) as max_order FROM autonomous_content_queue WHERE project_id = ?"
+      ).bind(projectId).first();
+      const queueOrder = (maxOrderRow?.max_order != null ? Number(maxOrderRow.max_order) : 0) + 1;
+      const targetMarket = body.target_market || "مصر والخليج (B2B & Ads)";
+      const strategicRationale = body.strategic_rationale || "مقال استراتيجي مخصص من لوحة الاستراتيجية.";
+      const secondaryKws = JSON.stringify(body.secondary_keywords || [`${primaryKeyword} استراتيجيات`, `${primaryKeyword} 2026`]);
+      const outline = JSON.stringify(body.brief_outline || [
+        `مقدمة تشخيصية حول ${primaryKeyword}`,
+        `الركائز الفنية والتطبيق العملي لـ ${primaryKeyword}`,
+        `تحقيق أعلى عائد استثماري وخفض التكاليف (ROAS)`,
+        `الخلاصة والتوصيات الهندسية القابلة للتنفيذ`
+      ]);
+      const monthlyVolume = Number(body.monthly_volume || 1400);
+
+      await env.DB.prepare(`
+        INSERT INTO autonomous_content_queue (
+          id, project_id, batch_id, queue_order, article_slug, article_title, intent, primary_keyword, secondary_keywords, monthly_volume, brief_outline, status, target_market, strategic_rationale, created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, 'commercial', ?, ?, ?, ?, 'queued', ?, ?, datetime('now'), datetime('now'))
+      `).bind(
+        id, projectId, batchId, queueOrder, slug, title, primaryKeyword, secondaryKws, monthlyVolume, outline, targetMarket, strategicRationale
+      ).run();
+
+      // If publish_now requested:
+      if (body.publish_now) {
+        const domain = ctx.cleanDomain || "mohamed-abdelsamee-portfolio.vercel.app";
+        const pubRes = await generateAndPublishArticle(
+          {
+            article_slug: slug,
+            article_title: title,
+            primary_keyword: primaryKeyword,
+            intent: "commercial",
+            secondary_keywords: secondaryKws,
+            brief_outline: outline,
+          },
+          env,
+          domain
+        );
+        if (pubRes.success) {
+          const blogArticleUrl = `https://${domain}/blog/${slug}`;
+          await env.DB.prepare(
+            "UPDATE autonomous_content_queue SET status = 'published', published_at = datetime('now'), article_url = ?, updated_at = datetime('now') WHERE id = ?"
+          ).bind(blogArticleUrl, id).run();
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, id, slug, title, status: body.publish_now ? "published" : "queued" }),
+        { status: 201, headers: corsHeaders }
+      );
+    } catch (err: any) {
+      return new Response(
+        JSON.stringify({ success: false, error: err.message }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+  }
+
+  // 2. PUT / PATCH: Update Queue Article In-Place
+  if (request.method === "PUT" || request.method === "PATCH") {
+    try {
+      const body: any = await request.json();
+      const id = body.id || url.searchParams.get("id");
+      if (!id) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Article ID is required for update" }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      const updates: string[] = ["updated_at = datetime('now')"];
+      const params: any[] = [];
+
+      if (body.article_title != null) { updates.push("article_title = ?"); params.push(body.article_title); }
+      if (body.article_slug != null) { updates.push("article_slug = ?"); params.push(body.article_slug); }
+      if (body.primary_keyword != null) { updates.push("primary_keyword = ?"); params.push(body.primary_keyword); }
+      if (body.target_market != null) { updates.push("target_market = ?"); params.push(body.target_market); }
+      if (body.strategic_rationale != null) { updates.push("strategic_rationale = ?"); params.push(body.strategic_rationale); }
+      if (body.status != null) { updates.push("status = ?"); params.push(body.status); }
+      if (body.queue_order != null) { updates.push("queue_order = ?"); params.push(Number(body.queue_order)); }
+      if (body.monthly_volume != null) { updates.push("monthly_volume = ?"); params.push(Number(body.monthly_volume)); }
+      if (body.brief_outline != null) { updates.push("brief_outline = ?"); params.push(typeof body.brief_outline === "string" ? body.brief_outline : JSON.stringify(body.brief_outline)); }
+      if (body.secondary_keywords != null) { updates.push("secondary_keywords = ?"); params.push(typeof body.secondary_keywords === "string" ? body.secondary_keywords : JSON.stringify(body.secondary_keywords)); }
+
+      params.push(id, projectId);
+      await env.DB.prepare(
+        `UPDATE autonomous_content_queue SET ${updates.join(", ")} WHERE id = ? AND project_id = ?`
+      ).bind(...params).run();
+
+      return new Response(
+        JSON.stringify({ success: true, id }),
+        { status: 200, headers: corsHeaders }
+      );
+    } catch (err: any) {
+      return new Response(
+        JSON.stringify({ success: false, error: err.message }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+  }
+
+  // 3. DELETE: Delete single or bulk or action
+  if (request.method === "DELETE") {
+    try {
+      let id = url.searchParams.get("id");
+      let ids: string[] = [];
+      try {
+        const body: any = await request.json();
+        if (body?.id) id = body.id;
+        if (Array.isArray(body?.ids)) ids = body.ids;
+        if (body?.action === "purge_duplicates") {
+          return handleAutonomousDeduplicate(request, env);
+        }
+      } catch {}
+
+      if (ids.length > 0) {
+        const placeholders = ids.map(() => "?").join(",");
+        await env.DB.prepare(
+          `DELETE FROM autonomous_content_queue WHERE project_id = ? AND id IN (${placeholders})`
+        ).bind(projectId, ...ids).run();
+        return new Response(
+          JSON.stringify({ success: true, deleted: ids.length }),
+          { status: 200, headers: corsHeaders }
+        );
+      }
+
+      if (!id) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Article ID is required for deletion" }),
+          { status: 400, headers: corsHeaders }
+        );
+      }
+
+      await env.DB.prepare(
+        "DELETE FROM autonomous_content_queue WHERE id = ? AND project_id = ?"
+      ).bind(id, projectId).run();
+
+      return new Response(
+        JSON.stringify({ success: true, deleted: 1, id }),
+        { status: 200, headers: corsHeaders }
+      );
+    } catch (err: any) {
+      return new Response(
+        JSON.stringify({ success: false, error: err.message }),
+        { status: 500, headers: corsHeaders }
+      );
+    }
+  }
+
+  // 4. GET: Paginated List with Search & Filters
   const page = Math.max(1, Number(url.searchParams.get("page") || 1));
   const limit = Math.min(Math.max(1, Number(url.searchParams.get("limit") || 10)), 1000);
   const offset = (page - 1) * limit;
@@ -549,11 +746,7 @@ export async function handleAutonomousQueue(
       }),
       {
         status: 200,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "*",
-        },
+        headers: corsHeaders,
       }
     );
   } catch (err: any) {
@@ -561,15 +754,109 @@ export async function handleAutonomousQueue(
       JSON.stringify({ success: false, error: err.message }),
       {
         status: 500,
-        headers: {
-          "Content-Type": "application/json",
-          "Access-Control-Allow-Origin": "*",
-          "Access-Control-Allow-Headers": "*",
-        },
+        headers: corsHeaders,
       }
     );
   }
 }
+
+/**
+ * POST /api/automation/deduplicate
+ * Autonomous closed-loop deduplication & canonical watchdog
+ */
+export async function handleAutonomousDeduplicate(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const corsHeaders = {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST,OPTIONS",
+    "Access-Control-Allow-Headers": "*",
+    "Content-Type": "application/json",
+  };
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 200, headers: corsHeaders });
+  }
+
+  try {
+    const url = new URL(request.url);
+    const ctx = await resolveProjectContext(
+      request,
+      env,
+      url.searchParams.get("projectId") || undefined,
+    );
+    const projectId = ctx.projectId;
+
+    const countBefore: any = await env.DB.prepare(
+      "SELECT count(*) as cnt FROM autonomous_content_queue WHERE project_id = ?"
+    ).bind(projectId).first();
+
+    // Stage 1: Purge duplicate keywords, keeping the published / earliest instance
+    await env.DB.prepare(`
+      DELETE FROM autonomous_content_queue 
+      WHERE project_id = ? AND id NOT IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY primary_keyword 
+            ORDER BY CASE WHEN status = 'published' THEN 0 ELSE 1 END, id ASC
+          ) as rn 
+          FROM autonomous_content_queue
+          WHERE project_id = ?
+        ) WHERE rn = 1
+      )
+    `).bind(projectId, projectId).run();
+
+    // Stage 2: Purge duplicate slugs, keeping the published / earliest instance
+    await env.DB.prepare(`
+      DELETE FROM autonomous_content_queue 
+      WHERE project_id = ? AND id NOT IN (
+        SELECT id FROM (
+          SELECT id, ROW_NUMBER() OVER (
+            PARTITION BY article_slug 
+            ORDER BY CASE WHEN status = 'published' THEN 0 ELSE 1 END, id ASC
+          ) as rn 
+          FROM autonomous_content_queue
+          WHERE project_id = ?
+        ) WHERE rn = 1
+      )
+    `).bind(projectId, projectId).run();
+
+    const countAfter: any = await env.DB.prepare(
+      "SELECT count(*) as cnt, sum(case when status = 'published' then 1 else 0 end) as pub, sum(case when status = 'queued' then 1 else 0 end) as q FROM autonomous_content_queue WHERE project_id = ?"
+    ).bind(projectId).first();
+
+    const before = Number(countBefore?.cnt || 0);
+    const after = Number(countAfter?.cnt || 0);
+    const purged = Math.max(0, before - after);
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        purgedCount: purged,
+        remainingTotal: after,
+        publishedCount: Number(countAfter?.pub || 0),
+        queuedCount: Number(countAfter?.q || 0),
+        message: purged > 0 
+          ? `تم استئصال وتطهير ${purged} مقالاً مكرراً بنجاح` 
+          : "قاعدة البيانات نظيفة 100% ولا توجد أي مقالات مكررة",
+      }),
+      {
+        status: 200,
+        headers: corsHeaders,
+      }
+    );
+  } catch (err: any) {
+    return new Response(
+      JSON.stringify({ success: false, error: err.message }),
+      {
+        status: 500,
+        headers: corsHeaders,
+      }
+    );
+  }
+}
+
 
 export async function handlePublicAutonomousArticles(
   request: Request,
@@ -583,6 +870,7 @@ export async function handlePublicAutonomousArticles(
     "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, Authorization",
     "Content-Type": "application/json; charset=utf-8",
+    "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
   };
 
   if (request.method === "OPTIONS") {
@@ -1797,10 +2085,22 @@ export async function executeScheduledAutonomousTick(env: any): Promise<void> {
     const rawDomain = projRow?.domain || "mohamed-abdelsamee-portfolio.vercel.app";
     const domain = rawDomain.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-    // 3. Process next queued article if available
-    const nextQueued: any = await env.DB.prepare(
+    // 3. Process next queued article if available, with auto-replenish self-healing watchdog
+    let nextQueued: any = await env.DB.prepare(
       "SELECT * FROM autonomous_content_queue WHERE project_id = ? AND status = 'queued' ORDER BY queue_order ASC LIMIT 1"
     ).bind(projectId).first();
+
+    if (!nextQueued) {
+      console.log(`[Scheduled Autonomous Tick] Content queue is empty for project ${projectId}. Self-healing watchdog triggering auto-replenish to 100...`);
+      try {
+        await replenishQueueTo100(env, projectId);
+        nextQueued = await env.DB.prepare(
+          "SELECT * FROM autonomous_content_queue WHERE project_id = ? AND status = 'queued' ORDER BY queue_order ASC LIMIT 1"
+        ).bind(projectId).first();
+      } catch (repErr) {
+        console.warn("[Scheduled Autonomous Tick] Auto-replenish error:", repErr);
+      }
+    }
 
     if (nextQueued) {
       const pubRes = await generateAndPublishArticle(
@@ -2611,7 +2911,8 @@ export async function recordSteppedAiTaskExecution(
 }
 
 /**
- * Rolling Buffer 100: Maintains exactly 100 queued articles with market and rationale
+ * Rolling Buffer 100: Maintains exactly 100 queued articles with 100% unique keywords and dynamic regional outlines.
+ * Prioritizes unqueued keywords from autonomous_harvested_keywords, then fills from diverse MENA market catalog.
  */
 export async function replenishQueueTo100(env: any, projectId: string): Promise<number> {
   if (!env?.DB) return 0;
@@ -2625,26 +2926,138 @@ export async function replenishQueueTo100(env: any, projectId: string): Promise<
   
   const needed = 100 - currentQueued;
   const batchId = `batch_roll_${Date.now()}`;
-  
-  const templates = [
-    { title: "حلول تتبع التحويلات المتقدم CAPI للمتاجر", kw: "تتبع التحويلات CAPI", market: "🇪🇬 مصر - القاهرة | Conversion & Ads", rationale: "السوق المصري يشهد طلباً متصاعداً على تتبع CAPI لمواجهة حظر ملفات تعريف الارتباط وتحسين مطابقة أحداث فيسبوك وجوجل." },
-    { title: "استراتيجيات إعلانات جوجل للمتاجر الإلكترونية الإسكندرية", kw: "إعلانات جوجل الإسكندرية", market: "🇪🇬 مصر - الإسكندرية | Retail & E-com", rationale: "استهداف تجار التجزئة في الإسكندرية الباحثين عن زيادة مبيعات المتاجر بأعلى عائد على الإنفاق الإعلاني ROAS." },
-    { title: "أتمتة مبيعات المتاجر والربط مع واتساب الجيزة", kw: "أتمتة المبيعات واتساب الجيزة", market: "🇪🇬 مصر - الجيزة | CRM Automation", rationale: "زيادة معدل استعادة السلات المتروكة بنسبة 25% لشركات الجيزة عبر الربط التلقائي لرسائل الواتساب الفورية." },
-    { title: "إدارة حملات Performance Max عقارات الرياض", kw: "إعلانات عقارات الرياض PMax", market: "🇸🇦 السعودية - الرياض | High-Ticket B2B", rationale: "حراك عقاري ضخم في شمال وشرق الرياض يتطلب استهدافاً ذكياً للمستثمرين ذوي الملاءة المالية العالية." },
-    { title: "سيو المتاجر الإلكترونية سلة وزد في جدة", kw: "سيو سلة وزد جدة", market: "🇸🇦 السعودية - جدة | E-commerce SEO", rationale: "تأهيل المتاجر لتصدر نتائج البحث العضوية في المنطقة الغربية وتقليل الاعتماد الحصري على الإعلانات المدفوعة." },
-    { title: "أتمتة سير العمل Make.com للشركات في دبي", kw: "أتمتة Make دبي", market: "🇦🇪 الإمارات - دبي | Enterprise Automation", rationale: "تخفيض تكاليف التشغيل الإداري لفرق المبيعات وربط CRM مع منصات الإعلانات في سوق دبي فائق السرعة." },
-    { title: "خفض تكلفة اكتساب العميل CPA في أبوظبي", kw: "تخفيض تكلفة الإعلانات أبوظبي", market: "🇦🇪 الإمارات - أبوظبي | Performance Ads", rationale: "حلول ميديا باينج هندسية لضبط المزادات واستبعاد النقرات الوهمية لمضاعفة هامش الربح الصافي." },
-    { title: "دليل تصدر محركات البحث بالذكاء الاصطناعي GEO 2026", kw: "سيو الذكاء الاصطناعي GEO 2026", market: "🌍 الوطن العربي - الشرق الأوسط | AI Search", rationale: "الظهور الحصري في إجابات ChatGPT و Perplexity وملخصات Google AI Overviews للمنطقة العربية." },
-    { title: "هندسة المحتوى الدلالي Topical Authority للشركات", kw: "بناء السلطة الدلالية 2026", market: "🌍 الوطن العربي - الوطن العربي | Strategic Growth", rationale: "بناء حضور رقمي مستدام للشركات العربية عبر شبكة موضوعية متماسكة تجيب عن نوايا الشراء المعقدة." },
-    { title: "تتبع مسارات الشراء Omnichannel وربط بوابات الدفع", kw: "تتبع رحلة العميل وبوابات الدفع", market: "🇪🇬 مصر - القاهرة | Payment Tracking", rationale: "ربط بوابات الدفع فوري وباي موب مع جوجل آناليتكس 4 لحساب صافي العائد الاستثماري بدقة متناهية." }
+
+  // Find max queue_order so new items sequence seamlessly
+  const maxOrderRow: any = await env.DB.prepare(
+    "SELECT COALESCE(MAX(queue_order), 0) as max_order FROM autonomous_content_queue WHERE project_id = ?"
+  ).bind(projectId).first();
+  let nextOrder = (maxOrderRow?.max_order != null ? Number(maxOrderRow.max_order) : currentQueued) + 1;
+
+  // 1. Fetch unqueued harvested keywords from autonomous_harvested_keywords
+  let harvestedList: any[] = [];
+  try {
+    const harvestedRows: any = await env.DB.prepare(`
+      SELECT keyword, target_market, city, monthly_volume, intent, strategic_reason 
+      FROM autonomous_harvested_keywords 
+      WHERE project_id = ? 
+        AND keyword NOT IN (
+          SELECT primary_keyword FROM autonomous_content_queue WHERE project_id = ?
+        )
+      ORDER BY monthly_volume DESC 
+      LIMIT ?
+    `).bind(projectId, projectId, needed).all();
+    harvestedList = harvestedRows?.results || [];
+  } catch (err) {
+    console.warn("[replenishQueueTo100] Harvested keywords query fallback:", err);
+  }
+
+  // 2. Fetch all existing keywords in queue to ensure zero duplicate collisions
+  const existingKwRows: any = await env.DB.prepare(
+    "SELECT primary_keyword FROM autonomous_content_queue WHERE project_id = ?"
+  ).bind(projectId).all();
+  const existingKws = new Set<string>((existingKwRows?.results || []).map((r: any) => (r.primary_keyword || "").trim().toLowerCase()));
+
+  // 3. Fallback catalog of diverse, high-commercial-intent topics across MENA
+  const fallbackCatalog = [
+    { title: "حلول تتبع التحويلات CAPI للمتاجر", kw: "تتبع التحويلات CAPI", market: "🇪🇬 مصر - القاهرة | Conversion & Ads", rationale: "مواجهة حظر ملفات تعريف الارتباط وتحسين دقة مطابقة إشارات خوادم الإعلانات في مصر والخليج." },
+    { title: "استراتيجيات إعلانات جوجل للمتاجر الإلكترونية الإسكندرية", kw: "إعلانات جوجل الإسكندرية", market: "🇪🇬 مصر - الإسكندرية | Retail & E-com", rationale: "استهداف تجار التجزئة لرفع مبيعات المتاجر وتحقيق أعلى عائد ROAS." },
+    { title: "أتمتة مبيعات المتاجر والربط مع واتساب الجيزة", kw: "أتمتة المبيعات واتساب الجيزة", market: "🇪🇬 مصر - الجيزة | CRM Automation", rationale: "استعادة السلات المتروكة بنسبة 25% عبر الربط الفوري بين المتاجر وتطبيق واتساب." },
+    { title: "إدارة حملات Performance Max لعقارات الرياض", kw: "إعلانات عقارات الرياض PMax", market: "🇸🇦 السعودية - الرياض | High-Ticket B2B", rationale: "حراك عقاري ضخم في الرياض يتطلب استهدافاً ذكياً للمستثمرين ذوي الملاءة المالية." },
+    { title: "سيو المتاجر الإلكترونية سلة وزد في جدة", kw: "سيو سلة وزد جدة", market: "🇸🇦 السعودية - جدة | E-commerce SEO", rationale: "تأهيل المتاجر لتصدر نتائج البحث العضوية في المنطقة الغربية وتقليل الاعتماد على الإعلانات." },
+    { title: "أتمتة سير العمل Make.com للشركات في دبي", kw: "أتمتة Make دبي", market: "🇦🇪 الإمارات - دبي | Enterprise Automation", rationale: "تخفيض تكاليف التشغيل الإداري وربط أنظمة CRM ومنصات الإعلانات بسلاسة في دبي." },
+    { title: "خفض تكلفة اكتساب العميل CPA في أبوظبي", kw: "تخفيض تكلفة الإعلانات أبوظبي", market: "🇦🇪 الإمارات - أبوظبي | Performance Ads", rationale: "حلول ميديا باينج هندسية لضبط المزادات واستبعاد النقرات الوهمية لمضاعفة الأرباح." },
+    { title: "دليل تصدر محركات البحث بالذكاء الاصطناعي GEO 2026", kw: "سيو الذكاء الاصطناعي GEO 2026", market: "🌍 الوطن العربي | AI Search Engine Optimization", rationale: "الظهور الحصري في إجابات ChatGPT وPerplexity وملخصات Google AI Overviews." },
+    { title: "هندسة المحتوى الدلالي Topical Authority للشركات", kw: "بناء السلطة الدلالية 2026", market: "🌍 الوطن العربي | Strategic Content Architecture", rationale: "بناء سلطة رقمية مستدامة عبر شبكة موضوعية تجيب عن نوايا الشراء المعقدة." },
+    { title: "تتبع مسارات الشراء Omnichannel وربط بوابات الدفع", kw: "تتبع رحلة العميل وبوابات الدفع", market: "🇪🇬 مصر - القاهرة | Payment Analytics", rationale: "ربط بوابات الدفع مع GA4 لحساب صافي العائد الاستثماري بدقة متناهية." },
+    { title: "تحسين محركات البحث للشركات في دبي", kw: "سيو الشركات دبي", market: "🇦🇪 الإمارات - دبي | Corporate SEO", rationale: "المنافسة على الكلمات الرئيسية عالية القيمة لقطاع الأعمال والخدمات المهنية في دبي." },
+    { title: "إدارة حملات تيك توك الإعلانية في السعودية", kw: "إعلانات تيك توك السعودية", market: "🇸🇦 السعودية - الرياض | Paid Social", rationale: "استغلال قوة تيك توك في السوق السعودي وتحويل المشاهدات إلى مبيعات فورية." },
+    { title: "تحسين معدل التحويل CRO للمتاجر العربية", kw: "تحسين معدل التحويل CRO", market: "🌍 الوطن العربي | Conversion Rate Optimization", rationale: "مضاعفة مبيعات المتجر من نفس عدد الزوار الحاليين عبر تجارب A/B وهندسة واجهات الدفع." },
+    { title: "بناء الروابط الخلفية عالية الجودة 2026", kw: "استراتيجيات الروابط الخلفية 2026", market: "🌍 الوطن العربي | Off-Page SEO Authority", rationale: "اكتساب روابط موثوقة من منصات إعلامية ومواقع متخصصة لرفع تصنيف النطاق." },
+    { title: "سيو محلي للعيادات والمراكز الطبية في جدة", kw: "سيو طبي جدة", market: "🇸🇦 السعودية - جدة | Local SEO & Healthcare", rationale: "تصدر نتائج خرائط جوجل وبحث الأطباء للمرضى في جدة والمناطق المجاورة." },
+    { title: "استراتيجيات إعلانات سناب شات في الكويت", kw: "إعلانات سناب شات الكويت", market: "🇰🇼 الكويت | E-commerce Performance", rationale: "الوصول المباشر للمستهلك الكويتي وتحقيق مبيعات قياسية لقطاعات التجزئة والمطاعم." },
+    { title: "حملات جوجل الإعلانية للمنشآت الخدمية بالدوحة", kw: "إعلانات جوجل قطر الدوحة", market: "🇶🇦 قطر - الدوحة | High-Intent Google Ads", rationale: "استهداف العملاء الباحثين عن خدمات احترافية فورية بأعلى نية شراء." },
+    { title: "تسويق B2B واستقطاب المستثمرين في الرياض", kw: "تسويق B2B الرياض", market: "🇸🇦 السعودية - الرياض | Enterprise Lead Generation", rationale: "توليد طلبات تعاقد مؤهلة للشركات الكبرى وصناديق الاستثمار في السعودية." },
+    { title: "تحسين سرعة متاجر شوبيفاي وسلة وزد", kw: "تسريع المتاجر الإلكترونية", market: "🌍 الوطن العربي | Technical Web Vitals", rationale: "تحقيق مؤشرات Core Web Vitals القياسية وزمن استجابة أقل من 400 مللي ثانية." },
+    { title: "أتمتة خدمة العملاء بالذكاء الاصطناعي عبر واتساب", kw: "أتمتة واتساب بالذكاء الاصطناعي", market: "🌍 الوطن العربي | Conversational AI Automation", rationale: "الرد الفوري على استفسارات العملاء وإتمام صفقات البيع تلقائياً على مدار الساعة." },
+    { title: "تصدر نتائج خرائط جوجل وجوجل بيزنس للمطاعم", kw: "سيو المطاعم خرائط جوجل", market: "🇸🇦 السعودية - الرياض والدمام | Local Maps SEO", rationale: "جذب آلاف الزوار اليوميين من نتائج البحث القريب وجوجل ماب للمطاعم والمقاهي." },
+    { title: "إدارة إعلانات لينكد إن للمدراء التنفيذيين بالإمارات", kw: "إعلانات لينكد إن الإمارات", market: "🇦🇪 الإمارات | B2B Decision Makers", rationale: "التواصل المباشر مع صناع القرار في الشركات الحكومية والخاصة الكبرى." },
+    { title: "بناء مسارات المبيعات Funnels للخدمات الاحترافية", kw: "تصميم فانل المبيعات", market: "🇪🇬 مصر والخليج | Funnel Architecture", rationale: "بناء صفحات التقاط عملاء مؤهلين ومسارات إقناع تضاعف نسبة الإغلاق." },
+    { title: "تحسين نسبة النقر إلى الظهور CTR في إعلانات جوجل", kw: "تحسين CTR إعلانات البحث", market: "🌍 الوطن العربي | Quality Score Optimization", rationale: "رفع رتبة الإعلان وتخفيض تكلفة النقرة عبر عناوين دقيقة وإضافات ذكية." },
+    { title: "أتمتة التقارير التسويقية عبر Looker Studio و Make", kw: "أتمتة التقارير التسويقية", market: "🌍 الوطن العربي | Marketing BI & Automation", rationale: "لوحات تحكم لحظية ترصد صافي الأرباح وعائد الاستثمار بدون تدخل يدوي." },
+    { title: "سيو متاجر العطور ومستحضرات التجميل بالخليج", kw: "سيو متاجر العطور والجمال", market: "🇸🇦 السعودية والخليج | Luxury Retail SEO", rationale: "استحواذ على الكلمات الموسمية والأكثر بحثاً في قطاع العطور والجمال." },
+    { title: "تخفيض تكلفة النقرة CPC في المزادات الإعلانية", kw: "تخفيض تكلفة النقرة CPC", market: "🌍 الوطن العربي | Auction Insights & Bidding", rationale: "استراتيجيات مزايدة ذكية وتحسين جودة الصفحة لتقليل الهدر الإعلاني." },
+    { title: "التسويق بالمحتوى وصناعة الثقة للمشتري الخليجي", kw: "تسويق بالمحتوى للخليج", market: "🇸🇦 الخليج العربي | High-Trust Content", rationale: "بناء سردية تسويقية تجيب عن مخاوف العميل وتدفعه للشراء بثقة مطلقة." }
+  ];
+
+  const titleHooks = [
+    "دليل 2026 الشامل في",
+    "استراتيجيات متقدمة لـ",
+    "كيف تتقن تطبيق",
+    "خارطة طريق تنفيذ",
+    "أسرار مضاعفة المبيعات عبر",
+    "حلول احترافية وتطبيق عملي لـ"
   ];
 
   let added = 0;
+  let catalogIdx = 0;
+
   for (let i = 0; i < needed; i++) {
-    const t = templates[i % templates.length];
-    const order = currentQueued + i + 1;
-    const slug = `${t.kw.replace(/\s+/g, "-")}-${Date.now().toString().slice(-4)}-${i + 1}`.replace(/[^a-zA-Z0-9\u0621-\u064A_-]/g, "");
+    let kw = "";
+    let baseTitle = "";
+    let targetMarket = "";
+    let rationale = "";
+    let monthlyVolume = 1200 + Math.floor(Math.random() * 800);
+
+    if (i < harvestedList.length) {
+      const h = harvestedList[i];
+      kw = (h.keyword || "").trim();
+      targetMarket = h.target_market ? `${h.target_market} - ${h.city || "إقليمي"}` : "الوطن العربي - الشرق الأوسط";
+      rationale = h.strategic_reason || "استهداف طلب بحثي ذو عائد تحويلي مرتفع مثبت بالبيانات.";
+      monthlyVolume = h.monthly_volume || 1500;
+      baseTitle = kw;
+    } else {
+      // Pick next available from fallback catalog not already used
+      while (catalogIdx < fallbackCatalog.length) {
+        const candidate = fallbackCatalog[catalogIdx % fallbackCatalog.length];
+        catalogIdx++;
+        if (!existingKws.has(candidate.kw.toLowerCase())) {
+          kw = candidate.kw;
+          baseTitle = candidate.title;
+          targetMarket = candidate.market;
+          rationale = candidate.rationale;
+          break;
+        }
+      }
+
+      if (!kw) {
+        // Dynamic seed generator if catalog fully exhausted
+        const seedCity = ["الرياض", "دبي", "القاهرة", "جدة", "الدوحة", "الكويت"][i % 6];
+        const seedNiche = ["سيو التجارة الإلكترونية", "أتمتة مسارات الشراء", "إعلانات النمو والأداء", "تتبع التحويلات المتقدم", "تحسين نتائج محركات الذكاء الاصطناعي"][i % 5];
+        kw = `${seedNiche} ${seedCity}`;
+        baseTitle = `${seedNiche} في ${seedCity}`;
+        targetMarket = `الشرق الأوسط - ${seedCity}`;
+        rationale = `فرصة تصدر ونمو متسارع في سوق ${seedCity} بالاعتماد على أحدث ممارسات 2026.`;
+      }
+    }
+
+    existingKws.add(kw.toLowerCase());
+
+    const hook = titleHooks[i % titleHooks.length];
+    const fullTitle = `${hook} ${baseTitle} (رؤية هندسية وتطبيق عملي 2026)`;
+    const order = nextOrder++;
+
+    // Generate unique, URL-safe slug with unique timestamp and random entropy
+    const cleanKw = kw.replace(/\s+/g, "-").replace(/[^a-zA-Z0-9\u0621-\u064A_-]/g, "");
+    const uniqueEntropy = Math.random().toString(36).slice(2, 7);
+    const slug = `${cleanKw}-${uniqueEntropy}`;
     const queueId = `q_roll_${batchId}_${order}`;
+
+    const outlinePoints = [
+      `تشخيص واقع ${kw} وتحليل الفرص السوقية الراهنة`,
+      `الركائز الفنية والأدوات المتطورة لتنفيذ ${kw} بأعلى كفاءة`,
+      `استراتيجيات خفض التكاليف ومضاعفة العائد الاستثماري (ROAS & ROI)`,
+      `توصيات القياس والتوسع مع استشارة هندسية فورية عبر واتساب`
+    ];
 
     await env.DB.prepare(`
       INSERT OR REPLACE INTO autonomous_content_queue (
@@ -2656,18 +3069,141 @@ export async function replenishQueueTo100(env: any, projectId: string): Promise<
       batchId,
       order,
       slug,
-      `${t.title} (تحليل استراتيجي ودليل تطبيقي 2026)`,
-      t.kw,
-      JSON.stringify([`${t.kw} استراتيجيات`, `${t.kw} أفضل ممارسات`, `${t.kw} خطة العمل`]),
-      1200 + (i * 85),
-      JSON.stringify(["المقدمة وتشخيص السوق", "المحور الأول: خطة التطبيق", "المحور الثاني: أدوات القياس", "الخاتمة والاستشارة المباشرة عبر الواتساب"]),
-      t.market,
-      t.rationale
+      fullTitle,
+      kw,
+      JSON.stringify([`${kw} استراتيجيات`, `${kw} أفضل ممارسات`, `${kw} أدوات 2026`]),
+      monthlyVolume,
+      JSON.stringify(outlinePoints),
+      targetMarket,
+      rationale
     ).run();
+
     added++;
   }
 
   return added;
+}
+
+/**
+ * Deduplicate Content Queue and Published Articles:
+ * Identifies duplicate articles sharing identical primary_keyword or base slugs,
+ * retains the primary canonical (preferring status='published' and earliest published_at),
+ * and removes redundant duplicates to clean the site audit issues.
+ */
+export async function handleDeduplicateArticles(
+  request: Request,
+  env: Env,
+): Promise<Response> {
+  const corsHeaders = {
+    "Content-Type": "application/json",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "*",
+  };
+  try {
+    let projectId = "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
+    let dryRun = false;
+    if (request.method === "POST") {
+      try {
+        const body: any = await request.json();
+        if (body?.projectId) projectId = body.projectId;
+        if (body?.dryRun !== undefined) dryRun = Boolean(body.dryRun);
+      } catch {}
+    } else {
+      const url = new URL(request.url);
+      if (url.searchParams.get("projectId")) projectId = url.searchParams.get("projectId")!;
+      if (url.searchParams.get("dryRun") === "true") dryRun = true;
+    }
+
+    if (!env?.DB) {
+      return new Response(JSON.stringify({ success: false, error: "Database not configured" }), {
+        status: 500,
+        headers: corsHeaders,
+      });
+    }
+
+    // 1. Fetch all articles for project
+    const allArticlesRes: any = await env.DB.prepare(
+      "SELECT id, article_slug, article_title, primary_keyword, status, queue_order, published_at, created_at FROM autonomous_content_queue WHERE project_id = ? ORDER BY queue_order ASC"
+    ).bind(projectId).all();
+    const allArticles = allArticlesRes?.results || [];
+
+    // 2. Group articles by primary_keyword
+    const groupsByKeyword = new Map<string, any[]>();
+    for (const art of allArticles) {
+      const kwKey = (art.primary_keyword || "").trim().toLowerCase();
+      if (!kwKey) continue;
+      if (!groupsByKeyword.has(kwKey)) {
+        groupsByKeyword.set(kwKey, []);
+      }
+      groupsByKeyword.get(kwKey)!.push(art);
+    }
+
+    const duplicateGroups: any[] = [];
+    const redundantIdsToRemove: string[] = [];
+
+    for (const [kw, items] of groupsByKeyword.entries()) {
+      if (items.length > 1) {
+        // Sort items: prefer published items, then earliest published_at, then lowest queue_order
+        items.sort((a, b) => {
+          if (a.status === "published" && b.status !== "published") return -1;
+          if (b.status === "published" && a.status !== "published") return 1;
+          return (a.queue_order || 0) - (b.queue_order || 0);
+        });
+
+        const canonical = items[0];
+        const duplicates = items.slice(1);
+
+        duplicateGroups.push({
+          keyword: kw,
+          canonicalId: canonical.id,
+          canonicalSlug: canonical.article_slug,
+          canonicalStatus: canonical.status,
+          duplicatesCount: duplicates.length,
+          duplicateSlugs: duplicates.map((d: any) => d.article_slug),
+        });
+
+        for (const dup of duplicates) {
+          redundantIdsToRemove.push(dup.id);
+        }
+      }
+    }
+
+    let removedCount = 0;
+    if (!dryRun && redundantIdsToRemove.length > 0) {
+      for (let i = 0; i < redundantIdsToRemove.length; i += 50) {
+        const chunk = redundantIdsToRemove.slice(i, i + 50);
+        const placeholders = chunk.map(() => "?").join(",");
+        const res: any = await env.DB.prepare(
+          `DELETE FROM autonomous_content_queue WHERE project_id = ? AND id IN (${placeholders})`
+        ).bind(projectId, ...chunk).run();
+        removedCount += res?.meta?.changes || chunk.length;
+      }
+
+      cachedTelemetryData = null;
+      cachedGroundTruth = null;
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        dryRun,
+        totalArticles: allArticles.length,
+        duplicateGroupsFound: duplicateGroups.length,
+        redundantDuplicatesCount: redundantIdsToRemove.length,
+        redundantDuplicatesRemoved: dryRun ? 0 : removedCount,
+        groups: duplicateGroups.slice(0, 50),
+        message: dryRun
+          ? `تم رصد ${duplicateGroups.length} مجموعة متكررة تحتوي على ${redundantIdsToRemove.length} مقال مكرر جاهز للتطهير.`
+          : `تم بنجاح إزالة ${removedCount} مقال مكرر والاحتفاظ بالنسخ الأصلية المرجعية (Canonicals).`,
+      }),
+      { status: 200, headers: corsHeaders }
+    );
+  } catch (err: any) {
+    return new Response(JSON.stringify({ success: false, error: err.message }), {
+      status: 500,
+      headers: corsHeaders,
+    });
+  }
 }
 
 /**

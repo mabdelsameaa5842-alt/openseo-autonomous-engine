@@ -373,6 +373,35 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
     }
   };
 
+  const [isDeduplicating, setIsDeduplicating] = useState(false);
+
+  const handleDeduplicateClick = async () => {
+    setIsDeduplicating(true);
+    try {
+      const res = await fetch("/api/automation/deduplicate-articles", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, dryRun: false }),
+      });
+      const data = (await res.json()) as any;
+      if (data?.success) {
+        toast.success(
+          isRtl
+            ? `تم بنجاح تطهير ${data.redundantDuplicatesRemoved} مقال مكرر والاحتفاظ بالنسخ المرجعية!`
+            : `Successfully purged ${data.redundantDuplicatesRemoved} duplicate articles!`
+        );
+        void queueQuery.refetch();
+        void dualTelemetryQuery.refetch();
+      } else {
+        toast.error(data.error || "Deduplication failed");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Network error");
+    } finally {
+      setIsDeduplicating(false);
+    }
+  };
+
   const handlePublishNow = async (articleId: string) => {
     setPublishingId(articleId);
     try {
@@ -774,6 +803,18 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
                 className={`h-3.5 w-3.5 text-zinc-400 ${loading || gscReportQuery.isFetching ? "animate-spin" : ""}`}
               />
               <span>{t("perf.sync_sitemaps", "Sync Sitemaps")}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDeduplicateClick}
+              disabled={isDeduplicating}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 text-xs font-semibold text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors shadow-sm disabled:opacity-50"
+              title={isRtl ? "تطهير وحذف المقالات المكررة بالذكاء الاصطناعي" : "Purge duplicate articles with AI"}
+            >
+              <Sparkles
+                className={`h-3.5 w-3.5 text-purple-500 ${isDeduplicating ? "animate-spin" : ""}`}
+              />
+              <span>{isRtl ? "تطهير التكرار الذاتي" : "AI Deduplicate"}</span>
             </button>
             <a
               href={activeDomainUrl || "#"}
