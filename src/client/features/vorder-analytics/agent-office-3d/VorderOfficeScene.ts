@@ -295,7 +295,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   // Ceiling
   const ceil = new THREE.Mesh(
     new THREE.BoxGeometry(26, 0.1, 20),
-    new THREE.MeshLambertMaterial({ color: 0x0A1628, transparent: true, opacity: 0.45 })
+    new THREE.MeshLambertMaterial({ color: 0x0A1628, transparent: true, opacity: 0.1, depthWrite: false })
   );
   ceil.position.y = 4.05;
   office.add(ceil);
