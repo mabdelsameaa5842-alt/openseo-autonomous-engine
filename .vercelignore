@@ -14,5 +14,6 @@ dist-sourcemaps/
 .alchemy/
 .git
 *.mp4
-*.sql
-scripts/
+scripts/*.mjs
+scripts/*.py
+!scripts/cli-utils.ts
