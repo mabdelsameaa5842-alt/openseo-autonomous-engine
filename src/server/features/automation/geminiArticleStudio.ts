@@ -1,5 +1,4 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText } from "ai";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 
@@ -45,16 +44,16 @@ function deterministicKeywordVolume(kw: string, min = 200, max = 3500): number {
 
 export interface AdaptiveModelCandidate {
   id: string;
-  provider: "google" | "openrouter";
+  provider: "google";
   modelName: string;
   description: string;
 }
 
 const ADAPTIVE_MODEL_CASCADE: AdaptiveModelCandidate[] = [
-  { id: "gemini-2.0-flash", provider: "google", modelName: "gemini-2.0-flash", description: "Gemini 2.0 Flash (Primary High-Speed Free Tier)" },
+  { id: "gemini-2.0-flash", provider: "google", modelName: "gemini-2.0-flash", description: "Gemini 2.0 Flash (Primary Free High-Speed Tier)" },
   { id: "gemini-2.0-flash-lite", provider: "google", modelName: "gemini-2.0-flash-lite", description: "Gemini 2.0 Flash-Lite (High RPM / RPD Free Tier)" },
-  { id: "gemini-1.5-flash", provider: "google", modelName: "gemini-1.5-flash", description: "Gemini 1.5 Flash (Reliable Secondary Backup)" },
-  { id: "openrouter-flash", provider: "openrouter", modelName: "google/gemini-2.0-flash-001", description: "OpenRouter Backup Model" },
+  { id: "gemini-1.5-flash", provider: "google", modelName: "gemini-1.5-flash", description: "Gemini 1.5 Flash (Reliable Free Secondary Backup)" },
+  { id: "gemini-1.5-pro", provider: "google", modelName: "gemini-1.5-pro", description: "Gemini 1.5 Pro (Deep Reasoning Free Tier)" },
 ];
 
 /**
@@ -78,34 +77,17 @@ export function triggerModelCooldown(modelId: string, durationMs: number = 15 * 
 }
 
 /**
- * Resolves an AI model instance with automatic cascade fallback.
+ * Resolves an AI model instance with automatic cascade fallback (100% Google Gemini AI Studio).
  */
 export async function resolveGeminiModel(env?: any, candidate?: AdaptiveModelCandidate) {
   const target = candidate || getAvailableModelCandidates()[0] || ADAPTIVE_MODEL_CASCADE[0];
 
   const geminiKey =
     (env && env.GEMINI_API_KEY) || (await getOptionalEnvValue("GEMINI_API_KEY"));
-  const openrouterKey =
-    (env && env.OPENROUTER_API_KEY) || (await getOptionalEnvValue("OPENROUTER_API_KEY"));
 
-  if (target.provider === "google" && geminiKey) {
-    const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-    return { model: google(target.modelName), candidate: target };
-  }
-
-  if (target.provider === "openrouter" && openrouterKey) {
-    const openrouter = createOpenRouter({ apiKey: openrouterKey });
-    return { model: openrouter(target.modelName), candidate: target };
-  }
-
-  // Fallback to whichever key exists
   if (geminiKey) {
     const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-    return { model: google("gemini-2.0-flash"), candidate: ADAPTIVE_MODEL_CASCADE[0] };
-  }
-  if (openrouterKey) {
-    const openrouter = createOpenRouter({ apiKey: openrouterKey });
-    return { model: openrouter("google/gemini-2.0-flash-001"), candidate: ADAPTIVE_MODEL_CASCADE[3] };
+    return { model: google(target.modelName), candidate: target };
   }
 
   return null;

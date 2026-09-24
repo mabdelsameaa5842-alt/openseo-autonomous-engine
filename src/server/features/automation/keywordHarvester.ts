@@ -118,36 +118,7 @@ export async function harvestKeywordBatch(opts: {
     }
   } catch (err) {
     googleAdsFallbackActive = true;
-    console.warn("[KeywordHarvester] Google Ads API skipped (MCC Developer Token header not supplied) -> Activating Keyword Planner Algorithmic Model Fallback:", (err as Error).message);
-
-    // High-Precision Algorithmic Benchmark Fallback for Egypt, Gulf, and MENA
-    const fallbackBenchmarks = [
-      { kw: "تحسين معدل التحويل للمتاجر في القاهرة", vol: 1850, comp: "HIGH", cpc: 1.45, market: "مصر", city: "القاهرة", reason: "طلب متزايد من المتاجر المصرية لخفض تكلفة الإعلانات ومضاعفة سلة الشراء." },
-      { kw: "إعلانات جوجل برفورمانس ماكس عقارات الرياض", vol: 3400, comp: "HIGH", cpc: 4.80, market: "الخليج العربي", city: "الرياض", reason: "استهداف كبار المستثمرين العقاريين في شمال الرياض بمعدل تحويل مرتفع." },
-      { kw: "ربط Conversions API فوري وباي موب للمتاجر", vol: 1100, comp: "MEDIUM", cpc: 1.15, market: "مصر", city: "القاهرة", reason: "حل جذري لمشكلة فقدان بيانات البيكسل وتراجع جودة مطابقة الأحداث." },
-      { kw: "سيو المتاجر الإلكترونية في دبي وأبوظبي", vol: 2900, comp: "HIGH", cpc: 5.50, market: "الخليج العربي", city: "دبي", reason: "منافسة تجارية قوية تستهدف عملاء التجارة الفاخرة متعددة اللغات." },
-      { kw: "B2B Lead Generation شركات جدة", vol: 1600, comp: "MEDIUM", cpc: 3.20, market: "الخليج العربي", city: "جدة", reason: "توليد عملاء مؤهلين لشركات المقاولات والخدمات والمنصات في المنطقة الغربية." },
-      { kw: "سيو الذكاء الاصطناعي GEO الشرق الأوسط 2026", vol: 2450, comp: "MEDIUM", cpc: 2.10, market: "الوطن العربي", city: "إقليمي", reason: "التصدر في إجابات ChatGPT و Perplexity وملخصات Google AI Overviews." },
-      { kw: "إعلانات فيسبوك وانستغرام شركات التجمع الخامس", vol: 1250, comp: "HIGH", cpc: 1.80, market: "مصر", city: "القاهرة", reason: "استهداف الشركات B2B والمكاتب الاستشارية في التجمع الخامس." },
-      { kw: "أتمتة المبيعات Make.com مع واتساب للشركات", vol: 1950, comp: "LOW", cpc: 1.65, market: "الوطن العربي", city: "إقليمي", reason: "أتمتة الردود السريعة ومتابعة العملاء لرفع معدل إغلاق الصفقات إلى 40%." }
-    ];
-
-    for (const b of fallbackBenchmarks) {
-      if (!keywordsMap.has(b.kw)) {
-        keywordsMap.set(b.kw, {
-          keyword: b.kw,
-          source: "planner_model",
-          monthlyVolume: b.vol,
-          competition: b.comp as any,
-          cpcEstimateUsd: b.cpc,
-          targetMarket: b.market,
-          city: b.city,
-          intent: "commercial",
-          strategicReason: b.reason,
-          fallbackUsed: true,
-        });
-      }
-    }
+    console.warn("[KeywordHarvester] Google Ads API skipped (credentials or developer token not supplied) -> Relying on dynamic GSC & Gemini 2.0 Flash harvesting:", (err as Error).message);
   }
 
   // 3. Harvest and expand via Google Gemini across Egypt (40%), Gulf (40%), MENA (20%)

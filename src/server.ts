@@ -82,6 +82,16 @@ import {
   handleSuperAdminSession,
   handleSuperAdminLogout,
 } from "@/server/features/auth/superAdminAuth";
+import {
+  handleNotificationSubscribe,
+  handleNotificationTestPush,
+  handleNotificationStatus,
+} from "@/server/features/notifications/pushNotificationHandler";
+import {
+  AgentCloudWatchdogService,
+  handleAgentsPingConnection,
+  handleAgentsChangeState,
+} from "@/server/features/automation/agentCloudWatchdog";
 
 const appFetch = createStartHandler(defaultStreamHandler);
 const openSeoOAuthProvider = createOpenSeoOAuthProvider(appFetch);
@@ -395,8 +405,36 @@ function handleFetch(
     return handleDeduplicateArticles(publicRequest, env);
   }
 
+  if (pathname === "/api/automation/agents-simulation-state") {
+    return Response.json({
+      ok: true,
+      agents: AgentCloudWatchdogService.getAgents(),
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  if (pathname === "/api/automation/agents-ping-connection" && publicRequest.method === "POST") {
+    return handleAgentsPingConnection(publicRequest);
+  }
+
+  if (pathname === "/api/automation/agents-change-state" && publicRequest.method === "POST") {
+    return handleAgentsChangeState(publicRequest);
+  }
+
   if (pathname === "/api/google-ads/test-permissions") {
     return handleGoogleAdsTestPermissions(publicRequest, env);
+  }
+
+  if (pathname === "/api/notifications/subscribe") {
+    return handleNotificationSubscribe(publicRequest, env);
+  }
+
+  if (pathname === "/api/notifications/test-push") {
+    return handleNotificationTestPush(publicRequest, env);
+  }
+
+  if (pathname === "/api/notifications/status") {
+    return handleNotificationStatus(publicRequest, env);
   }
 
   if (
@@ -500,7 +538,11 @@ export default {
       console.error("[cron] Stale-audit reconcile failed:", err);
     }
     // Scope a per-request Postgres client for the cron run (no-op in D1 mode).
-    await withPgClient(() => runScheduledRankChecks(env));
+    try {
+      await withPgClient(() => runScheduledRankChecks(env));
+    } catch (rankErr) {
+      console.warn("[cron] Scheduled rank check warning:", rankErr);
+    }
 
     // Autonomous SEO, Self-Healing Pipeline & IndexNow Scheduled Tick (Every 30 min)
     try {

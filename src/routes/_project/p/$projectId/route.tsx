@@ -85,13 +85,6 @@ function ProjectLayout() {
     return null;
   }
 
-  const location = useLocation();
-  const isSkillsHub = location.pathname.includes("/skills-hub");
-
-  if (isSkillsHub) {
-    return <Outlet />;
-  }
-
   return (
     <AuthenticatedAppLayout
       projectId={projectId}

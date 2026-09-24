@@ -179,7 +179,7 @@ export const CloudflareQuotaGuardian: React.FC<CloudflareQuotaGuardianProps> = (
         <div className="space-y-2 rounded-xl border border-zinc-200/80 dark:border-zinc-800/80 bg-zinc-50 dark:bg-zinc-900/50 p-4">
           <div className="flex items-center justify-between text-xs font-medium">
             <span className="text-zinc-600 dark:text-zinc-400">
-              {isRtl ? "عمليات قراءة الصفوف اليومية (Rows Read):" : "Daily Rows Read Operations:"}
+              {isRtl ? "عمليات قراءة الصفوف اليومية:" : "Daily Rows Read Operations:"}
             </span>
             <div className="flex items-center gap-1 font-mono">
               <span className={`font-bold ${isBlocked ? "text-amber-400" : "text-zinc-900 dark:text-zinc-100"}`}>

@@ -5,7 +5,6 @@
  */
 
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText } from "ai";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 import type { FlowNode, FlowEdge, FlowGraph, WorkflowType } from "./flowEngine";
@@ -26,7 +25,7 @@ export interface GeneratedWorkflowOutput {
 }
 
 /**
- * Resolves Gemini model provider.
+ * Resolves Gemini model provider (100% Google Gemini AI Studio).
  */
 async function resolveGeminiModel(env?: any) {
   const geminiKey =
@@ -34,14 +33,6 @@ async function resolveGeminiModel(env?: any) {
   if (geminiKey) {
     const google = createGoogleGenerativeAI({ apiKey: geminiKey });
     return google("gemini-2.0-flash");
-  }
-
-  const openrouterKey =
-    (env && env.OPENROUTER_API_KEY) ||
-    (await getOptionalEnvValue("OPENROUTER_API_KEY"));
-  if (openrouterKey) {
-    const openrouter = createOpenRouter({ apiKey: openrouterKey });
-    return openrouter("google/gemini-2.0-flash-001");
   }
 
   return null;

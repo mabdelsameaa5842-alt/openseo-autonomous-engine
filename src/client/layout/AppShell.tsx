@@ -113,13 +113,9 @@ function AuthenticatedAppLayoutInner({
     shouldCheckSeoApiKeyStatus,
   ]);
 
-  const shouldShowMissingSeoApiKeyModal =
-    showMissingSeoApiKeyModal && location.pathname !== DATAFORSEO_HELP_PATH;
-
-  const shouldShowSeoApiWarning =
-    !seoApiKeyStatusError &&
-    isSeoApiKeyConfigured === false &&
-    !shouldShowMissingSeoApiKeyModal;
+  // DataForSEO completely decommissioned in favor of Google Search Console + Analytics + Ads ($0.00 zero cost architecture)
+  const shouldShowMissingSeoApiKeyModal = false;
+  const shouldShowSeoApiWarning = false;
 
   React.useEffect(() => {
     if (!shouldShowMissingSeoApiKeyModal) return;

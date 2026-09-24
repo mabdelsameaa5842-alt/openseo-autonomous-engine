@@ -125,7 +125,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
     queryKey: ["searchPerformanceReport", projectId, timeRange],
     queryFn: () =>
       getSearchPerformanceReport({
-        data: { projectId, dateRange: "last_28_days" },
+        data: { projectId, dateRange: (timeRange as any) || "last_28_days" },
       }),
   });
 
@@ -139,7 +139,7 @@ export function VorderStudioPage({ projectId }: { projectId: string }) {
           dimension: "page",
           page: 1,
           pageSize: 100,
-          dateRange: "last_28_days",
+          dateRange: (timeRange as any) || "last_28_days",
         },
       }),
   });

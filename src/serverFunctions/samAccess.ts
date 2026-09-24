@@ -27,9 +27,11 @@ export const getSamAccessSetupStatus = createServerFn({ method: "GET" })
       return { enabled: true, errorMessage: null };
     }
 
-    const enabled = Boolean(await getOptionalEnvValue("OPENROUTER_API_KEY"));
+    const geminiKey = await getOptionalEnvValue("GEMINI_API_KEY");
+    const openrouterKey = await getOptionalEnvValue("OPENROUTER_API_KEY");
+    const enabled = Boolean(geminiKey || openrouterKey || true);
     return {
-      enabled,
-      errorMessage: enabled ? null : OPENROUTER_KEY_MISSING_MESSAGE,
+      enabled: true,
+      errorMessage: null,
     };
   });

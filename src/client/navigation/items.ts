@@ -7,6 +7,7 @@ import {
   Globe,
   LayoutDashboard,
   Link2,
+  Megaphone,
   MessageSquare,
   Search,
   Sparkles,
@@ -60,14 +61,9 @@ const projectNavItems = [
     icon: ClipboardCheck,
   },
   {
-    to: "/p/$projectId/vorder-studio" as const,
-    label: "Performance",
-    icon: Activity,
-  },
-  {
     to: "/p/$projectId/skills-hub" as const,
-    label: "AI Strategy & Skills Hub",
-    icon: Cpu,
+    label: "Organic Ads",
+    icon: Megaphone,
   },
   {
     to: "/p/$projectId/brand-lookup" as const,
@@ -118,27 +114,7 @@ export function getProjectNavGroups(projectId: string) {
     {
       label: "Growth & Performance",
       items: [
-        byPath("/p/$projectId/vorder-studio"),
         byPath("/p/$projectId/skills-hub"),
-      ],
-    },
-    {
-      label: "My Site",
-      items: [
-        byPath("/p/$projectId/search-performance"),
-        byPath("/p/$projectId/rank-tracking"),
-        byPath("/p/$projectId/saved"),
-        byPath("/p/$projectId/audit"),
-      ],
-    },
-    {
-      label: "Research",
-      items: [
-        byPath("/p/$projectId/keywords"),
-        byPath("/p/$projectId/domain"),
-        byPath("/p/$projectId/backlinks"),
-        byPath("/p/$projectId/brand-lookup"),
-        byPath("/p/$projectId/prompt-explorer"),
       ],
     },
   ];

@@ -68,6 +68,7 @@ export const getSearchPerformanceReport = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { startDate, endDate } = resolveDateRange({
       dateRange: data.dateRange,
+      dataState: "all",
     });
     const prev = previousPeriod(startDate, endDate);
     const projectId = context.projectId;
@@ -82,6 +83,7 @@ export const getSearchPerformanceReport = createServerFn({ method: "POST" })
           dimensions: ["date"],
           filters,
           rowLimit: DAILY_ROW_LIMIT,
+          dataState: "all",
         }),
         GscService.getPerformance({
           projectId,
@@ -90,6 +92,7 @@ export const getSearchPerformanceReport = createServerFn({ method: "POST" })
           dimensions: ["date"],
           filters,
           rowLimit: DAILY_ROW_LIMIT,
+          dataState: "all",
         }),
         GscService.getPerformance({
           projectId,
@@ -98,6 +101,7 @@ export const getSearchPerformanceReport = createServerFn({ method: "POST" })
           dimensions: ["query", "page"],
           filters,
           rowLimit: STRIKING_DISTANCE_FETCH_LIMIT,
+          dataState: "all",
         }),
         GscService.getPerformance({
           projectId,
@@ -106,6 +110,7 @@ export const getSearchPerformanceReport = createServerFn({ method: "POST" })
           dimensions: ["country"],
           filters: deviceFilters,
           rowLimit: COUNTRY_ROW_LIMIT,
+          dataState: "all",
         }),
       ]);
 
@@ -141,6 +146,7 @@ export const getSearchPerformanceTable = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { startDate, endDate } = resolveDateRange({
       dateRange: data.dateRange,
+      dataState: "all",
     });
     const { filters } = buildGscFilters(data);
     const offset = (data.page - 1) * data.pageSize;
@@ -155,6 +161,7 @@ export const getSearchPerformanceTable = createServerFn({ method: "POST" })
         // One extra row tells us whether a further page exists.
         rowLimit: data.pageSize + 1,
         startRow: offset,
+        dataState: "all",
       });
 
       const fetched = toDimensionRows(result.rows);

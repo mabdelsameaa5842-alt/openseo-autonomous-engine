@@ -12,6 +12,14 @@ describe("resolveDateRange", () => {
     expect(endDate).toBe("2026-05-25");
   });
 
+  it("retains fresh dates up to today when dataState is all", () => {
+    const { endDate } = resolveDateRange(
+      { dateRange: "last_28_days", dataState: "all" },
+      TODAY,
+    );
+    expect(endDate).toBe("2026-05-28");
+  });
+
   it("computes a 28-day window from the lagged end", () => {
     const { startDate, endDate } = resolveDateRange(
       { dateRange: "last_28_days" },

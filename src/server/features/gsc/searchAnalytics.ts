@@ -113,7 +113,7 @@ function sixteenMonthFloor(today: Date): string {
 /** Resolve a convenience `dateRange` or explicit start/end into GSC dates.
  *  `today` is injectable for deterministic tests. */
 export function resolveDateRange(
-  input: Pick<GscPerformanceInput, "dateRange" | "startDate" | "endDate">,
+  input: Pick<GscPerformanceInput, "dateRange" | "startDate" | "endDate" | "dataState">,
   today: Date = new Date(),
 ): { startDate: string; endDate: string } {
   const floor = sixteenMonthFloor(today);
@@ -125,7 +125,11 @@ export function resolveDateRange(
   }
 
   const end = new Date(today);
-  end.setUTCDate(end.getUTCDate() - GSC_DATA_LAG_DAYS);
+  // If dataState is NOT explicitly "all", lag 3 days to match final data behavior.
+  // When dataState is "all", allow fresh data up to today so fresh impressions are not lost.
+  if (input.dataState !== "all") {
+    end.setUTCDate(end.getUTCDate() - GSC_DATA_LAG_DAYS);
+  }
   const start = subtractRange(end, input.dateRange ?? "last_28_days");
   const startDate = formatDate(start);
   return {
@@ -141,7 +145,8 @@ export function buildSearchAnalyticsRequest(
   input: GscPerformanceInput,
   today: Date = new Date(),
 ): GscSearchAnalyticsRequest {
-  const { startDate, endDate } = resolveDateRange(input, today);
+  const dataState = input.dataState ?? "all";
+  const { startDate, endDate } = resolveDateRange({ ...input, dataState }, today);
   const request: GscSearchAnalyticsRequest = {
     startDate,
     endDate,
@@ -155,7 +160,7 @@ export function buildSearchAnalyticsRequest(
       GSC_MAX_ROW_LIMIT,
     ),
     type: input.type ?? "web",
-    dataState: input.dataState ?? "all",
+    dataState,
   };
   if (input.startRow && input.startRow > 0) {
     request.startRow = input.startRow;

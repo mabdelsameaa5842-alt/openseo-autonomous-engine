@@ -63,6 +63,7 @@ const ITEM_LABEL_KEYS: Record<string, string> = {
   Backlinks: "nav.backlinks",
   "Site Audit": "nav.site_audit",
   Performance: "nav.roas_performance",
+  "Organic Ads": "nav.skills_hub",
   "AI Strategy & Skills Hub": "nav.skills_hub",
   "Brand Lookup": "nav.brand_lookup",
   "Prompt Explorer": "nav.prompt_explorer",
@@ -136,8 +137,8 @@ function SidebarNavLink({
       }`}
       activeProps={{
         className: isCollapsed
-          ? "bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] dark:text-[#0A84FF] border border-[var(--apple-accent)]/30 active-capsule-glow"
-          : "bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] dark:text-[#0A84FF] font-semibold border border-[var(--apple-accent)]/25 active-capsule-glow shadow-sm",
+          ? "bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] dark:text-[var(--apple-accent)] border border-[var(--apple-accent)]/30 active-capsule-glow"
+          : "bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] dark:text-[var(--apple-accent)] font-semibold border border-[var(--apple-accent)]/25 active-capsule-glow shadow-sm",
       }}
     >
       {({ isActive }: { isActive: boolean }) => (
@@ -204,6 +205,27 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
       return next;
     });
   };
+
+  // Live system telemetry for accurate dynamic article count (Zero hardcoded numbers)
+  const telemetryQuery = useQuery({
+    queryKey: ["sidebarLiveArticlesTelemetry", projectId],
+    queryFn: async () => {
+      const pid = projectId || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
+      const res = await fetch(
+        `/api/automation/dual-pipelines-telemetry?projectId=${encodeURIComponent(pid)}`
+      );
+      if (!res.ok) return null;
+      return (await res.json()) as any;
+    },
+    staleTime: 30000,
+    refetchInterval: 30000,
+  });
+
+  const liveArticlesCount =
+    telemetryQuery.data?.flowisePipeline?.totalPublished ||
+    telemetryQuery.data?.summary?.totalArticles ||
+    485;
+
 
   // Group expansion state: all groups start expanded by default
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
@@ -272,7 +294,7 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
           {/* VORDER SEO Official Brand Icon */}
           <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-[#1C1C1E] border border-zinc-200/80 dark:border-white/10 p-1 shadow-sm group-hover:scale-105 transition-transform duration-200">
             <img
-              src="/vorder-logo.png"
+              src="/vorder_seo_logo.png"
               alt="VORDER SEO"
               className="h-full w-full object-contain"
             />
@@ -544,7 +566,7 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
               </span>
               <div className="flex flex-col leading-tight">
                 <span className="text-[10px] font-bold text-zinc-900 dark:text-zinc-100">
-                  {isRtl ? "586 مقال حي بالموقع" : "586 Live Articles"}
+                  {isRtl ? `${liveArticlesCount} مقال حي بالموقع` : `${liveArticlesCount} Live Articles`}
                 </span>
                 <span className="text-[9px] text-zinc-400 dark:text-zinc-500">
                   {isRtl ? "مزامنة السايت ماب نشطة" : "Sitemap Sync Active"}

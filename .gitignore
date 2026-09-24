@@ -44,3 +44,9 @@ dist-sourcemaps/
 
 # Alchemy local state + bundle artifacts (SaaS deploys)
 .alchemy/
+.env*
+
+# Local deploy scripts
+scripts/deploy_vercel_api.py
+scripts/*.py
+

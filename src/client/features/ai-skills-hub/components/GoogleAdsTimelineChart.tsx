@@ -101,8 +101,8 @@ export function GoogleAdsTimelineChart({
   const hoveredPoint = hoveredIndex !== null ? points[hoveredIndex] : null;
 
   return (
-    <div className="relative rounded-2xl border border-[#1E293B] bg-[#111827] p-5 shadow-2xl select-none">
-      {/* SVG Canvas matching Image 2 */}
+    <div className="relative rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-5 shadow-sm select-none">
+      {/* SVG Canvas */}
       <div className="relative w-full" style={{ height: `${height}px` }}>
         <svg
           viewBox={`0 0 ${width} ${height}`}
@@ -135,14 +135,15 @@ export function GoogleAdsTimelineChart({
                   y1={y}
                   x2={width - padding.right}
                   y2={y}
-                  stroke="#1E293B"
+                  stroke="currentColor"
+                  className="text-[var(--apple-border)] opacity-60"
                   strokeWidth="1"
                 />
                 <text
                   x={padding.left - 12}
                   y={y + 4}
                   textAnchor="end"
-                  className="text-[11px] font-mono fill-[#64748B]"
+                  className="text-[11px] font-mono fill-[var(--apple-text-secondary)] opacity-75"
                 >
                   {val}
                 </text>
@@ -196,9 +197,23 @@ export function GoogleAdsTimelineChart({
             className="drop-shadow-[0_0_8px_rgba(59,130,246,0.6)]"
           />
 
-          {/* X-Axis Date Labels */}
+          {/* X-Axis Date Labels: evenly spaced 6-8 ticks */}
           {points.map((p, idx) => {
+            const step = Math.max(1, Math.floor(points.length / 7));
+            const isTick = idx % step === 0 || idx === points.length - 1;
+            if (!isTick) return null;
+
             const x = getX(idx);
+            let displayDate = p.date;
+            try {
+              if (p.date.includes("-")) {
+                const dateObj = new Date(p.date);
+                displayDate = dateObj.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+              }
+            } catch {
+              displayDate = p.date;
+            }
+
             return (
               <text
                 key={idx}
@@ -207,7 +222,7 @@ export function GoogleAdsTimelineChart({
                 textAnchor="middle"
                 className="text-[11px] font-mono fill-[#64748B]"
               >
-                {p.date}
+                {displayDate}
               </text>
             );
           })}
@@ -266,25 +281,25 @@ export function GoogleAdsTimelineChart({
         {/* Floating Tooltip */}
         {hoveredPoint && hoveredIndex !== null && (
           <div
-            className="pointer-events-none absolute z-20 rounded-xl border border-[#334155] bg-[#0F172A]/95 p-3 shadow-2xl backdrop-blur-xl text-xs text-white transition-all duration-75"
+            className="pointer-events-none absolute z-20 rounded-xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-3 shadow-xl backdrop-blur-xl text-xs text-[var(--apple-text-primary)] transition-all duration-75"
             style={{
               left: `${Math.min(Math.max(8, (getX(hoveredIndex) / width) * 100), 80)}%`,
               top: "15px",
             }}
           >
-            <div className="font-mono text-[11px] text-[#94A3B8] pb-1.5 mb-1.5 border-b border-[#334155]">
+            <div className="font-mono text-[11px] text-[var(--apple-text-secondary)] pb-1.5 mb-1.5 border-b border-[var(--apple-border)]">
               {hoveredPoint.date}
             </div>
             <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between gap-4 font-semibold text-[#60A5FA]">
+              <div className="flex items-center justify-between gap-4 font-semibold text-[#97233A] dark:text-[#E15B75]">
                 <span>Clicks:</span>
                 <span className="font-mono">{hoveredPoint.clicks}</span>
               </div>
-              <div className="flex items-center justify-between gap-4 font-semibold text-[#F87171]">
+              <div className="flex items-center justify-between gap-4 font-semibold text-blue-600 dark:text-sky-400">
                 <span>Impressions:</span>
                 <span className="font-mono">{hoveredPoint.impressions}</span>
               </div>
-              <div className="flex items-center justify-between gap-4 font-semibold text-[#34D399] pt-1 border-t border-[#334155]">
+              <div className="flex items-center justify-between gap-4 font-semibold text-emerald-600 dark:text-emerald-400 pt-1 border-t border-[var(--apple-border)]">
                 <span>GEO Indexing:</span>
                 <span className="font-mono">98.4%</span>
               </div>
