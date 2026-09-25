@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { linkOptions } from "@tanstack/react-router";
 import { GoogleGlyphMuted } from "@/client/features/gsc/GoogleGlyph";
+import { VorderOrganicAdsIcon } from "@/client/components/BrandLogos";
 
 const projectNavItems = [
   {
@@ -63,7 +64,7 @@ const projectNavItems = [
   {
     to: "/p/$projectId/skills-hub" as const,
     label: "Organic Ads",
-    icon: Megaphone,
+    icon: VorderOrganicAdsIcon,
   },
   {
     to: "/p/$projectId/brand-lookup" as const,

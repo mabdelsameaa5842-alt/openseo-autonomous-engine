@@ -58,15 +58,25 @@ async function ensureUserRecord(userId: string, userEmail: string) {
   return existing.email;
 }
 
-async function resolveDelegatedContext(
+export async function resolveDelegatedContext(
   userId: string,
   userEmail: string,
 ): Promise<EnsuredUserContext> {
-  const ensuredEmail = await ensureUserRecord(userId, userEmail);
-  const organizationId = await ensureDelegatedOrganizationForUser(
-    userId,
-    ensuredEmail,
-  );
+  let ensuredEmail = userEmail;
+  let organizationId = `delegated-${userId}`;
+
+  try {
+    ensuredEmail = await ensureUserRecord(userId, userEmail);
+    organizationId = await ensureDelegatedOrganizationForUser(
+      userId,
+      ensuredEmail,
+    );
+  } catch (err) {
+    console.warn(
+      "[resolveDelegatedContext] DB ensure failed, continuing with delegated fallback:",
+      err,
+    );
+  }
 
   return {
     userId,

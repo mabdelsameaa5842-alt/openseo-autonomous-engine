@@ -5,57 +5,13 @@ import { Sidebar } from "@/client/components/Sidebar";
 import { dataforseoHelpLinkOptions } from "@/client/navigation/items";
 
 function SeoApiStatusBanners({
-  shouldShowSeoApiWarning,
-  seoApiKeyStatusError,
+  shouldShowSeoApiWarning: _shouldShowSeoApiWarning,
+  seoApiKeyStatusError: _seoApiKeyStatusError,
 }: {
   shouldShowSeoApiWarning: boolean;
   seoApiKeyStatusError: boolean;
 }) {
-  return (
-    <>
-      {shouldShowSeoApiWarning ? (
-        <div className="shrink-0 px-4 py-2.5 md:px-6">
-          <div className="mx-auto max-w-7xl">
-            <div className="alert alert-warning">
-              <AlertTriangle className="size-4 shrink-0" />
-              <span className="text-sm">
-                Setup needed: add your DataForSEO API key to use OpenSEO
-                features. See the quick steps on the{" "}
-                <Link
-                  {...dataforseoHelpLinkOptions}
-                  className="link link-primary font-medium"
-                >
-                  help page
-                </Link>
-                .
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {seoApiKeyStatusError ? (
-        <div className="shrink-0 px-4 py-2.5 md:px-6">
-          <div className="mx-auto max-w-7xl">
-            <div className="alert alert-info">
-              <AlertTriangle className="size-4 shrink-0" />
-              <span className="text-sm">
-                We could not verify your DataForSEO setup. If features are not
-                working, check the setup steps on the{" "}
-                <Link
-                  {...dataforseoHelpLinkOptions}
-                  className="link link-primary font-medium"
-                >
-                  help page
-                </Link>
-                .
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : null}
-    </>
-  );
+  return null;
 }
 
 function MobileSidebarDrawer({

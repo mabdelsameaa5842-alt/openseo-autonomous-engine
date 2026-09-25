@@ -134,23 +134,23 @@ export const VORDER_OFFICE_AGENTS: VorderAgentConfig[] = [
     hair: 0x4E342E,
     shirt: 0x4527A0,
     pants: 0x1a1a2e,
-    avatarUrl: '/game-assets/avatars/agent_08_nadine.png',
+    avatarUrl: '/game-assets/avatars/agent_04_ziad.png',
     metrics: 'تحويل سلات الشراء +34%',
   },
   {
     id: 8,
-    name: 'زياد الخطيب',
-    nameEn: 'Ziad El-Khatib',
-    role: 'مخطط الحملات والاستقبال التكتيكي',
-    roleEn: 'Campaign Planner & Office Host',
+    name: 'زياد عمران / الخطيب',
+    nameEn: 'Ziad Omran / El-Khatib',
+    role: 'المشرف العام وحارس الجودة وسجل المهام',
+    roleEn: 'QA Sentinel & Host',
     color: 0x448AFF,
     hex: '#448AFF',
-    screen: 'map',
+    screen: 'bugs',
     hair: 0x3E2723,
     shirt: 0x1565C0,
     pants: 0x263238,
     avatarUrl: '/game-assets/avatars/agent_09_rami.png',
-    metrics: 'استهداف 10 مدن رئيسية • مكتب الاستقبال',
+    metrics: 'التدقيق الجنائي 360° • فحص الروابط والأمن SSL',
   },
 ];
 
@@ -193,16 +193,18 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   renderer.toneMappingExposure = 1.3;
   container.appendChild(renderer.domElement);
 
-  // 2. Camera Orbit Controls
+  // 2. Camera Orbit & Pan Controls (Fully Fixed: Drag-vs-Click suppression & Right-Click Pan)
   let isDrag = false;
+  let isPan = false;
+  let pointerDownPos = { x: 0, y: 0 };
   let prev = { x: 0, y: 0 };
   const sph = { theta: Math.PI / 4.5, phi: Math.PI / 4.5, radius: 34 };
   const tgt = new THREE.Vector3(0, 1.8, 0);
-  let autoRot = true;
+  let autoRot = false;
   let autoTmr: any = null;
 
   function updCam() {
-    const p = Math.max(0.18, Math.min(Math.PI / 2.3, sph.phi));
+    const p = Math.max(0.18, Math.min(Math.PI / 2.25, sph.phi));
     sph.phi = p;
     camera.position.set(
       sph.radius * Math.sin(p) * Math.sin(sph.theta) + tgt.x,
@@ -215,30 +217,61 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
 
   const onPointerDown = (e: PointerEvent) => {
     isDrag = true;
+    pointerDownPos = { x: e.clientX, y: e.clientY };
+    isPan = (e.button === 2) || (e.button === 1) || e.shiftKey;
     prev = { x: e.clientX, y: e.clientY };
     autoRot = false;
     clearTimeout(autoTmr);
   };
+
   const onPointerUp = () => {
     isDrag = false;
-    autoTmr = setTimeout(() => { autoRot = true; }, 6000);
+    isPan = false;
+    autoTmr = setTimeout(() => { autoRot = false; }, 8000);
   };
+
   const onPointerMove = (e: PointerEvent) => {
     if (!isDrag) return;
-    sph.theta -= (e.clientX - prev.x) * 0.005;
-    sph.phi += (e.clientY - prev.y) * 0.005;
+    const dx = e.clientX - prev.x;
+    const dy = e.clientY - prev.y;
+
+    if (isPan) {
+      // Pan camera target along horizontal camera plane
+      const rightX = Math.cos(sph.theta);
+      const rightZ = -Math.sin(sph.theta);
+      const fwdX = -Math.sin(sph.theta);
+      const fwdZ = -Math.cos(sph.theta);
+      const panSpeed = 0.022 * (sph.radius / 30);
+      tgt.x -= (dx * rightX - dy * fwdX) * panSpeed;
+      tgt.z -= (dx * rightZ - dy * fwdZ) * panSpeed;
+      tgt.x = Math.max(-14, Math.min(14, tgt.x));
+      tgt.z = Math.max(-12, Math.min(12, tgt.z));
+    } else {
+      // Orbit camera
+      sph.theta -= dx * 0.005;
+      sph.phi = Math.max(0.18, Math.min(Math.PI / 2.25, sph.phi + dy * 0.005));
+    }
+
     prev = { x: e.clientX, y: e.clientY };
     updCam();
   };
+
   const onWheel = (e: WheelEvent) => {
-    sph.radius = Math.max(16, Math.min(50, sph.radius + e.deltaY * 0.03));
+    e.preventDefault();
+    const delta = Math.sign(e.deltaY) * Math.min(Math.abs(e.deltaY) * 0.02, 2.2);
+    sph.radius = Math.max(12, Math.min(48, sph.radius + delta));
     updCam();
+  };
+
+  const onContextMenu = (e: MouseEvent) => {
+    e.preventDefault(); // Prevent right-click context menu when panning
   };
 
   renderer.domElement.addEventListener('pointerdown', onPointerDown);
   window.addEventListener('pointerup', onPointerUp);
   window.addEventListener('pointermove', onPointerMove);
-  renderer.domElement.addEventListener('wheel', onWheel, { passive: true });
+  renderer.domElement.addEventListener('wheel', onWheel, { passive: false });
+  renderer.domElement.addEventListener('contextmenu', onContextMenu);
 
   // 3. Lighting
   const ambient = new THREE.AmbientLight(0xffffff, 0.75);
@@ -272,9 +305,9 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   fl.receiveShadow = true;
   office.add(fl);
 
-  // Carpet
-  const cp = new THREE.Mesh(new THREE.BoxGeometry(10, 0.02, 8), M(0xD0D8E0));
-  cp.position.set(-3, 0.01, 0);
+  // Carpet for open workstation bay
+  const cp = new THREE.Mesh(new THREE.BoxGeometry(11, 0.02, 11), M(0xD0D8E0));
+  cp.position.set(-4, 0.01, 1.5);
   cp.receiveShadow = true;
   office.add(cp);
 
@@ -313,7 +346,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // MEETING ROOM (Right side)
+  // MEETING ROOM (Right side / East)
   // ═══════════════════════════════════════════════════
   const MRX = 8, MRZ = -3;
   const mrGlass = Glass();
@@ -404,21 +437,22 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   office.add(wbm);
 
   // ═══════════════════════════════════════════════════
-  // DESK POSITIONS
+  // DESK POSITIONS (Complete 3x3 Symmetrical Layout for all 9 Agents)
   // ═══════════════════════════════════════════════════
   const desks = [
-    { x: -8, z: -3 },  // Tariq (RONIN position)
-    { x: -4, z: -3 },  // Yasmine (SAGE)
-    { x: -8, z: 1.5 }, // Karim (CIPHER)
-    { x: -4, z: 1.5 }, // Sara (MUSE)
-    { x: 0,  z: -3 },  // Ziad (ATLAS)
-    { x: 0,  z: 1.5 }, // Omar (FORGE)
-    { x: -8, z: 6 },   // Nour (ECHO)
-    { x: -4, z: 6 },   // Layla (SPARK)
+    { x: -8, z: -3 },  // Desk 0: Tariq (North-West)
+    { x: -4, z: -3 },  // Desk 1: Sara (North-Center)
+    { x: 0,  z: -3 },  // Desk 2: Yasmine (North-East)
+    { x: -8, z: 1.5 }, // Desk 3: Omar (Mid-West)
+    { x: -4, z: 1.5 }, // Desk 4: Karim (Mid-Center)
+    { x: 0,  z: 1.5 }, // Desk 5: Layla (Mid-East)
+    { x: -8, z: 6 },   // Desk 6: Faris (South-West)
+    { x: -4, z: 6 },   // Desk 7: Nour (South-Center)
+    { x: 0,  z: 6 },   // Desk 8: Ziad Omran (South-East - 9th Workstation!)
   ];
 
   // ═══════════════════════════════════════════════════
-  // CHARACTER BUILDER (Standing & Sitting Voxels)
+  // CHARACTER BUILDER (Standing & Sitting Voxels with Typing Arms)
   // ═══════════════════════════════════════════════════
   function buildChar(agent: VorderAgentConfig, standing = false) {
     const g = new THREE.Group();
@@ -454,14 +488,18 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       col.position.set(0, 0.74, 0);
       g.add(col);
 
-      // Arms hanging
+      // Arms hanging with walking swing references
       [-1, 1].forEach((s) => {
+        const armGroup = new THREE.Group();
+        armGroup.position.set(s * 0.2, 0.65, 0);
         const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.08), M(agent.shirt));
-        arm.position.set(s * 0.2, 0.5, 0);
-        g.add(arm);
+        arm.position.set(0, -0.15, 0);
+        armGroup.add(arm);
         const hand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.08, 0.07), M(skin));
-        hand.position.set(s * 0.2, 0.32, 0);
-        g.add(hand);
+        hand.position.set(0, -0.32, 0);
+        armGroup.add(hand);
+        armGroup.userData = { isWalkerArm: true, phase: s > 0 ? 0 : Math.PI };
+        g.add(armGroup);
       });
 
       // Head
@@ -493,7 +531,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       badge.position.set(0.16, 0.65, 0.07);
       g.add(badge);
     } else {
-      // Sitting character facing -Z (toward monitor)
+      // Sitting character facing -Z (toward monitor and keyboard)
       // Thighs
       [-1, 1].forEach((s) => {
         const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.1, 0.22), M(agent.pants));
@@ -522,14 +560,18 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       col.position.set(0, 0.77, 0);
       g.add(col);
 
-      // Arms typing
+      // Arms typing actively on keyboard (procedural typing animation references)
       [-1, 1].forEach((s) => {
-        const ua = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.2, 0.08), M(agent.shirt));
-        ua.position.set(s * 0.2, 0.6, -0.04);
-        g.add(ua);
-        const fa = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.2), M(skin));
-        fa.position.set(s * 0.2, 0.52, -0.18);
-        g.add(fa);
+        const armGroup = new THREE.Group();
+        armGroup.position.set(s * 0.2, 0.62, -0.04);
+        const ua = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.08), M(agent.shirt));
+        ua.position.set(0, -0.06, -0.04);
+        armGroup.add(ua);
+        const fa = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.18), M(skin));
+        fa.position.set(0, -0.12, -0.14);
+        armGroup.add(fa);
+        armGroup.userData = { isTypingArm: true, side: s };
+        g.add(armGroup);
       });
 
       // Head
@@ -566,12 +608,12 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // BUILD WORKSTATIONS FOR 8 AGENTS
+  // BUILD WORKSTATIONS FOR ALL 9 AGENTS (No Agent Left Behind!)
   // ═══════════════════════════════════════════════════
   const screenData: any[] = [];
   const agentData: any[] = [];
 
-  VORDER_OFFICE_AGENTS.slice(0, 8).forEach((agent, idx) => {
+  VORDER_OFFICE_AGENTS.forEach((agent, idx) => {
     const dp = desks[idx];
     const ax = dp.x, az = dp.z;
 
@@ -650,7 +692,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     });
 
     // Desk Underglow
-    const dGlow = new THREE.PointLight(agent.color, 0.2, 2.5, 2);
+    const dGlow = new THREE.PointLight(agent.color, 0.22, 2.5, 2);
     dGlow.position.set(ax, 0.3, az);
     office.add(dGlow);
 
@@ -660,29 +702,53 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     sittingChar.userData = { agentId: agent.id };
     office.add(sittingChar);
 
-    // Floating Sprite Label (ALWAYS faces camera, never mirrored!)
+    // Dynamic Overhead Holographic Billboard Sprite (Name + Role + Duty % Progress)
     const lc = document.createElement('canvas');
     lc.width = 256;
-    lc.height = 64;
+    lc.height = 72;
     const lctx = lc.getContext('2d');
-    if (lctx) {
-      lctx.clearRect(0, 0, 256, 64);
-      lctx.font = 'bold 20px Tajawal, Cairo, sans-serif';
-      lctx.textAlign = 'center';
-      lctx.fillStyle = agent.hex;
-      lctx.shadowColor = agent.hex;
-      lctx.shadowBlur = 8;
-      lctx.fillText(agent.name, 128, 26);
-      lctx.shadowBlur = 0;
-      lctx.font = '12px Tajawal, sans-serif';
-      lctx.fillStyle = 'rgba(200, 220, 240, 0.85)';
-      lctx.fillText(agent.role.slice(0, 22), 128, 48);
-    }
     const lTex = new THREE.CanvasTexture(lc);
     lTex.minFilter = THREE.LinearFilter;
+
+    function renderLabelCanvas(progressPct: number, statusBadge: string) {
+      if (!lctx) return;
+      lctx.clearRect(0, 0, 256, 72);
+
+      // Background rounded pill
+      lctx.fillStyle = 'rgba(8, 16, 32, 0.85)';
+      lctx.beginPath();
+      lctx.roundRect(4, 4, 248, 64, 12);
+      lctx.fill();
+      lctx.strokeStyle = agent.hex;
+      lctx.lineWidth = 1.5;
+      lctx.stroke();
+
+      // Agent Name
+      lctx.font = 'bold 18px Tajawal, Cairo, sans-serif';
+      lctx.textAlign = 'center';
+      lctx.fillStyle = agent.hex;
+      lctx.fillText(agent.name, 128, 26);
+
+      // Progress bar fill
+      const barW = 180, barH = 5;
+      const barX = (256 - barW) / 2;
+      const barY = 34;
+      lctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
+      lctx.fillRect(barX, barY, barW, barH);
+      lctx.fillStyle = agent.hex;
+      lctx.fillRect(barX, barY, (barW * Math.min(100, Math.max(0, progressPct))) / 100, barH);
+
+      // Duty Status Text
+      lctx.font = '11px Tajawal, sans-serif';
+      lctx.fillStyle = 'rgba(220, 235, 255, 0.95)';
+      lctx.fillText(statusBadge, 128, 56);
+      lTex.needsUpdate = true;
+    }
+    renderLabelCanvas(85, '● يعمل بتركيز (85%)');
+
     const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, transparent: true, depthTest: false }));
-    label.scale.set(1.4, 0.35, 1);
-    label.position.set(ax, 1.8, az + 0.55);
+    label.scale.set(1.5, 0.42, 1);
+    label.position.set(ax, 1.85, az + 0.55);
     office.add(label);
 
     // Standing Walker Character (hidden initially)
@@ -695,10 +761,11 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       sittingChar,
       walker,
       label,
+      renderLabelCanvas,
       dGlow,
       home: { x: ax, z: az + 0.55 },
       state: 'sitting',
-      timer: 4 + rng.r(0, 12),
+      timer: 3 + rng.r(0, 6),
       walkTarget: null,
       walkPause: 0,
       agent,
@@ -706,7 +773,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   });
 
   // ═══════════════════════════════════════════════════
-  // RECEPTION DESK & AGENT 9 (فارس النجار)
+  // RECEPTION DESK (East Side Entrance Checkpoint)
   // ═══════════════════════════════════════════════════
   const reception = new THREE.Group();
   const RCX = 8, RCZ = 6.5;
@@ -729,12 +796,12 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     lctx.fillStyle = '#1A2A3A';
     lctx.fillRect(0, 0, 256, 90);
     lctx.fillStyle = '#0DEEF3';
-    lctx.font = 'bold 28px monospace';
+    lctx.font = 'bold 26px monospace';
     lctx.textAlign = 'center';
-    lctx.fillText('◈ VORDER SEO ◈', 128, 40);
+    lctx.fillText('◈ VORDER SEO ◈', 128, 38);
     lctx.fillStyle = '#FFFFFF';
-    lctx.font = '14px sans-serif';
-    lctx.fillText('AUTONOMOUS AI SUITE', 128, 68);
+    lctx.font = '13px sans-serif';
+    lctx.fillText('AUTONOMOUS AI SUITE', 128, 66);
   }
   const logoTex = new THREE.CanvasTexture(logoCanvas);
   logoTex.minFilter = THREE.LinearFilter;
@@ -747,40 +814,10 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   rcLight.position.set(RCX, 0.1, RCZ + 0.5);
   reception.add(rcLight);
 
-  // Reception monitor
-  const rcMonBody = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.4, 0.03), M(0x2A2A2A));
+  // Reception terminal monitor
+  const rcMonBody = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.42, 0.03), M(0x2A2A2A));
   rcMonBody.position.set(RCX - 0.4, 1.35, RCZ + 0.08);
   reception.add(rcMonBody);
-
-  // Faris Al-Tariq sitting behind reception desk
-  const farisAgent = VORDER_OFFICE_AGENTS[8];
-  const farisChar = buildChar(farisAgent, false);
-  farisChar.position.set(RCX - 0.4, 0, RCZ - 0.4);
-  farisChar.rotation.y = Math.PI;
-  farisChar.userData = { agentId: 8 };
-  reception.add(farisChar);
-
-  // Faris Label
-  const nxLC = document.createElement('canvas');
-  nxLC.width = 256;
-  nxLC.height = 64;
-  const nxCtx = nxLC.getContext('2d');
-  if (nxCtx) {
-    nxCtx.clearRect(0, 0, 256, 64);
-    nxCtx.font = 'bold 20px Tajawal, Cairo, sans-serif';
-    nxCtx.textAlign = 'center';
-    nxCtx.fillStyle = '#CCDDEE';
-    nxCtx.fillText(farisAgent.name, 128, 26);
-    nxCtx.font = '12px Tajawal, sans-serif';
-    nxCtx.fillStyle = 'rgba(200, 220, 240, 0.85)';
-    nxCtx.fillText(farisAgent.role.slice(0, 24), 128, 48);
-  }
-  const nxTex = new THREE.CanvasTexture(nxLC);
-  nxTex.minFilter = THREE.LinearFilter;
-  const nxLabel = new THREE.Sprite(new THREE.SpriteMaterial({ map: nxTex, transparent: true, depthTest: false }));
-  nxLabel.scale.set(1.4, 0.35, 1);
-  nxLabel.position.set(RCX - 0.4, 1.8, RCZ - 0.4);
-  reception.add(nxLabel);
 
   office.add(reception);
 
@@ -831,7 +868,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     'كريم حدّث السايت ماب مع جوجل ⚡',
     'ترتيب الكلمات صاعد بثبات 🎯',
     'استجابة السيرفر فائقة السرعة 9ms ⚡',
-    'مين جاهز لاجتماع القيادة القادم؟ ☕',
+    'زياد دقق شهادات SSL وسلامة الروابط 🔒',
   ];
 
   function createBubble(x: number, y: number, z: number, text: string, color: string) {
@@ -901,15 +938,17 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // WALKING ENGINE
+  // WALKING & PATROL ENGINE (All 9 Agents Active!)
   // ═══════════════════════════════════════════════════
   const walkDestinations = [
     { x: 2, z: 7.5 },
-    { x: -10, z: 0 },
-    { x: -2, z: -7 },
-    { x: 4, z: 5 },
-    { x: -6, z: 7 },
-    { x: 3, z: 0 },
+    { x: -10, z: 0 },   // Water cooler
+    { x: -2, z: -7 },  // North window terrace
+    { x: 4, z: 5 },    // Hallway
+    { x: -6, z: 7 },   // South corridor
+    { x: 3, z: 0 },    // Central lounge
+    { x: 8, z: 6.0 },  // Reception desk inspection (Special patrol for Ziad & others)
+    { x: 10.5, z: 6 }, // Lounge sofa
   ];
 
   function updateWalkers(delta: number) {
@@ -921,17 +960,25 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
           ad.sittingChar.visible = false;
           ad.walker.visible = true;
           ad.walker.position.set(ad.home.x, 0, ad.home.z);
-          const dest = rng.pick(walkDestinations);
-          ad.walkTarget = { x: dest.x + rng.r(-0.5, 0.5), z: dest.z + rng.r(-0.5, 0.5) };
+
+          // Ziad (id: 8) often inspects the reception desk or other agent desks
+          let dest: { x: number; z: number };
+          if (ad.agent.id === 8 && rng.n() > 0.4) {
+            dest = rng.n() > 0.5 ? { x: 8, z: 6.0 } : rng.pick(desks);
+          } else {
+            dest = rng.pick(walkDestinations);
+          }
+
+          ad.walkTarget = { x: dest.x + rng.r(-0.4, 0.4), z: dest.z + rng.r(-0.4, 0.4) };
           ad.walkPause = 0;
         }
       } else if (ad.state === 'walking_out') {
         const dx = ad.walkTarget.x - ad.walker.position.x;
         const dz = ad.walkTarget.z - ad.walker.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < 0.2) {
+        if (dist < 0.25) {
           ad.walkPause += delta;
-          if (ad.walkPause > 2 + rng.r(0, 2)) {
+          if (ad.walkPause > 3 + rng.r(0, 3)) {
             ad.state = 'walking_back';
           }
         } else {
@@ -946,21 +993,25 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
             if (c.userData && c.userData.isLeg) {
               c.position.z = Math.sin(t + c.userData.phase) * 0.08;
             }
+            if (c.userData && c.userData.isWalkerArm) {
+              c.rotation.x = Math.sin(t + c.userData.phase) * 0.35;
+            }
           });
         }
-        ad.label.position.set(ad.walker.position.x, 1.3, ad.walker.position.z);
+        ad.label.position.set(ad.walker.position.x, 1.4, ad.walker.position.z);
       } else if (ad.state === 'walking_back') {
         const dx = ad.home.x - ad.walker.position.x;
         const dz = ad.home.z - ad.walker.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < 0.2) {
+        if (dist < 0.25) {
           ad.state = 'sitting';
           ad.walker.visible = false;
           ad.sittingChar.visible = true;
-          ad.label.position.set(ad.home.x, 1.8, ad.home.z);
-          ad.timer = 6 + rng.r(0, 14);
+          ad.label.position.set(ad.home.x, 1.85, ad.home.z);
+          ad.timer = 8 + rng.r(0, 18);
           ad.walker.children.forEach((c: any) => {
             if (c.userData && c.userData.isLeg) c.position.z = 0;
+            if (c.userData && c.userData.isWalkerArm) c.rotation.x = 0;
           });
         } else {
           const speed = 1.6 * delta;
@@ -971,10 +1022,15 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
 
           const t = performance.now() * 0.01;
           ad.walker.children.forEach((c: any) => {
-            if (c.userData && c.userData.isLeg) c.position.z = Math.sin(t + c.userData.phase) * 0.08;
+            if (c.userData && c.userData.isLeg) {
+              c.position.z = Math.sin(t + c.userData.phase) * 0.08;
+            }
+            if (c.userData && c.userData.isWalkerArm) {
+              c.rotation.x = Math.sin(t + c.userData.phase) * 0.35;
+            }
           });
         }
-        ad.label.position.set(ad.walker.position.x, 1.3, ad.walker.position.z);
+        ad.label.position.set(ad.walker.position.x, 1.4, ad.walker.position.z);
       }
     });
   }
@@ -995,19 +1051,19 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   });
 
   function updateMeeting(minutes: number) {
-    const shouldMeet = (minutes >= 600 && minutes <= 630) || (minutes >= 840 && minutes <= 870);
+    // Meeting occurs during sync phase: last 2 minutes of 30-min cadence (min 28-30 or 58-60)
+    const cycleMin = minutes % 30;
+    const shouldMeet = cycleMin >= 28 && cycleMin <= 30;
+
     if (shouldMeet && !inMeeting) {
       inMeeting = true;
       if (onMeetingChange) onMeetingChange(true);
       meetChars.forEach((c) => { c.visible = true; });
       agentData.slice(0, 6).forEach((ad) => {
-        if (ad.state !== 'sitting') {
-          ad.walker.visible = false;
-          ad.sittingChar.visible = false;
-        } else {
-          ad.sittingChar.visible = false;
-        }
+        ad.walker.visible = false;
+        ad.sittingChar.visible = false;
         ad.state = 'meeting';
+        ad.renderLabelCanvas(100, '📋 اجتماع القيادة والمزامنة');
       });
     } else if (!shouldMeet && inMeeting) {
       inMeeting = false;
@@ -1016,18 +1072,18 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       agentData.slice(0, 6).forEach((ad) => {
         ad.state = 'sitting';
         ad.sittingChar.visible = true;
-        ad.label.position.set(ad.home.x, 1.8, ad.home.z);
-        ad.timer = 3 + rng.r(0, 6);
+        ad.label.position.set(ad.home.x, 1.85, ad.home.z);
+        ad.timer = 5 + rng.r(0, 10);
       });
     }
   }
 
   // ═══════════════════════════════════════════════════
-  // SCREEN ANIMATIONS (Live Data Drawing)
+  // SCREEN ANIMATIONS (Live Data Drawing on Curved Screens)
   // ═══════════════════════════════════════════════════
   let frame = 0;
   function drawScreen(s: any) {
-    const { ctx: c, canvas: cv, type, hex } = s;
+    const { ctx: c, canvas: cv, type, hex, agent } = s;
     const w = cv.width, h = cv.height;
     c.fillStyle = '#0D1117';
     c.fillRect(0, 0, w, h);
@@ -1120,35 +1176,62 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       ['# CRO Research', '', '> Salla & Zid Funnels', '  +34% Cart Conversion', '', '## Key Signals', '- Free D1 engine'].forEach((l, i) => c.fillText(l, 14, 20 + i * 7));
     } else if (type === 'bugs') {
       c.font = '6px monospace';
-      [['● PASS 100%', hex], ['● PASS GSC', '#00E676'], ['● PASS D1', hex], ['● AUDIT OK', '#00E676']].forEach(([txt, cl], i) => {
-        c.fillStyle = cl;
-        c.fillText(txt, 10, 14 + i * 14);
-      });
+      if (agent.id === 8) {
+        // Ziad Omran Watchdog 360 & Forensic QA terminal
+        c.fillStyle = hex;
+        c.fillText('WATCHDOG 360 // QA HOST', 6, 12);
+        [['✓ SSL CERT: VALID', '#00E676'], ['✓ D1 INTEGRITY: 100%', hex], ['✓ ANOMALIES: 0', '#00E676'], ['✓ LOGS: PERSISTED', hex]].forEach(([txt, cl], i) => {
+          c.fillStyle = cl;
+          c.fillText(txt, 6, 26 + i * 12);
+        });
+      } else {
+        [['● PASS 100%', hex], ['● PASS GSC', '#00E676'], ['● PASS D1', hex], ['● AUDIT OK', '#00E676']].forEach(([txt, cl], i) => {
+          c.fillStyle = cl;
+          c.fillText(txt, 10, 14 + i * 14);
+        });
+      }
     }
     c.globalAlpha = 1;
     s.tex.needsUpdate = true;
   }
 
   // ═══════════════════════════════════════════════════
-  // 24-HOUR TIME PROGRESSION & DAY/NIGHT LIGHTS
+  // 24-HOUR TIME PROGRESSION & DUTY/REST CADENCE
   // ═══════════════════════════════════════════════════
-  let timeOfDay = 600; // 10:00 AM default
+  let timeOfDay = 540; // 9:00 AM Default (Busy Morning, Everyone at Desks)
   const getArabicStatus = (m: number) => {
-    if (m < 360) return 'الوردية الليلية · استراتيجية VORDER المستقلة';
+    const cycleMin = m % 30;
+    if (cycleMin >= 28) return '📋 اجتماع القيادة والمزامنة التكتيكية (غرفة الاجتماعات)';
+    if (cycleMin >= 24) return '☕ استراحة القهوة والتدخين واللاونج';
+    if (m < 360) return 'الوردية الليلية · حراسة قواعد D1 المستقلة ($0.00)';
     if (m < 540) return 'توافد الوكلاء الصباحي ومزامنة الكونسول';
-    if (m >= 600 && m <= 630) return 'اجتماع القيادة التكتيكية جارٍ الآن (غرفة الاجتماعات)';
-    if (m < 720) return 'العمل العميق · جميع الوكلاء الـ 9 متصلون';
-    if (m < 780) return 'استراحة القهوة والغداء في شرفة اللاونج';
-    if (m >= 840 && m <= 870) return 'مراجعة أداء السبرنت والأرشفة الدورية';
-    if (m < 1020) return 'تركيز ما بعد الظهيرة وتحسين المقالات';
-    if (m < 1140) return 'مراجعة ختام اليوم والنسخ الاحتياطي';
-    return 'الوردية الليلية · حراسة قواعد D1 ($0.00)';
+    if (m < 720) return 'العمل العميق · جميع الوكلاء الـ 9 متصلون وينفذون المهام';
+    if (m < 780) return 'استراحة الظهيرة ومراجعة عوائد سلة وزد';
+    if (m < 1020) return 'تركيز ما بعد الظهيرة وصياغة المقالات التكتيكية';
+    return 'الوردية المسائية · أرشفة المقالات والتحقق الجنائي 360°';
   };
 
   function updateTime(min: number) {
     timeOfDay = min;
     if (onTimeUpdate) onTimeUpdate(min);
     if (onStatusUpdate) onStatusUpdate(getArabicStatus(min));
+
+    // Update duty/rest progress billboards
+    const cycleMin = min % 30;
+    const isBreak = cycleMin >= 24 && cycleMin < 28;
+    const isMeet = cycleMin >= 28;
+    const progressPct = isBreak || isMeet ? 100 : Math.min(100, Math.floor((cycleMin / 24) * 100));
+
+    agentData.forEach((ad) => {
+      if (isMeet) {
+        ad.renderLabelCanvas(100, '📋 اجتماع القيادة');
+      } else if (isBreak) {
+        const rem = Math.ceil(28 - cycleMin);
+        ad.renderLabelCanvas(100, `☕ استراحة (${rem}د متبقية)`);
+      } else {
+        ad.renderLabelCanvas(progressPct, `● يعمل بتركيز (${progressPct}%)`);
+      }
+    });
 
     let df: number;
     if (min < 360) df = 0.3;
@@ -1165,7 +1248,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
 
     const nightF = 1 - df;
     agentData.forEach((a) => {
-      a.dGlow.intensity = 0.15 + nightF * 0.3;
+      a.dGlow.intensity = 0.18 + nightF * 0.3;
     });
     updateMeeting(min);
   }
@@ -1181,12 +1264,12 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       sun.intensity = 0.08;
       renderer.toneMappingExposure = 0.55;
       agentData.forEach((a) => {
-        a.dGlow.intensity = 0.9;
-        a.dGlow.distance = 4.5;
+        a.dGlow.intensity = 0.95;
+        a.dGlow.distance = 4.8;
       });
       fl.material.color.set(0x060C18);
       cp.material.color.set(0x080E1A);
-      rcLight.intensity = 0.8;
+      rcLight.intensity = 0.85;
     } else {
       updateTime(timeOfDay);
       fl.material.color.set(0xE8E8E8);
@@ -1196,12 +1279,16 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // RAYCASTER AGENT CLICK SELECTION
+  // RAYCASTER AGENT CLICK SELECTION (Suppressed on drag > 6px)
   // ═══════════════════════════════════════════════════
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
   const handlePointerDownRaycast = (event: MouseEvent) => {
+    if (event.button !== 0) return; // Only trigger on Left Click
+    const dist = Math.hypot(event.clientX - pointerDownPos.x, event.clientY - pointerDownPos.y);
+    if (dist > 6) return; // Drag detected: suppress click so camera orbit doesn't pop up agent modal!
+
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
     mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
@@ -1226,10 +1313,11 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   renderer.domElement.addEventListener('click', handlePointerDownRaycast);
 
   // ═══════════════════════════════════════════════════
-  // RENDER LOOP
+  // RENDER & ANIMATION LOOP (With Procedural Typing & Auto-Clock Tick)
   // ═══════════════════════════════════════════════════
   let animId: number;
   const clock = new THREE.Clock();
+  let timeTickAccumulator = 0;
 
   function animate() {
     animId = requestAnimationFrame(animate);
@@ -1237,8 +1325,16 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     const elapsed = clock.getElapsedTime();
     frame++;
 
+    // Continuous subtle auto-clock tick: 1 game minute every 2.5 real seconds
+    timeTickAccumulator += delta;
+    if (timeTickAccumulator >= 2.5) {
+      timeTickAccumulator = 0;
+      timeOfDay = (timeOfDay + 1) % 1440;
+      updateTime(timeOfDay);
+    }
+
     if (autoRot) {
-      sph.theta += 0.0012;
+      sph.theta += 0.001;
       updCam();
     }
 
@@ -1246,6 +1342,20 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     updateWalkers(delta);
     checkConversations();
     updateBubbles(delta);
+
+    // Procedural Typing Animation for Seated Agents
+    const typingFreq = elapsed * 14;
+    agentData.forEach((a, idx) => {
+      if (a.state === 'sitting' && a.sittingChar.visible) {
+        a.sittingChar.children.forEach((c: any) => {
+          if (c.userData && c.userData.isTypingArm) {
+            const sidePhase = c.userData.side > 0 ? 0 : 2.5;
+            c.rotation.x = Math.sin(typingFreq + idx * 1.7 + sidePhase) * 0.12;
+            c.position.y = 0.62 + Math.cos(typingFreq * 1.1 + idx * 2.1) * 0.01;
+          }
+        });
+      }
+    });
 
     // Tariq pulse ring animation
     const pulseT = (elapsed * 0.5) % 1;
@@ -1255,16 +1365,15 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     // Floating label subtle bobbing
     agentData.forEach((a, i) => {
       if (a.state === 'sitting') {
-        a.label.position.y = 1.8 + Math.sin(elapsed * 1.1 + i * 1.3) * 0.03;
+        a.label.position.y = 1.85 + Math.sin(elapsed * 1.2 + i * 1.1) * 0.03;
       }
     });
-    nxLabel.position.y = 1.8 + Math.sin(elapsed * 1.1 + 9) * 0.03;
 
     renderer.render(scene, camera);
   }
   animate();
 
-  updateTime(600);
+  updateTime(540); // Initial 9:00 AM kickoff
 
   const onResize = () => {
     const w = container.clientWidth;
@@ -1279,8 +1388,23 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     setTime: (min: number) => updateTime(min),
     toggleCyberpunk: () => toggleCyberpunk(),
     isCyberpunk: () => cyberpunkMode,
+    zoomIn: () => {
+      sph.radius = Math.max(12, sph.radius - 4);
+      updCam();
+    },
+    zoomOut: () => {
+      sph.radius = Math.min(48, sph.radius + 4);
+      updCam();
+    },
+    resetCamera: () => {
+      tgt.set(0, 1.8, 0);
+      sph.radius = 34;
+      sph.theta = Math.PI / 4.5;
+      sph.phi = Math.PI / 4.5;
+      updCam();
+    },
     flyToAgent: (agentId: number) => {
-      const pos = agentId === 8 ? { x: RCX, z: RCZ } : desks[agentId] || { x: 0, z: 0 };
+      const pos = desks[agentId] || { x: 0, z: 0 };
       tgt.set(pos.x, 1.5, pos.z);
       sph.radius = 18;
       updCam();
@@ -1292,6 +1416,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       window.removeEventListener('pointerup', onPointerUp);
       window.removeEventListener('pointermove', onPointerMove);
       renderer.domElement.removeEventListener('wheel', onWheel);
+      renderer.domElement.removeEventListener('contextmenu', onContextMenu);
       renderer.domElement.removeEventListener('click', handlePointerDownRaycast);
       renderer.dispose();
       if (renderer.domElement.parentElement) {

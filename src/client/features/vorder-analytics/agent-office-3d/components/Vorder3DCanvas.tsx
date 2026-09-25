@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   ListTodo,
   Terminal,
@@ -28,10 +28,15 @@ interface Vorder3DCanvasProps {
 export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const sceneRef = useRef<any>(null);
+  const onSelectAgentRef = useRef(onSelectAgent);
+
+  useEffect(() => {
+    onSelectAgentRef.current = onSelectAgent;
+  }, [onSelectAgent]);
 
   // Simulation State
-  const [timeMinutes, setTimeMinutes] = useState<number>(600);
-  const [status, setStatus] = useState<string>('العمل العميق · جميع الوكلاء الـ 9 متصلون');
+  const [timeMinutes, setTimeMinutes] = useState<number>(540); // 9:00 AM start
+  const [status, setStatus] = useState<string>('العمل العميق · جميع الوكلاء الـ 9 متصلون وينفذون المهام');
   const [inMeeting, setInMeeting] = useState<boolean>(false);
   const [cyberpunk, setCyberpunk] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -41,7 +46,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
   const [dossierAgent, setDossierAgent] = useState<VorderAgentData | null>(null);
   const [showTaskBoard, setShowTaskBoard] = useState<boolean>(false);
   const [showSystemLog, setShowSystemLog] = useState<boolean>(false);
-  const [showDirectorChat, setShowDirectorChat] = useState<boolean>(false);
+  const [chattingAgent, setChattingAgent] = useState<VorderAgentData | null>(null);
 
   const formatTime = (min: number) => {
     const h = Math.floor(min / 60);
@@ -51,7 +56,13 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
     return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${isPM ? 'م' : 'ص'}`;
   };
 
-  // Initialize Three.js 3D Miniature Office Scene
+  // 30-Minute Cloudflare Cadence Duty & Rest Calculations
+  const cycleMin = timeMinutes % 30;
+  const isBreak = cycleMin >= 24 && cycleMin < 28;
+  const isMeetingCycle = cycleMin >= 28;
+  const baseProgressPct = isBreak || isMeetingCycle ? 100 : Math.min(100, Math.floor((cycleMin / 24) * 100));
+
+  // Initialize Three.js 3D Miniature Office Scene ONCE (preserves camera and walking timers)
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -63,8 +74,8 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
         setSelectedAgentId(agentId);
         const matched = VORDER_AGENTS_ROSTER[agentId] || null;
         setDossierAgent(matched);
-        if (onSelectAgent && matched) {
-          onSelectAgent(matched);
+        if (onSelectAgentRef.current && matched) {
+          onSelectAgentRef.current(matched);
         }
       },
     });
@@ -77,7 +88,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
         sceneRef.current = null;
       }
     };
-  }, [onSelectAgent]);
+  }, []);
 
   const handleTimeChange = useCallback((m: number) => {
     setTimeMinutes(m);
@@ -95,7 +106,19 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
 
   const handleResetCamera = useCallback(() => {
     if (sceneRef.current) {
-      sceneRef.current.flyToAgent(0);
+      sceneRef.current.resetCamera();
+    }
+  }, []);
+
+  const handleZoomIn = useCallback(() => {
+    if (sceneRef.current) {
+      sceneRef.current.zoomIn();
+    }
+  }, []);
+
+  const handleZoomOut = useCallback(() => {
+    if (sceneRef.current) {
+      sceneRef.current.zoomOut();
     }
   }, []);
 
@@ -106,8 +129,8 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
     if (sceneRef.current) {
       sceneRef.current.flyToAgent(idx);
     }
-    if (onSelectAgent && matched) {
-      onSelectAgent(matched);
+    if (onSelectAgentRef.current && matched) {
+      onSelectAgentRef.current(matched);
     }
   };
 
@@ -125,7 +148,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
       ref={containerRef}
       id="vorder-3d-office-container"
       className={`relative w-full overflow-hidden rounded-2xl bg-[#000C1E] border border-cyan-500/20 text-white shadow-2xl transition-all duration-300 font-sans select-none ${
-        isFullscreen ? 'fixed inset-0 z-50 h-screen rounded-none' : 'h-[720px] sm:h-[780px]'
+        isFullscreen ? 'fixed inset-0 z-50 h-screen rounded-none' : 'h-[740px] sm:h-[800px]'
       }`}
     >
       {/* 1. Top Activity Ticker */}
@@ -133,21 +156,31 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
 
       {/* 2. Top Sub-Bar with HUD Metrics and Overlays */}
       <div className="absolute top-12 left-4 right-4 z-20 flex flex-wrap items-center justify-between gap-3 pointer-events-auto">
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-xs">
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-cyan-500/30 text-xs shadow-lg">
           <div className="size-2 rounded-full bg-cyan-400 animate-ping" />
-          <span className="font-bold text-cyan-300">مقر VORDER التكتيكي المصغر 3D</span>
+          <span className="font-bold text-cyan-300">مقر VORDER التكتيكي 3D (الوكلاء الـ 9)</span>
           <span className="text-zinc-500">•</span>
-          <span className="text-zinc-400 hidden sm:inline">23 ظهور معتمد • 742 مقال منشور • $0.00 كوتا سحابية</span>
+          <span className="text-zinc-400 hidden sm:inline">23 ظهور معتمد • 742 مقال منشور • كوتا $0.00</span>
           <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-[10px] hidden md:inline">
             محرك 60 FPS
           </span>
+        </div>
+
+        {/* Camera and Navigation Shortcuts Guide */}
+        <div className="hidden xl:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/70 backdrop-blur-md border border-white/10 text-[11px] text-zinc-300 shadow">
+          <span className="text-cyan-400 font-bold">🎮 التحكم:</span>
+          <span>سحب أيسر: تدوير</span>
+          <span className="text-zinc-600">•</span>
+          <span>زر أيمن / Shift: تحريك أفقي (Pan)</span>
+          <span className="text-zinc-600">•</span>
+          <span>عجلة / أزرار HUD: زووم ناعم</span>
         </div>
 
         {/* Quick Modal Overlays */}
         <div className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowDirectorChat(true)}
+            onClick={() => setChattingAgent(VORDER_AGENTS_ROSTER[0])}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs shadow-md transition-all"
           >
             <MessageSquare className="size-3.5" />
@@ -160,7 +193,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-slate-300 font-semibold text-xs shadow transition-all"
           >
             <ListTodo className="size-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">لوحة المهام التكتيكية</span>
+            <span className="hidden sm:inline">لوحة المهام</span>
           </button>
 
           <button
@@ -169,38 +202,57 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-slate-300 font-semibold text-xs shadow transition-all"
           >
             <Terminal className="size-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">سجل الأنشطة الحية</span>
+            <span className="hidden sm:inline">السجل الحي</span>
           </button>
         </div>
       </div>
 
-      {/* 3. Bottom Agent Selector Row (9 VORDER Agents) */}
+      {/* 3. Bottom Agent Selector Row (All 9 VORDER Agents with Live Progress Bars) */}
       <div className="absolute bottom-20 left-4 right-4 z-20 overflow-x-auto no-scrollbar py-1 flex items-center gap-2 justify-start sm:justify-center pointer-events-auto">
         {VORDER_AGENTS_ROSTER.map((agent, idx) => {
           const isSelected = selectedAgentId === idx;
           const officeConfig = VORDER_OFFICE_AGENTS[idx];
+          const agentProgress = isBreak || isMeetingCycle ? 100 : Math.min(100, Math.max(0, baseProgressPct - (idx % 3) * 2));
+
           return (
             <button
               key={agent.id}
               type="button"
               onClick={() => handleQuickAgentSelect(idx)}
-              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-all border whitespace-nowrap ${
+              className={`flex items-center gap-2 px-2.5 py-1.5 rounded-xl transition-all border whitespace-nowrap shadow-md ${
                 isSelected
-                  ? 'bg-cyan-500/20 border-cyan-400 text-white shadow-[0_0_15px_rgba(13,238,243,0.3)] scale-105'
-                  : 'bg-slate-950/70 hover:bg-slate-900 border-white/10 text-slate-400 hover:text-white'
+                  ? 'bg-cyan-500/25 border-cyan-400 text-white shadow-[0_0_18px_rgba(13,238,243,0.35)] scale-105'
+                  : 'bg-slate-950/80 hover:bg-slate-900 border-white/10 text-slate-400 hover:text-white'
               }`}
             >
               <img
                 src={agent.avatarUrl}
                 alt={agent.title}
-                className="size-6 rounded-lg object-cover border border-white/20"
+                className="size-7 rounded-lg object-cover border border-white/20"
               />
               <div className="text-right">
-                <div className="text-[11px] font-bold text-white leading-tight">
-                  {agent.title}
+                <div className="text-[11px] font-bold text-white leading-tight flex items-center gap-1.5">
+                  <span>{agent.title}</span>
+                  {idx === 8 && (
+                    <span className="text-[9px] px-1 py-0.2 rounded bg-blue-500/30 text-blue-300 font-mono">
+                      مشرف
+                    </span>
+                  )}
                 </div>
-                <div className="text-[9px] font-mono text-cyan-400">
-                  {officeConfig?.metrics.split('•')[0] || '100% دورة'}
+                {/* Live % Progress Bar and Duty Status */}
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <div className="w-12 h-1 bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${agentProgress}%`,
+                        backgroundColor: officeConfig?.hex || '#0DEEF3',
+                      }}
+                    />
+                  </div>
+                  <span className="text-[9px] font-mono font-bold" style={{ color: officeConfig?.hex || '#0DEEF3' }}>
+                    {isBreak ? '☕ 100%' : isMeetingCycle ? '📋 مزامنة' : `${agentProgress}%`}
+                  </span>
                 </div>
               </div>
             </button>
@@ -208,7 +260,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
         })}
       </div>
 
-      {/* 4. Bottom Glass HUD (Time scrubber, Cyberpunk mode, Status) */}
+      {/* 4. Bottom Glass HUD (Time scrubber, Zoom In/Out, Reset, Cyberpunk mode, Status) */}
       <VorderOfficeHUD
         timeMinutes={timeMinutes}
         timeFormatted={formatTime(timeMinutes)}
@@ -219,6 +271,8 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
         onTimeChange={handleTimeChange}
         onCyberpunkToggle={handleCyberpunkToggle}
         onResetCamera={handleResetCamera}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
         onToggleFullscreen={handleToggleFullscreen}
       />
 
@@ -260,7 +314,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
               {dossierAgent.summary}
             </p>
 
-            <div className="grid grid-cols-2 gap-2 mb-4 text-xs">
+            <div className="grid grid-cols-2 gap-2 mb-3 text-xs">
               <div className="p-2.5 rounded-xl bg-slate-900 border border-white/5">
                 <span className="text-zinc-400 block text-[10px]">المحرك الذكي</span>
                 <span className="font-mono text-cyan-300 text-xs">{dossierAgent.model}</span>
@@ -279,17 +333,79 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
               </div>
             </div>
 
+            {/* Connected Platforms */}
+            {dossierAgent.platforms && dossierAgent.platforms.length > 0 && (
+              <div className="mb-3">
+                <span className="text-[11px] font-bold text-zinc-400 block mb-1.5">
+                  المنصات السحابية المتصلة:
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {dossierAgent.platforms.map((p) => {
+                    const isCf = p.includes('Cloudflare') || p.includes('D1') || p.includes('Wrangler');
+                    const isGsc = p.includes('Search Console');
+                    const isAds = p.includes('Ads');
+                    const isGa = p.includes('Analytics');
+                    const isGh = p.includes('GitHub');
+                    const isSupa = p.includes('Supabase');
+                    const isVercel = p.includes('Vercel');
+                    const isAi = p.includes('AI Studio');
+                    const isIndexNow = p.includes('IndexNow');
+
+                    const colorClass = isCf
+                      ? 'bg-orange-500/20 text-orange-300 border-orange-500/30'
+                      : isGsc
+                      ? 'bg-blue-500/20 text-blue-300 border-blue-500/30'
+                      : isAds
+                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      : isGa
+                      ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/30'
+                      : isGh
+                      ? 'bg-purple-500/20 text-purple-300 border-purple-500/30'
+                      : isSupa
+                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
+                      : isVercel
+                      ? 'bg-zinc-800 text-zinc-200 border-zinc-600'
+                      : isAi
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                      : isIndexNow
+                      ? 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30'
+                      : 'bg-white/10 text-white border-white/20';
+
+                    return (
+                      <span
+                        key={p}
+                        className={`text-[10px] px-2 py-0.5 rounded-lg border font-mono font-medium ${colorClass}`}
+                      >
+                        {p}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Data transmission & effectiveness role */}
+            {dossierAgent.dataRoleAr && (
+              <div className="mb-4 p-3 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200 leading-relaxed">
+                <span className="font-bold text-cyan-300 block mb-1">
+                  ⚡ دور نقل البيانات والفعالية:
+                </span>
+                <span>{dossierAgent.dataRoleAr}</span>
+              </div>
+            )}
+
             <div className="flex items-center justify-between pt-2 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => {
+                  const targetAgent = dossierAgent;
                   setDossierAgent(null);
-                  setShowDirectorChat(true);
+                  setChattingAgent(targetAgent);
                 }}
                 className="flex items-center gap-2 px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs shadow-lg transition-all"
               >
                 <MessageSquare className="size-4" />
-                <span>إرسال توجيهات تكتيكية</span>
+                <span>إرسال توجيهات تكتيكية لـ {dossierAgent.title}</span>
               </button>
 
               <button
@@ -304,15 +420,15 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
         </div>
       )}
 
-      {/* 6. Modals (Task Board, System Logs, Director Chat) */}
+      {/* 6. Modals (Task Board, System Logs, Agent Chat) */}
       {showTaskBoard && (
         <VorderTaskBoardOverlay onClose={() => setShowTaskBoard(false)} />
       )}
       {showSystemLog && (
         <VorderSystemLogOverlay onClose={() => setShowSystemLog(false)} />
       )}
-      {showDirectorChat && (
-        <VorderAgentDirectorChat onClose={() => setShowDirectorChat(false)} />
+      {chattingAgent && (
+        <VorderAgentDirectorChat agent={chattingAgent} onClose={() => setChattingAgent(null)} />
       )}
     </div>
   );

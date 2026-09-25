@@ -73,6 +73,34 @@ export function CampaignsManagerTable({
   const [editingCampaign, setEditingCampaign] = useState<CampaignRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [pulseLoadingId, setPulseLoadingId] = useState<string | null>(null);
+  const [monitorLoadingId, setMonitorLoadingId] = useState<string | null>(null);
+  const [activeMonitorReport, setActiveMonitorReport] = useState<any | null>(null);
+
+  const handleAiMonitorAndOptimize = async (c: CampaignRecord) => {
+    setMonitorLoadingId(c.id);
+    toast.info(`📡 جاري فحص الحملة "${c.campaignName}" عبر المنصات الـ 8 وتنفيذ التعديلات التلقائية بواسطة الوكلاء الـ 9...`);
+    try {
+      const res = await fetch("/api/automation/campaign-monitor-optimize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          campaignId: c.id,
+          campaignName: c.campaignName,
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (json?.success && json.report) {
+        setActiveMonitorReport(json.report);
+        toast.success("✅ تم تنفيذ دورة المراقبة والتعديل التلقائي بنجاح وتحديث سجل الإجراءات!");
+      } else {
+        throw new Error(json?.error || "Failed to monitor campaign");
+      }
+    } catch (err: any) {
+      toast.error(`تعذر إتمام دورة المراقبة: ${err?.message || String(err)}`);
+    } finally {
+      setMonitorLoadingId(null);
+    }
+  };
 
   // Stepper state (1: Geo, 2: Demographics, 3: Quotas, 4: Velocity Calculator)
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4>(1);
@@ -492,6 +520,19 @@ export function CampaignsManagerTable({
                       </button>
                       <button
                         type="button"
+                        onClick={() => handleAiMonitorAndOptimize(c)}
+                        disabled={monitorLoadingId === c.id}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-xs font-bold transition-colors cursor-pointer disabled:opacity-50"
+                      >
+                        {monitorLoadingId === c.id ? (
+                          <Loader2 className="size-3 animate-spin" />
+                        ) : (
+                          <Sparkles className="size-3 text-emerald-500" />
+                        )}
+                        <span>مراقبة وتعديل ذكي</span>
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => handleInstantPulse(c)}
                         disabled={pulseLoadingId === c.id}
                         className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-xs font-medium transition-colors cursor-pointer disabled:opacity-50"
@@ -521,6 +562,76 @@ export function CampaignsManagerTable({
           </tbody>
         </table>
       </div>
+
+      {/* Live AI Monitoring & Autonomous Adjustments Log Panel */}
+      {activeMonitorReport && (
+        <div className="p-5 border-t-2 border-emerald-500/30 bg-emerald-500/5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="size-4 text-emerald-500 animate-pulse" />
+              <h4 className="text-sm font-black text-[var(--apple-text-primary)]">
+                📡 سجل المراقبة الحية والإجراءات التصحيحية التلقائية للوكلاء الـ 9: {activeMonitorReport.campaignName}
+              </h4>
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                صحة الحملة: {activeMonitorReport.overallHealthScore}%
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveMonitorReport(null)}
+              className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[var(--apple-card)] border border-[var(--apple-border)] text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)] cursor-pointer"
+            >
+              إغلاق السجل ✕
+            </button>
+          </div>
+
+          {/* Live 8-Platform Readings Strip */}
+          {activeMonitorReport.platformReadings && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs">
+              <div className="p-2.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)]">
+                <div className="text-[10px] text-[var(--apple-text-secondary)] font-bold">Google Search Console:</div>
+                <div className="font-bold text-[var(--apple-text-primary)] mt-0.5">{activeMonitorReport.platformReadings.gsc}</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)]">
+                <div className="text-[10px] text-[var(--apple-text-secondary)] font-bold">Google Analytics 4:</div>
+                <div className="font-bold text-[var(--apple-text-primary)] mt-0.5">{activeMonitorReport.platformReadings.ga4}</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)]">
+                <div className="text-[10px] text-[var(--apple-text-secondary)] font-bold">Google Ads & Organic ROAS:</div>
+                <div className="font-bold text-[var(--apple-text-primary)] mt-0.5">{activeMonitorReport.platformReadings.googleAds}</div>
+              </div>
+              <div className="p-2.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)]">
+                <div className="text-[10px] text-[var(--apple-text-secondary)] font-bold">Cloudflare D1 & Sitemap:</div>
+                <div className="font-bold text-emerald-600 dark:text-emerald-400 mt-0.5">{activeMonitorReport.platformReadings.cloudflareD1}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Executed Adjustments by the 9 Agents */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {(activeMonitorReport.executedAdjustments || []).map((adj: any) => (
+              <div
+                key={adj.id}
+                className="p-3.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)] space-y-1.5 text-xs shadow-2xs"
+              >
+                <div className="flex items-center justify-between">
+                  <span className="font-black text-[#97233A] dark:text-[#E15B75]">{adj.agentName}</span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold text-[10px]">
+                    {adj.impact}
+                  </span>
+                </div>
+                <div className="font-bold text-[var(--apple-text-primary)]">{adj.actionType}</div>
+                <div className="text-[11px] text-[var(--apple-text-secondary)]">
+                  <strong>قبل التعديل:</strong> {adj.beforeState}
+                </div>
+                <div className="text-[11px] text-emerald-700 dark:text-emerald-300 font-medium">
+                  <strong>الإجراء المنفذ تلقائياً:</strong> {adj.afterState}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Modal: Full 4-Step Advanced Campaign Builder for Create */}
       {isCreateModalOpen && (

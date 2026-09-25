@@ -59,6 +59,17 @@ export function SearchTermsGscTable({
   const [convertingQuery, setConvertingQuery] = useState<string | null>(null);
   const [optimizingUrl, setOptimizingUrl] = useState<string | null>(null);
 
+  // Isolate search terms and pages per selected campaign
+  const filteredSearchTerms = React.useMemo(() => {
+    if (!selectedCampaignId || selectedCampaignId === "all") return searchTerms;
+    return searchTerms.filter((t) => t.campaignId === selectedCampaignId);
+  }, [searchTerms, selectedCampaignId]);
+
+  const filteredGscPages = React.useMemo(() => {
+    if (!selectedCampaignId || selectedCampaignId === "all") return gscPages;
+    return gscPages.filter((p: any) => p.campaignId === selectedCampaignId);
+  }, [gscPages, selectedCampaignId]);
+
   const handleConvert = async (item: GscSearchTerm) => {
     setConvertingQuery(item.query);
     try {
@@ -117,6 +128,11 @@ export function SearchTermsGscTable({
           <div>
             <h3 className="text-base font-bold text-zinc-900 dark:text-white flex items-center gap-2">
               <span>بيانات كونسول الحقيقية المعتمدة</span>
+              {selectedCampaignId && selectedCampaignId !== "all" && (
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-950/30 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                  عرض منعزل للحملة
+                </span>
+              )}
             </h3>
             <p className="text-xs text-zinc-400 dark:text-zinc-500">
               طلبات البحث والصفحات المستخرجة بصلاحيات Google OAuth الموثقة مع إمكانية التحسين الذاتي بنقرة واحدة
@@ -135,7 +151,7 @@ export function SearchTermsGscTable({
                 : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
-            <span>طلبات البحث ({searchTerms.length})</span>
+            <span>طلبات البحث ({filteredSearchTerms.length})</span>
           </button>
           <button
             type="button"
@@ -146,7 +162,7 @@ export function SearchTermsGscTable({
                 : "text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-200"
             }`}
           >
-            <span>الصفحات الأكثر ظهوراً ({gscPages.length})</span>
+            <span>الصفحات الأكثر ظهوراً ({filteredGscPages.length})</span>
           </button>
         </div>
       </div>
@@ -175,14 +191,14 @@ export function SearchTermsGscTable({
                     <span>جاري قراءة استعلامات Google Search Console...</span>
                   </td>
                 </tr>
-              ) : searchTerms.length === 0 ? (
+              ) : filteredSearchTerms.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-zinc-400">
-                    <span>لا توجد استعلامات بحث حالياً</span>
+                    <span>لا توجد استعلامات بحث مسجلة حالياً لهذه الحملة في Google Search Console</span>
                   </td>
                 </tr>
               ) : (
-                searchTerms.map((term, idx) => {
+                filteredSearchTerms.map((term, idx) => {
                   const isConverting = convertingQuery === term.query;
 
                   return (
@@ -292,14 +308,14 @@ export function SearchTermsGscTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100 dark:divide-white/[0.04]">
-              {gscPages.length === 0 ? (
+              {filteredGscPages.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-zinc-400">
-                    <span>جاري تحميل صفحات كونسول...</span>
+                    <span>لا توجد صفحات مفهرسة مسجلة حالياً لهذه الحملة في Google Search Console</span>
                   </td>
                 </tr>
               ) : (
-                gscPages.map((page, pIdx) => {
+                filteredGscPages.map((page, pIdx) => {
                   const isOptimizing = optimizingUrl === page.url;
 
                   return (

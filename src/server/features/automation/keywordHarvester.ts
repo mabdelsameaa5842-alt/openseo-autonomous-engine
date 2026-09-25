@@ -3,6 +3,7 @@ import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { createGoogleAdsClient } from "@/server/lib/googleAdsClient";
 import { createGscClient } from "@/server/lib/gscClient";
 import { getOptionalEnvValue } from "@/server/lib/runtime-env";
+import { executeWithInstantFallback } from "./SubMillisecondFallbackEngine";
 
 export interface HarvestedKeyword {
   keyword: string;
@@ -122,11 +123,8 @@ export async function harvestKeywordBatch(opts: {
   }
 
   // 3. Harvest and expand via Google Gemini across Egypt (40%), Gulf (40%), MENA (20%)
-  const geminiKey = opts.geminiApiKey || (await getOptionalEnvValue("GEMINI_API_KEY"));
-  if (geminiKey && keywordsMap.size < targetCount) {
+  if (keywordsMap.size < targetCount) {
     try {
-      const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-      const model = google("gemini-2.0-flash");
       const needed = targetCount - keywordsMap.size;
 
       const prompt = `You are a high-level SEO & Digital Performance Marketing Strategist for the MENA region.
@@ -150,7 +148,12 @@ Return ONLY a JSON array of objects with fields:
 ]
 No markdown, just raw JSON.`;
 
-      const { text } = await generateText({ model, prompt });
+      const execution = await executeWithInstantFallback({
+        prompt,
+        env: opts.env,
+        preferredModelId: "gemini-3.5-flash-lite",
+      });
+      const text = execution.text;
       const cleaned = text.replace(/^```json\s*/m, "").replace(/^```\s*/m, "").replace(/\s*```$/m, "").trim();
       const parsed = JSON.parse(cleaned);
 

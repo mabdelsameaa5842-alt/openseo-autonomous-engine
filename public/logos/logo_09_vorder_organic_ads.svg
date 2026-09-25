@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none" width="56" height="56">
+  <defs>
+    <linearGradient id="vorderBg" x1="0" y1="0" x2="256" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#18181B"/>
+      <stop offset="55%" stop-color="#271219"/>
+      <stop offset="100%" stop-color="#97233A"/>
+    </linearGradient>
+    <linearGradient id="organicLeaf" x1="48" y1="200" x2="176" y2="64" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#059669"/>
+      <stop offset="50%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#34D399"/>
+    </linearGradient>
+    <linearGradient id="serpArrow" x1="88" y1="192" x2="208" y2="48" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#F59E0B"/>
+      <stop offset="50%" stop-color="#FBBF24"/>
+      <stop offset="100%" stop-color="#FEF08A"/>
+    </linearGradient>
+    <linearGradient id="crimsonPulse" x1="40" y1="40" x2="216" y2="216" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#E11D48"/>
+      <stop offset="100%" stop-color="#97233A"/>
+    </linearGradient>
+  </defs>
+  <!-- Outer Squircle Container -->
+  <rect x="12" y="12" width="232" height="232" rx="56" fill="url(#vorderBg)" stroke="url(#crimsonPulse)" stroke-width="6"/>
+  <!-- Subtle Grid / Radar Rings -->
+  <circle cx="128" cy="128" r="78" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="2" stroke-dasharray="6 6"/>
+  <circle cx="128" cy="128" r="52" stroke="#10B981" stroke-opacity="0.15" stroke-width="2"/>
+  <!-- Organic Growth Leaf Base -->
+  <path d="M56 188C56 122 102 72 172 68C168 138 124 188 56 188Z" fill="url(#organicLeaf)" fill-opacity="0.92"/>
+  <!-- Leaf Vein / Growth Curve -->
+  <path d="M64 180C98 156 126 124 162 76" stroke="#ECFDF5" stroke-width="6" stroke-linecap="round" stroke-opacity="0.7"/>
+  <!-- Rising SERP Ranking Rocket Arrow -->
+  <path d="M72 192L132 132L156 156L204 80" stroke="url(#serpArrow)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M168 76H206V114" stroke="url(#serpArrow)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- AI Sparkle Star at Top Left -->
+  <path d="M84 52L90 68L106 74L90 80L84 96L78 80L62 74L78 68L84 52Z" fill="#FBBF24"/>
+  <!-- Live Pulse Dot -->
+  <circle cx="196" cy="188" r="12" fill="#10B981"/>
+  <circle cx="196" cy="188" r="20" stroke="#10B981" stroke-opacity="0.4" stroke-width="4"/>
+</svg>

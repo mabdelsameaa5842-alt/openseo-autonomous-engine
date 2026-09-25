@@ -20,6 +20,7 @@ import {
 import { toast } from "sonner";
 import { useI18n } from "@/client/lib/i18n";
 import type { CampaignRecord } from "@/client/features/automation/components/CampaignsManagerTable";
+import { VorderOrganicAdsIcon, GoogleAdsLogo } from "@/client/components/BrandLogos";
 
 interface OrganicAdsCampaignBuilderStepperProps {
   projectId: string;
@@ -46,6 +47,19 @@ export function OrganicAdsCampaignBuilderStepper({
 
   const [step, setStep] = useState<number>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // AI 1-Click Campaign Architect State (Simple Input -> Full Campaign + Content Routing + 9-Agent Squad)
+  const [simpleGoalInput, setSimpleGoalInput] = useState(
+    isArabic
+      ? "تصدر نتائج البحث وإعلانات جوجل لخدمات سيو المتاجر الإلكترونية (سلة وزد وشوبيفاي) والأتمتة الذكية"
+      : "Dominate Search & Google Ads for E-Commerce SEO and AI Automation"
+  );
+  const [campaignMode, setCampaignMode] = useState<"organic" | "paid_google_ads" | "hybrid">("hybrid");
+  const [campaignContentType, setCampaignContentType] = useState<
+    "search_intent" | "pmax_authority" | "shopping_feed" | "local_pack"
+  >("search_intent");
+  const [isArchitectingAi, setIsArchitectingAi] = useState(false);
+  const [architectedBlueprint, setArchitectedBlueprint] = useState<any | null>(null);
 
   // Step 1: Multi-Geo & Objective
   const [campaignName, setCampaignName] = useState(
@@ -220,23 +234,76 @@ export function OrganicAdsCampaignBuilderStepper({
     }
   };
 
+  const handleAiArchitectFromSimpleInput = async () => {
+    if (!simpleGoalInput.trim()) {
+      toast.error(isArabic ? "يرجى إدخال فكرة أو هدف الحملة بكلمات بسيطة أولاً" : "Please enter a simple campaign goal first");
+      return;
+    }
+
+    setIsArchitectingAi(true);
+    toast.info(
+      isArabic
+        ? "🤖 يقوم الوكلاء الـ 9 (بقيادة طارق العبدلي وسارة المهندس) بإعداد الحملة وتوجيه نوع المحتوى..."
+        : "🤖 The 9 Agents are architecting your campaign and routing content formats..."
+    );
+
+    try {
+      const res = await fetch("/api/automation/ai-architect-campaign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          goalInput: simpleGoalInput.trim(),
+          campaignMode,
+          campaignType: campaignContentType,
+          targetMarket: selectedCities.join("، "),
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (json?.success && json.campaign) {
+        const c = json.campaign;
+        setArchitectedBlueprint(c);
+        setCampaignName(c.campaignName);
+        if (Array.isArray(c.targetKeywords) && c.targetKeywords.length > 0) {
+          setGeneratedKeywords(
+            c.targetKeywords.map((tk: any) => ({
+              kw: tk.keyword,
+              intent: String(tk.intent || "commercial").toLowerCase(),
+              vol: Number(tk.volume || 1800),
+            }))
+          );
+        }
+        toast.success(
+          isArabic
+            ? "✅ تم إعداد الحملة بالكامل بالذكاء الاصطناعي وربطها بمصفوفة توجيه المحتوى والوكلاء الـ 9!"
+            : "✅ Campaign architected by AI with full content routing & 9-agent squad!"
+        );
+      } else {
+        throw new Error(json?.error || "Failed to architect campaign");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "تعذر إعداد الحملة بالذكاء الاصطناعي");
+    } finally {
+      setIsArchitectingAi(false);
+    }
+  };
+
   return (
     <div className="w-full rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-6 shadow-xl backdrop-blur-md">
       {/* Header & Stepper Indicator */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[var(--apple-border)]">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl bg-gradient-to-br from-[#97233A] to-[#6E1729] flex items-center justify-center text-white font-black text-base shadow-md">
-            <Rocket className="size-5" />
+            <VorderOrganicAdsIcon className="size-6" />
           </div>
           <div>
             <h2 className="text-base font-bold text-[var(--apple-text-primary)]">
               {isEdit
                 ? isArabic
-                  ? "تعديل الحملة العضوية وإعادة ضبط الاستهداف"
-                  : "Edit Organic Campaign & Targeting"
+                  ? "تعديل الحملة العضوية والمدفوعة وإعادة ضبط الاستهداف"
+                  : "Edit Organic & Paid Campaign Targeting"
                 : isArabic
-                ? "معالج إطلاق الحملة العضوية الذكية من فوردر"
-                : "VORDER AI Campaign Builder"}
+                ? "مُعِدّ ومهندس الحملات الذكي (أورجانيك سيو + إعلانات جوجل المدفوعة)"
+                : "VORDER AI Campaign Architect (Organic SEO + Google Ads)"}
             </h2>
             <p className="text-xs text-[var(--apple-text-secondary)]">
               {isEdit
@@ -244,8 +311,8 @@ export function OrganicAdsCampaignBuilderStepper({
                   ? `الحملة: ${initialCampaign?.campaignName || ""} - 4 خطوات تكتيكية لتعديل الاستهداف والحصص والوتيرة`
                   : `Campaign: ${initialCampaign?.campaignName || ""} - 4-step tactical journey to edit targeting`
                 : isArabic
-                ? "4 خطوات تكتيكية مستوحاة من كبرى المنصات الإعلانية العالمية لأتمتة الاستحواذ العضوي"
-                : "4-step tactical journey inspired by global ad platforms for automated organic acquisition"}
+                ? "أدخل هدفاً بسيطاً ليقوم الذكاء الاصطناعي والوكلاء الـ 9 بإعداد الحملة وتوجيه نوع المحتوى ومراقبتها تلقائياً"
+                : "Enter a simple goal for AI & the 9 Agents to architect, route content, and auto-optimize your campaign"}
             </p>
           </div>
         </div>
@@ -279,6 +346,205 @@ export function OrganicAdsCampaignBuilderStepper({
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ─── AI 1-CLICK CAMPAIGN ARCHITECT & CONTENT ROUTING MATRIX ─── */}
+      <div className="mt-5 p-4 rounded-2xl border-2 border-[#97233A]/25 bg-gradient-to-br from-[#97233A]/5 via-purple-500/5 to-emerald-500/5 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles className="size-4 text-[#97233A] dark:text-[#E15B75] animate-pulse" />
+            <span className="text-xs sm:text-sm font-black text-[var(--apple-text-primary)]">
+              {isArabic
+                ? "⚡ المُعِد الذكي للحملات بالذكاء الاصطناعي من مدخلات بسيطة (مع توجيه المحتوى والوكلاء الـ 9)"
+                : "⚡ AI 1-Click Campaign Architect from Simple Input (with Content Routing & 9-Agent Squad)"}
+            </span>
+          </div>
+          <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 font-bold">
+            متصل بـ 50 نموذج Gemini + 8 منصات
+          </span>
+        </div>
+
+        {/* Simple Goal Input + Mode + Content Type Selector */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+          <div className="lg:col-span-6">
+            <label className="block text-[11px] font-bold text-[var(--apple-text-secondary)] mb-1">
+              {isArabic ? "1. اكتب هدف الحملة أو الخدمة بكلمات بسيطة:" : "1. Enter your simple campaign goal:"}
+            </label>
+            <input
+              type="text"
+              value={simpleGoalInput}
+              onChange={(e) => setSimpleGoalInput(e.target.value)}
+              placeholder={isArabic ? "مثال: تصدر نتائج البحث وإعلانات سيو المتاجر في السعودية..." : "e.g., Dominate E-Commerce SEO in KSA..."}
+              className="w-full px-3.5 py-2 rounded-xl border border-[var(--apple-border)] bg-[var(--apple-card)] text-xs font-bold text-[var(--apple-text-primary)] focus:outline-none focus:ring-2 focus:ring-[#97233A]/30"
+            />
+          </div>
+
+          <div className="lg:col-span-3">
+            <label className="block text-[11px] font-bold text-[var(--apple-text-secondary)] mb-1">
+              {isArabic ? "2. نظام الحملة (أورجانيك / مدفوع):" : "2. Campaign System:"}
+            </label>
+            <select
+              value={campaignMode}
+              onChange={(e) => setCampaignMode(e.target.value as any)}
+              className="w-full px-3 py-2 rounded-xl border border-[var(--apple-border)] bg-[var(--apple-card)] text-xs font-bold text-[var(--apple-text-primary)] focus:outline-none"
+            >
+              <option value="organic">🌱 أورجانيك سيو خالص ($0.00)</option>
+              <option value="paid_google_ads">📣 إعلانات جوجل المدفوعة (Google Ads)</option>
+              <option value="hybrid">⚡ هجين متكامل (أورجانيك + إعلانات جوجل)</option>
+            </select>
+          </div>
+
+          <div className="lg:col-span-3">
+            <label className="block text-[11px] font-bold text-[var(--apple-text-secondary)] mb-1">
+              {isArabic ? "3. نوع الحملة وتوجيه المحتوى:" : "3. Campaign Type & Content Route:"}
+            </label>
+            <select
+              value={campaignContentType}
+              onChange={(e) => setCampaignContentType(e.target.value as any)}
+              className="w-full px-3 py-2 rounded-xl border border-[var(--apple-border)] bg-[var(--apple-card)] text-xs font-bold text-[var(--apple-text-primary)] focus:outline-none"
+            >
+              <option value="search_intent">🔍 شبكة البحث والنية الشرائية (Search Intent)</option>
+              <option value="pmax_authority">🚀 الأداء الأقصى والسلطة (Performance Max & GEO)</option>
+              <option value="shopping_feed">🛒 المتاجر والباقات البرمجية (Shopping & Packages)</option>
+              <option value="local_pack">📍 السيطرة الجغرافية والخرائط (Local 3-Pack)</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-2 text-[11px] text-[var(--apple-text-secondary)]">
+            <VorderOrganicAdsIcon className="size-4 shrink-0" />
+            <GoogleAdsLogo className="size-4 shrink-0" />
+            <span>
+              {isArabic
+                ? "يقوم الذكاء الاصطناعي بتحليل المدخل البسيط، اختيار نوع المقال والـ Schema، وتوزيع المهام هرمياً على الوكلاء الـ 9 مع تفعيل المراقبة والتعديل التلقائي."
+                : "AI analyzes your input, selects content format & Schema, assigns the 9 hierarchical agents, and enables auto-optimization."}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={handleAiArchitectFromSimpleInput}
+            disabled={isArchitectingAi}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-[#97233A] via-purple-700 to-indigo-700 hover:opacity-95 text-white font-bold text-xs shadow-md transition-all cursor-pointer disabled:opacity-50 shrink-0"
+          >
+            <Sparkles className="size-4" />
+            <span>
+              {isArchitectingAi
+                ? isArabic
+                  ? "جاري هندسة الحملة وتوجيه الوكلاء..."
+                  : "Architecting Campaign..."
+                : isArabic
+                ? "⚡ إعداد الحملة بالكامل وتوجيه الوكلاء بالذكاء الاصطناعي"
+                : "⚡ AI Architect Full Campaign & Route Agents"}
+            </span>
+          </button>
+        </div>
+
+        {/* Rendered AI Blueprint & Content Routing Matrix */}
+        {architectedBlueprint && (
+          <div className="mt-3 p-4 rounded-xl bg-[var(--apple-card)] border border-emerald-500/30 space-y-4 animate-in fade-in duration-200">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-[var(--apple-border)]">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="size-4 text-emerald-500" />
+                <span className="text-xs font-black text-[var(--apple-text-primary)]">
+                  {architectedBlueprint.campaignName}
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                  {architectedBlueprint.campaignModeLabel}
+                </span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                النموذج المنفذ: {architectedBlueprint.modelUsed}
+              </span>
+            </div>
+
+            {/* 1. Content Routing & Schema Matrix */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)]">
+                <div className="text-[10px] font-bold text-[var(--apple-text-secondary)] mb-1">
+                  نوع الحملة المختار:
+                </div>
+                <div className="font-bold text-[var(--apple-text-primary)]">
+                  {architectedBlueprint.routing?.campaignTypeLabel}
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)]">
+                <div className="text-[10px] font-bold text-[var(--apple-text-secondary)] mb-1">
+                  توجيه نوع المحتوى وصفحة الهبوط:
+                </div>
+                <div className="font-bold text-emerald-600 dark:text-emerald-400">
+                  {architectedBlueprint.routing?.contentFormat}
+                </div>
+              </div>
+              <div className="p-3 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)]">
+                <div className="text-[10px] font-bold text-[var(--apple-text-secondary)] mb-1">
+                  أكواد Schema.org المفعلة تلقائياً:
+                </div>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {(architectedBlueprint.routing?.schemaTypes || []).map((st: string) => (
+                    <span
+                      key={st}
+                      className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20 font-mono text-[10px] font-bold"
+                    >
+                      {st}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. Hierarchical 9-Agent Squad Assignment */}
+            <div>
+              <div className="text-[11px] font-bold text-[var(--apple-text-secondary)] mb-2">
+                توجيه الوكلاء الهرمي (Tier 1 → Tier 4) لتنفيذ ومراقبة هذا النوع من المحتوى:
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2">
+                {(architectedBlueprint.routing?.leadAgents || []).map((ag: any) => (
+                  <div
+                    key={ag.id}
+                    className="p-2.5 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] text-[11px]"
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-[var(--apple-text-primary)]">{ag.name}</span>
+                      <span className="px-1.5 py-0.5 rounded bg-[#97233A]/10 text-[#97233A] dark:text-[#E15B75] font-mono text-[9px] font-bold">
+                        {ag.tier}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-[var(--apple-text-secondary)] leading-relaxed">
+                      {ag.task}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 3. Autonomous Monitoring & Self-Optimization Rules */}
+            <div>
+              <div className="text-[11px] font-bold text-[var(--apple-text-secondary)] mb-2">
+                حلقة المراقبة الحية والإجراءات التصحيحية التلقائية (Auto-Monitoring & Optimization Rules):
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+                {(architectedBlueprint.autonomousMonitoringRules || []).map((rule: any) => (
+                  <div
+                    key={rule.ruleId}
+                    className="p-2.5 rounded-xl bg-emerald-500/5 border border-emerald-500/20 text-[11px]"
+                  >
+                    <div className="font-bold text-emerald-700 dark:text-emerald-300 mb-1">
+                      📡 {rule.metric}
+                    </div>
+                    <div className="text-[10px] text-[var(--apple-text-secondary)] mb-1">
+                      <strong>الشرط:</strong> {rule.condition}
+                    </div>
+                    <div className="text-[10px] text-[var(--apple-text-primary)]">
+                      <strong>الإجراء التلقائي:</strong> {rule.autoAction}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Step Content Area */}

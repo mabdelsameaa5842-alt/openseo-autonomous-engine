@@ -50,3 +50,6 @@ dist-sourcemaps/
 scripts/deploy_vercel_api.py
 scripts/*.py
 
+
+__pycache__/
+*.pyc

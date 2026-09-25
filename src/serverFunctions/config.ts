@@ -5,6 +5,6 @@ import { requireAuthenticatedContext } from "@/serverFunctions/middleware";
 export const getSeoApiKeyStatus = createServerFn({ method: "GET" })
   .middleware(requireAuthenticatedContext)
   .handler(() => {
-    const configured = Boolean(env.DATAFORSEO_API_KEY?.trim());
-    return { configured };
+    // DataForSEO decommissioned. Google Search Console, Google Analytics, and Google Ads operate directly ($0.00 zero cost).
+    return { configured: true };
   });

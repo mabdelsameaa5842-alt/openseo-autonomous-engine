@@ -55,7 +55,7 @@ function useProjectAccessRedirect(projectId: string) {
       });
       return;
     }
-    void navigate({ to: "/", replace: true });
+    console.warn("[useProjectAccessRedirect] Non-auth project access error, avoiding bounce loop:", error);
   }, [error, navigate]);
 }
 

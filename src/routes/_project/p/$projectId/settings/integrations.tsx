@@ -3,6 +3,7 @@ import { SearchConsoleConnectionCard } from "@/client/features/gsc/SearchConsole
 import { GoogleAnalyticsConnectionCard } from "@/client/features/ga4/GoogleAnalyticsConnectionCard";
 import { GoogleAdsConnectionCard } from "@/client/features/google-ads/GoogleAdsConnectionCard";
 import { FlowiseAutomationConnectionCard } from "@/client/features/integrations/FlowiseAutomationConnectionCard";
+import { Unified8PlatformHub } from "@/client/features/integrations/Unified8PlatformHub";
 
 export const Route = createFileRoute(
   "/_project/p/$projectId/settings/integrations",
@@ -15,6 +16,11 @@ function ProjectIntegrationsRoute() {
 
   return (
     <div className="space-y-8">
+      {/* 8-Platform Command Center */}
+      <section id="unified-platform-hub" className="scroll-mt-6">
+        <Unified8PlatformHub projectId={projectId} />
+      </section>
+
       {/* The ids are the targets old #search-console / #google-analytics / #google-ads / #workflow-automation deep
           links are redirected to from the settings index. */}
       <section id="workflow-automation" className="scroll-mt-6 space-y-3">

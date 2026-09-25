@@ -42,6 +42,19 @@ function deterministicKeywordVolume(kw: string, min = 200, max = 3500): number {
   return min + (positive % (max - min));
 }
 
+import {
+  type GoogleModelDef,
+  GOOGLE_AI_STUDIO_MODELS,
+  getTextFallbackChain,
+  getModelDefById,
+} from "./GoogleAiStudioCatalog";
+import {
+  resolveFastestModel,
+  tripModelCooldown,
+  isModelHealthy,
+  executeWithInstantFallback,
+} from "./SubMillisecondFallbackEngine";
+
 export interface AdaptiveModelCandidate {
   id: string;
   provider: "google";
@@ -49,48 +62,42 @@ export interface AdaptiveModelCandidate {
   description: string;
 }
 
-const ADAPTIVE_MODEL_CASCADE: AdaptiveModelCandidate[] = [
-  { id: "gemini-2.0-flash", provider: "google", modelName: "gemini-2.0-flash", description: "Gemini 2.0 Flash (Primary Free High-Speed Tier)" },
-  { id: "gemini-2.0-flash-lite", provider: "google", modelName: "gemini-2.0-flash-lite", description: "Gemini 2.0 Flash-Lite (High RPM / RPD Free Tier)" },
-  { id: "gemini-1.5-flash", provider: "google", modelName: "gemini-1.5-flash", description: "Gemini 1.5 Flash (Reliable Free Secondary Backup)" },
-  { id: "gemini-1.5-pro", provider: "google", modelName: "gemini-1.5-pro", description: "Gemini 1.5 Pro (Deep Reasoning Free Tier)" },
-];
+export const ADAPTIVE_MODEL_CASCADE: AdaptiveModelCandidate[] = getTextFallbackChain().map((m) => ({
+  id: m.id,
+  provider: "google" as const,
+  modelName: m.id,
+  description: m.description,
+}));
 
 /**
  * Returns the currently healthiest Gemini model candidates, filtering out any on cooldown.
  */
 export function getAvailableModelCandidates(): AdaptiveModelCandidate[] {
-  const now = Date.now();
-  return ADAPTIVE_MODEL_CASCADE.filter((c) => {
-    const cooldownUntil = modelCooldowns.get(c.id);
-    return !cooldownUntil || cooldownUntil <= now;
-  });
+  return ADAPTIVE_MODEL_CASCADE.filter((c) => isModelHealthy(c.id));
 }
 
 /**
- * Marks a model as rate-limited, engaging a circuit breaker cooldown period.
+ * Marks a model as rate-limited, engaging a smart circuit breaker cooldown period.
  */
-export function triggerModelCooldown(modelId: string, durationMs: number = 15 * 60 * 1000) {
-  const cooldownUntil = Date.now() + durationMs;
-  modelCooldowns.set(modelId, cooldownUntil);
-  console.warn(`[Gemini CircuitBreaker] Model ${modelId} rate limited! Placed on cooldown until ${new Date(cooldownUntil).toISOString()}`);
+export function triggerModelCooldown(modelId: string, durationMs?: number) {
+  tripModelCooldown(modelId);
 }
 
 /**
  * Resolves an AI model instance with automatic cascade fallback (100% Google Gemini AI Studio).
  */
 export async function resolveGeminiModel(env?: any, candidate?: AdaptiveModelCandidate) {
-  const target = candidate || getAvailableModelCandidates()[0] || ADAPTIVE_MODEL_CASCADE[0];
-
-  const geminiKey =
-    (env && env.GEMINI_API_KEY) || (await getOptionalEnvValue("GEMINI_API_KEY"));
-
-  if (geminiKey) {
-    const google = createGoogleGenerativeAI({ apiKey: geminiKey });
-    return { model: google(target.modelName), candidate: target };
-  }
-
-  return null;
+  const fastest = await resolveFastestModel(env, candidate?.id || candidate?.modelName);
+  if (!fastest) return null;
+  return {
+    model: fastest.model,
+    candidate: {
+      id: fastest.candidate.id,
+      provider: "google" as const,
+      modelName: fastest.candidate.id,
+      description: fastest.candidate.description,
+    },
+  };
 }
 
 /**

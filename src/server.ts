@@ -27,55 +27,7 @@ import { sweepDubReferredOrganizations } from "@/server/referrals/dub";
 import { maybeSendSelfHostHeartbeat } from "@/server/lib/self-host-telemetry";
 import { handleGdprStorageErasure } from "@/server/gdpr/storage-erasure";
 import { GDPR_STORAGE_ERASURE_PATH } from "@/shared/gdpr-erasure";
-import {
-  handleAutonomousSeoCycle,
-  handleTriggerCycle,
-  handleAutonomousQueue,
-  handleAutonomousDeduplicate,
-  handleAutonomousRobots,
-  handleAutonomousSitemap,
-  handlePublishQueuedArticle,
-  handleAiHarvestKeywords,
-  handleAiClusterAndQueue,
-  handleGetEngineMode,
-  handlePostEngineMode,
-  handleGetFlowGraph,
-  handlePostFlowGraph,
-  handleListWorkflows,
-  handleCreateWorkflow,
-  handleToggleWorkflow,
-  handleDeleteWorkflow,
-  handleGenerateAiWorkflow,
-  handleCheckLiveRank,
-  handlePublicAutonomousArticles,
-  handleDualPipelinesTelemetry,
-  handleSiteWideRankAudit,
-  executeScheduledAutonomousTick,
-  handleHarvestedKeywords,
-  handleTaskExecutions,
-  handleStepDetails,
-  handleAddCustomKeywords,
-  handleRunTaskStep,
-  handleReplenishQueue,
-  handleResubmitSitemap,
-  handleGeoRadarTelemetry,
-  handleRunCitationBenchmark,
-  recordAiCrawlerVisit,
-  handleGroundTruthTelemetry,
-  handleForceSyncPortfolio,
-  handleStartTaskExecution,
-  scrapePortfolioGroundTruth,
-  handleCreateCustomArticle,
-  handleUpdateArticle,
-  handleDeleteArticles,
-  handleBulkUpdateArticles,
-  handleDeleteKeywords,
-  handleAutonomousCampaigns,
-  handleCampaignPerformance,
-  handleGscSearchTerms,
-  handleSyncLiveSitemap,
-  handleDeduplicateArticles,
-} from "@/server/features/automation/autonomousHandler";
+// Note: autonomousHandler is dynamically loaded on-demand below to protect Cloudflare Worker startup CPU limits.
 import { handleGoogleAdsTestPermissions } from "@/server/features/google-ads/testPermissionsHandler";
 import {
   handleSuperAdminLogin,
@@ -203,11 +155,11 @@ function fetch(
   return withPgClient(() => Promise.resolve(handleFetch(request, env, ctx)));
 }
 
-function handleFetch(
+async function handleFetch(
   request: Request,
   env: Env,
   ctx: ExecutionContext,
-): Response | Promise<Response> {
+): Promise<Response> {
   ctx.waitUntil(maybeSendSelfHostHeartbeat());
 
   // Non-blocking Edge AI Crawler Interceptor (GPTBot, ClaudeBot, PerplexityBot, etc.)
@@ -225,7 +177,11 @@ function handleFetch(
     if (matchedBot) {
       const url = new URL(request.url);
       const country = (request as any).cf?.country || request.headers.get("cf-ipcountry") || "Unknown";
-      ctx.waitUntil(recordAiCrawlerVisit(env, matchedBot, userAgent, url.pathname, country));
+      ctx.waitUntil(
+        import("@/server/features/automation/autonomousHandler").then((m) =>
+          m.recordAiCrawlerVisit(env, matchedBot!, userAgent, url.pathname, country)
+        )
+      );
     }
   }
 
@@ -233,215 +189,40 @@ function handleFetch(
   const publicRequest = requestWithPublicOrigin(request);
   const pathname = new URL(publicRequest.url).pathname;
 
-  if (pathname === "/api/automation/geo-radar-telemetry") {
-    return handleGeoRadarTelemetry(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/ground-truth-telemetry") {
-    return handleGroundTruthTelemetry(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/force-sync-portfolio") {
-    return handleForceSyncPortfolio(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/start-task-execution") {
-    return handleStartTaskExecution(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/run-citation-benchmark") {
-    return handleRunCitationBenchmark(publicRequest, env);
-  }
-
   if (pathname === GDPR_STORAGE_ERASURE_PATH) {
     return handleGdprStorageErasure(publicRequest, env);
   }
 
-  if (pathname === "/api/automation/seo-cycle" || pathname === "/api/autonomous/cycle") {
-    return handleAutonomousSeoCycle(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/queue" || pathname === "/api/autonomous/queue") {
-    return handleAutonomousQueue(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/deduplicate" || pathname === "/api/autonomous/deduplicate") {
-    return handleAutonomousDeduplicate(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/publish-article") {
-    return handlePublishQueuedArticle(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/ai-harvest-keywords") {
-    return handleAiHarvestKeywords(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/ai-cluster-and-queue") {
-    return handleAiClusterAndQueue(publicRequest, env);
-  }
-
-  if (pathname === "/robots.txt" || pathname === "/api/autonomous/robots") {
-    return handleAutonomousRobots(publicRequest, env);
-  }
-
-  if (pathname === "/sitemap.xml" || pathname === "/api/autonomous/sitemap") {
-    return handleAutonomousSitemap(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/dual-pipelines-telemetry") {
-    return handleDualPipelinesTelemetry(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/site-wide-rank-audit") {
-    return handleSiteWideRankAudit(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/campaigns") {
-    return handleAutonomousCampaigns(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/campaign-performance") {
-    return handleCampaignPerformance(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/gsc-search-terms") {
-    return handleGscSearchTerms(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/trigger-run") {
-    return handleTriggerCycle(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/engine-mode") {
-    if (publicRequest.method === "POST") {
-      return handlePostEngineMode(publicRequest, env);
-    }
-    return handleGetEngineMode(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/flow-graph") {
-    if (publicRequest.method === "POST") {
-      return handlePostFlowGraph(publicRequest, env);
-    }
-    return handleGetFlowGraph(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/workflows") {
-    if (publicRequest.method === "POST") {
-      return handleCreateWorkflow(publicRequest, env);
-    }
-    if (publicRequest.method === "DELETE") {
-      return handleDeleteWorkflow(publicRequest, env);
-    }
-    return handleListWorkflows(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/workflows/toggle" && publicRequest.method === "POST") {
-    return handleToggleWorkflow(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/generate-ai-workflow" && publicRequest.method === "POST") {
-    return handleGenerateAiWorkflow(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/check-live-rank") {
-    return handleCheckLiveRank(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/harvested-keywords") {
-    return handleHarvestedKeywords(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/task-executions") {
-    return handleTaskExecutions(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/step-details") {
-    return handleStepDetails(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/add-custom-keywords") {
-    return handleAddCustomKeywords(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/run-task-step") {
-    return handleRunTaskStep(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/replenish-queue") {
-    return handleReplenishQueue(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/resubmit-sitemap") {
-    return handleResubmitSitemap(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/create-custom-article" && publicRequest.method === "POST") {
-    return handleCreateCustomArticle(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/update-article" && publicRequest.method === "POST") {
-    return handleUpdateArticle(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/delete-articles" && publicRequest.method === "POST") {
-    return handleDeleteArticles(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/bulk-update-articles" && publicRequest.method === "POST") {
-    return handleBulkUpdateArticles(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/delete-keywords" && publicRequest.method === "POST") {
-    return handleDeleteKeywords(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/sync-live-sitemap") {
-    return handleSyncLiveSitemap(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/deduplicate-articles") {
-    return handleDeduplicateArticles(publicRequest, env);
-  }
-
-  if (pathname === "/api/automation/agents-simulation-state") {
-    return Response.json({
-      ok: true,
-      agents: AgentCloudWatchdogService.getAgents(),
-      timestamp: new Date().toISOString()
-    });
-  }
-
-  if (pathname === "/api/automation/agents-ping-connection" && publicRequest.method === "POST") {
-    return handleAgentsPingConnection(publicRequest);
-  }
-
-  if (pathname === "/api/automation/agents-change-state" && publicRequest.method === "POST") {
-    return handleAgentsChangeState(publicRequest);
-  }
-
-  if (pathname === "/api/google-ads/test-permissions") {
-    return handleGoogleAdsTestPermissions(publicRequest, env);
-  }
-
-  if (pathname === "/api/notifications/subscribe") {
-    return handleNotificationSubscribe(publicRequest, env);
-  }
-
-  if (pathname === "/api/notifications/test-push") {
-    return handleNotificationTestPush(publicRequest, env);
-  }
-
-  if (pathname === "/api/notifications/status") {
-    return handleNotificationStatus(publicRequest, env);
-  }
-
+  // Lazy Autonomous Route Dispatcher (Protects Worker Startup CPU limit)
   if (
+    pathname.startsWith("/api/automation/") ||
+    pathname.startsWith("/api/autonomous/") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
     pathname === "/api/public/autonomous-articles" ||
     pathname === "/api/public/articles"
   ) {
-    return handlePublicAutonomousArticles(publicRequest, env);
+    if (pathname === "/api/automation/agents-simulation-state") {
+      return Response.json({
+        ok: true,
+        agents: AgentCloudWatchdogService.getAgents(),
+        timestamp: new Date().toISOString()
+      });
+    }
+
+    if (pathname === "/api/automation/agents-ping-connection" && publicRequest.method === "POST") {
+      return handleAgentsPingConnection(publicRequest);
+    }
+
+    if (pathname === "/api/automation/agents-change-state" && publicRequest.method === "POST") {
+      return handleAgentsChangeState(publicRequest);
+    }
+
+    const { dispatchAutonomousRoute } = await import(
+      "@/server/features/automation/autonomousHandler"
+    );
+    const autonomousResponse = await dispatchAutonomousRoute(pathname, publicRequest, env);
+    if (autonomousResponse) return autonomousResponse;
   }
 
   if (pathname === "/api/auth/super-admin/login") {
@@ -546,16 +327,13 @@ export default {
 
     // Autonomous SEO, Self-Healing Pipeline & IndexNow Scheduled Tick (Every 30 min)
     try {
+      const { executeScheduledAutonomousTick, scrapePortfolioGroundTruth } = await import(
+        "@/server/features/automation/autonomousHandler"
+      );
       await executeScheduledAutonomousTick(env);
+      await scrapePortfolioGroundTruth(env, true);
     } catch (autoErr) {
       console.warn("[cron] Autonomous pipeline scheduled tick warning:", autoErr);
-    }
-
-    // Ground-Truth 360° Portfolio Deep Scraper (Every 15 min ground-truth verification)
-    try {
-      await scrapePortfolioGroundTruth(env, true);
-    } catch (scrapeErr) {
-      console.warn("[cron] Ground-Truth Portfolio Scraper warning:", scrapeErr);
     }
 
     if (watchdogError) throw watchdogError;

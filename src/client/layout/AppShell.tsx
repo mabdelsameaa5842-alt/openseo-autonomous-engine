@@ -17,6 +17,7 @@ import { SuperAdminGate } from "@/client/components/SuperAdminGate";
 import { I18nProvider, LanguageToggle } from "@/client/lib/i18n";
 import { useThemePreference } from "@/client/lib/theme";
 import { ThemeToggle } from "@/client/components/ThemeToggle";
+import { GlobalSystemReadinessBanner } from "@/client/components/GlobalSystemReadinessBanner";
 
 const DATAFORSEO_HELP_PATH = "/help/dataforseo-api-key";
 
@@ -80,38 +81,14 @@ function AuthenticatedAppLayoutInner({
   // builds links that self-correct via the route guard once data arrives.
   const sidebarProjectId =
     projectId ?? fallbackProjectId ?? rememberedProjectId;
-  const shouldCheckSeoApiKeyStatus = location.pathname !== BILLING_ROUTE;
+  const shouldCheckSeoApiKeyStatus = false;
   const seoApiKeyStatusQuery = useQuery({
     queryKey: ["seoApiKeyStatus"],
     queryFn: () => getSeoApiKeyStatus(),
-    enabled: shouldCheckSeoApiKeyStatus,
+    enabled: false,
   });
-  const isSeoApiKeyConfigured = shouldCheckSeoApiKeyStatus
-    ? (seoApiKeyStatusQuery.data?.configured ?? null)
-    : null;
-  const seoApiKeyStatusError =
-    shouldCheckSeoApiKeyStatus && seoApiKeyStatusQuery.isError;
-
-  React.useEffect(() => {
-    if (!shouldCheckSeoApiKeyStatus) {
-      setShowMissingSeoApiKeyModal(false);
-      return;
-    }
-
-    if (seoApiKeyStatusQuery.isError) {
-      setShowMissingSeoApiKeyModal(false);
-      return;
-    }
-
-    if (!seoApiKeyStatusQuery.isSuccess) return;
-    setShowMissingSeoApiKeyModal(!seoApiKeyStatusQuery.data.configured);
-  }, [
-    location.pathname,
-    seoApiKeyStatusQuery.data,
-    seoApiKeyStatusQuery.isError,
-    seoApiKeyStatusQuery.isSuccess,
-    shouldCheckSeoApiKeyStatus,
-  ]);
+  const isSeoApiKeyConfigured = true;
+  const seoApiKeyStatusError = false;
 
   // DataForSEO completely decommissioned in favor of Google Search Console + Analytics + Ads ($0.00 zero cost architecture)
   const shouldShowMissingSeoApiKeyModal = false;
@@ -165,6 +142,10 @@ function AuthenticatedAppLayoutInner({
               shouldShowSeoApiWarning={shouldShowSeoApiWarning}
               seoApiKeyStatusError={seoApiKeyStatusError}
             />
+
+            {sidebarProjectId ? (
+              <GlobalSystemReadinessBanner projectId={sidebarProjectId} />
+            ) : null}
 
             {banner}
 

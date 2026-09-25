@@ -13,7 +13,11 @@ import {
   ArrowRightLeft,
 } from "lucide-react";
 import { toast } from "sonner";
-import { AVAILABLE_MODELS, type AIModelOption } from "@/client/features/sam/components/ModelQuotaBadge";
+import {
+  AVAILABLE_MODELS,
+  MODEL_CATEGORY_PILLS,
+  type AIModelOption,
+} from "@/client/features/sam/components/ModelQuotaBadge";
 
 const LOCAL_STORAGE_KEY = "openseo_active_chat_model";
 
@@ -25,6 +29,7 @@ export const AIModelsQuotaRadar: React.FC<AIModelsQuotaRadarProps> = ({
   isRtl = true,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const [activeModelId, setActiveModelId] = useState<string>(() => {
@@ -111,6 +116,7 @@ export const AIModelsQuotaRadar: React.FC<AIModelsQuotaRadarProps> = ({
 
               {/* Apple HIG Dropdown Trigger Button */}
               <button
+                id="ai-model-selector-trigger-btn"
                 type="button"
                 onClick={() => setIsOpen(!isOpen)}
                 aria-expanded={isOpen}
@@ -184,19 +190,42 @@ export const AIModelsQuotaRadar: React.FC<AIModelsQuotaRadarProps> = ({
           style={isRtl ? { right: 0 } : { left: 0 }}
         >
           {/* Dropdown Menu Header */}
-          <div className="px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/80 flex items-center justify-between">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">
-              <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
-              <span>{isRtl ? "اختر موديل الذكاء الاصطناعي الأساسي" : "Select Active AI Model"}</span>
+          <div className="px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/80">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-zinc-900 dark:text-zinc-100">
+                <Sparkles className="h-3.5 w-3.5 text-indigo-500" />
+                <span>{isRtl ? "فهرس موديلات Google AI Studio (50 نموذج)" : "Google AI Studio Catalog"}</span>
+              </div>
+              <span className="text-[10px] text-zinc-400">
+                {isRtl ? "تبديل فوري في نفس المللي ثانية" : "Sub-ms seamless failover"}
+              </span>
             </div>
-            <span className="text-[10px] text-zinc-400">
-              {isRtl ? "تبديل فوري دون انقطاع" : "Instant seamless failover"}
-            </span>
+
+            {/* Category Filter Pills (Apple HIG Segmented Style) */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-1 pt-2 scrollbar-none">
+              {MODEL_CATEGORY_PILLS.map((pill) => (
+                <button
+                  key={pill.id}
+                  type="button"
+                  onClick={() => setSelectedCategory(pill.id)}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] whitespace-nowrap transition-colors font-medium cursor-pointer ${
+                    selectedCategory === pill.id
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-200 dark:hover:bg-zinc-700"
+                  }`}
+                >
+                  {pill.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Model Items List */}
           <div className="py-1 space-y-1 max-h-[380px] overflow-y-auto">
-            {AVAILABLE_MODELS.map((model) => {
+            {(selectedCategory === "all"
+              ? AVAILABLE_MODELS
+              : AVAILABLE_MODELS.filter((m) => m.categoryGroup === selectedCategory)
+            ).map((model) => {
               const isActive = model.id === activeModelId;
               const isWarningModel = model.id === "gemini-3.6-flash";
 

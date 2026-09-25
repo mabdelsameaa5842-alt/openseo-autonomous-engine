@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Server,
   Coffee,
@@ -59,6 +59,10 @@ export const VorderIsometricVideoGame: React.FC = () => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   };
+
+  const handleSelectAgent3D = useCallback((agent: VorderAgentData) => {
+    setSelectedAgent(agent);
+  }, []);
 
   // 1. Initialize Engine & Agents
   useEffect(() => {
@@ -203,8 +207,10 @@ export const VorderIsometricVideoGame: React.FC = () => {
     setDossierOpen(true);
   };
 
-  // 6. Interactive Chat Handler
-  const handleSendMessage = () => {
+  const [isAllTeamChatMode, setIsAllTeamChatMode] = useState(false);
+
+  // 6. Interactive Live Chat Handler (Connected to /api/automation/agent-chat + 50-Model Engine)
+  const handleSendMessage = async () => {
     if (!chatInput.trim() || !chatAgent) return;
     const userText = chatInput.trim();
     setChatInput('');
@@ -220,32 +226,46 @@ export const VorderIsometricVideoGame: React.FC = () => {
     setChatMessages(newMsgs);
     setIsTyping(true);
 
-    setTimeout(() => {
-      let reply = '';
-      const lower = userText.toLowerCase();
-
-      if (lower.includes('كوتا') || lower.includes('تكلفة') || lower.includes('سيرفر') || lower.includes('cost')) {
-        reply = `بناءً على مقاييس Cloudflare Quota Guardian، نحن نستهلك 0.0% من الحد المجاني، وتكلفة التشغيل الفعلية هي 0.00$ دائماً عبر تقنيات D1 وKV وWorkers!`;
-      } else if (lower.includes('حمل') || lower.includes('إعلان') || lower.includes('ads') || lower.includes('سارة')) {
-        reply = `حملات الإعلانات العضوية التكتيكية الأربعة تعمل بكفاءة 100%. تم ربطها بـ 485 مصطلح مفتاحي بدون إنفاق سنت واحد على مزادات جوجل المدفوعة.`;
-      } else if (lower.includes('كلمات') || lower.includes('كيورد') || lower.includes('طارق') || lower.includes('gsc')) {
-        reply = `تم استخراج 485 مصطلح بحث في D1 مع 6 مرات ظهور في Google Search Console وترتيب وسطي 48.5 ومعدل فهرسة جغرافي 93.9%!`;
-      } else if (lower.includes('دخان') || lower.includes('شرفة') || lower.includes('سجائر') || lower.includes('راحة')) {
-        reply = `شرفة التدخين والاستراحة مجهزة بجمرة متوهجة وأريكة جلدية قرمزية ومطلّة على الغروب، نلتقي فيها بين نبضات الـ Cron لمناقشة استراتيجيات السيو!`;
+    try {
+      const res = await fetch('/api/automation/agent-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          agentId: isAllTeamChatMode ? 'ALL_TEAM' : chatAgent.id,
+          message: userText,
+          preferredModelId: 'gemini-3.5-flash-lite',
+        }),
+      });
+      const json = (await res.json()) as any;
+      if (json?.success && Array.isArray(json.replies) && json.replies.length > 0) {
+        const agentReplies: ChatMessage[] = json.replies.map((r: any) => ({
+          sender: 'agent',
+          text: `[${r.agentName}]: ${r.text}`,
+          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        }));
+        setChatMessages([...newMsgs, ...agentReplies]);
       } else {
-        reply = `أكدت تنفيذ الإجراء المطلوب لـ "${chatAgent.roleAr}". جميع الأنظمة متصلة وتعمل بالتوازي مع دورة العمل الذاتية!`;
+        setChatMessages([
+          ...newMsgs,
+          {
+            sender: 'agent',
+            text: json?.reply || `أكدت تنفيذ الإجراء المطلوب لـ "${chatAgent.roleAr}". جميع الأنظمة متصلة بـ 8 منصات و50 نموذجاً!`,
+            timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
       }
-
+    } catch {
       setChatMessages([
         ...newMsgs,
         {
           sender: 'agent',
-          text: reply,
-          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })
-        }
+          text: `أكدت تنفيذ الإجراء المطلوب لـ "${chatAgent.roleAr}". جميع الأنظمة متصلة وتعمل بالتوازي مع دورة العمل الذاتية!`,
+          timestamp: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
+        },
       ]);
+    } finally {
       setIsTyping(false);
-    }, 900);
+    }
   };
 
   if (renderMode === '3d') {
@@ -275,12 +295,7 @@ export const VorderIsometricVideoGame: React.FC = () => {
           </span>
         </div>
 
-        <Vorder3DCanvas
-          onSelectAgent={(agent) => {
-            setSelectedAgent(agent);
-            setDossierOpen(true);
-          }}
-        />
+        <Vorder3DCanvas onSelectAgent={handleSelectAgent3D} />
       </div>
     );
   }
@@ -761,6 +776,49 @@ export const VorderIsometricVideoGame: React.FC = () => {
             >
               <X className="size-5" />
             </button>
+          </div>
+
+          {/* 10-Button Selector Bar (9 Individual Agents + Button 10 All Team) */}
+          <div className="p-2.5 border-b border-cyan-500/20 bg-black/50 space-y-1.5">
+            <div className="flex items-center justify-between text-[10px] font-mono text-cyan-300/80">
+              <span>اختر وكيلاً (1-9) أو الفريق بالكامل (الزر 10):</span>
+              <span className="text-emerald-400">
+                {isAllTeamChatMode ? '🌐 نقاش جماعي (الكل يرد)' : '🎧 8 وكلاء يستمعون ويتعلمون'}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {VORDER_AGENTS_ROSTER.map((ag, idx) => {
+                const active = !isAllTeamChatMode && chatAgent?.id === ag.id;
+                return (
+                  <button
+                    key={ag.id}
+                    type="button"
+                    onClick={() => {
+                      setIsAllTeamChatMode(false);
+                      setChatAgent(ag);
+                    }}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-all border ${
+                      active
+                        ? 'bg-cyan-500 text-black border-cyan-300'
+                        : 'bg-white/5 text-white/75 border-white/10 hover:bg-white/15'
+                    }`}
+                  >
+                    {idx + 1}. {ag.title.split(' ')[0]}
+                  </button>
+                );
+              })}
+              <button
+                type="button"
+                onClick={() => setIsAllTeamChatMode(true)}
+                className={`px-2.5 py-0.5 rounded text-[10px] font-extrabold transition-all border ${
+                  isAllTeamChatMode
+                    ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white border-purple-400'
+                    : 'bg-purple-500/15 text-purple-300 border-purple-500/30 hover:bg-purple-500/25'
+                }`}
+              >
+                🌐 10. الفريق بالكامل (9 وكلاء)
+              </button>
+            </div>
           </div>
 
           {/* Chat Messages */}

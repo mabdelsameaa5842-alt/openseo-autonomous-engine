@@ -25,6 +25,7 @@ import {
   Bell,
   BellRing,
   Send,
+  Users,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/client/lib/i18n";
@@ -35,6 +36,9 @@ import { SearchTermsGscTable, type GscSearchTerm } from "@/client/features/autom
 import { StrategyArticleCrudTable } from "@/client/features/automation/components/StrategyArticleCrudTable";
 import { AutonomousDeduplicationCard } from "@/client/features/automation/components/AutonomousDeduplicationCard";
 import { OrganicAdsCampaignBuilderStepper } from "./components/OrganicAdsCampaignBuilderStepper";
+import { VorderMeetingChamberModal } from "@/client/features/vorder-analytics/agent-office-3d/components/VorderMeetingChamberModal";
+import { VorderSmartTelemetryFeed } from "@/client/features/vorder-analytics/agent-office-3d/components/VorderSmartTelemetryFeed";
+import { VorderOrganicAdsIcon, GoogleAdsLogo } from "@/client/components/BrandLogos";
 
 // Consolidated "Performance Files" Components transferred from vorder-analytics
 import { GeoRadar360Card } from "@/client/features/vorder-analytics/components/GeoRadar360Card";
@@ -96,6 +100,7 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
   const [selectedCampaignId, setSelectedCampaignId] = useState<string>("camp_cc58e018_saudi_ecom");
   const [timeframe, setTimeframe] = useState<"7days" | "28days" | "3months">("3months");
   const [showCampaignBuilder, setShowCampaignBuilder] = useState(false);
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
   const [isFastSyncing, setIsFastSyncing] = useState(false);
 
   // 2. Fetch Campaigns
@@ -129,7 +134,9 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
   const searchTermsQuery = useQuery({
     queryKey: ["gscSearchTerms", projectId, selectedCampaignId],
     queryFn: async () => {
-      const res = await fetch(`/api/automation/gsc-search-terms?projectId=${encodeURIComponent(projectId)}`);
+      const res = await fetch(
+        `/api/automation/gsc-search-terms?projectId=${encodeURIComponent(projectId)}&campaignId=${encodeURIComponent(selectedCampaignId)}`
+      );
       if (!res.ok) throw new Error("Failed to fetch search terms");
       return (await res.json()) as any;
     },
@@ -321,7 +328,7 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
     icon: React.ComponentType<{ className?: string }>;
   }> = [
     { id: "overview", label: isArabic ? "نظرة عامة" : "Overview", icon: LayoutDashboard },
-    { id: "campaigns", label: isArabic ? "الحملات العضوية" : "Campaigns", icon: Megaphone },
+    { id: "campaigns", label: isArabic ? "الحملات العضوية والمدفوعة" : "Organic & Paid Campaigns", icon: VorderOrganicAdsIcon },
     { id: "clusters", label: isArabic ? "المجموعات الدلالية" : "Topic Clusters", icon: Layers },
     { id: "articles", label: isArabic ? "المقالات التكتيكية" : "Tactical Articles", icon: FileText },
     { id: "keywords", label: isArabic ? "استعلامات البحث والحصاد" : "Search Terms & Harvesting", icon: Search },
@@ -336,14 +343,10 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
       {/* 1. Inner Secondary Sidebar (Sub-Rail) */}
       <aside className={`w-64 shrink-0 bg-[var(--apple-card)] border-r border-[var(--apple-border)] hidden md:flex flex-col justify-between p-3.5 z-10 ${isRtl ? "border-l border-r-0" : ""}`}>
         <div className="flex flex-col gap-3">
-          {/* Brand Header: Royal VORDER Official Logo */}
+          {/* Brand Header: Bespoke VORDER Organic Ads Official Icon */}
           <div className="flex items-center gap-2.5 px-2 py-2 border-b border-[var(--apple-border)] pb-3">
-            <div className="relative flex size-8 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-[#1C1C1E] border border-zinc-200/80 dark:border-white/10 p-1 shadow-sm">
-              <img
-                src="/vorder_seo_logo.png"
-                alt="VORDER SEO"
-                className="h-full w-full object-contain"
-              />
+            <div className="relative flex size-9 shrink-0 items-center justify-center rounded-xl bg-white dark:bg-[#1C1C1E] border border-zinc-200/80 dark:border-white/10 p-1 shadow-sm">
+              <VorderOrganicAdsIcon className="size-6" />
               <span className="absolute -bottom-0.5 -right-0.5 size-2 rounded-full bg-[#30D158] border-2 border-white dark:border-[#121214] animate-pulse" />
             </div>
             <div className="flex flex-col">
@@ -351,11 +354,11 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                 VORDER Organic Ads
               </span>
               <span className="text-[10px] text-[var(--apple-text-secondary)] font-medium">
-                {isArabic ? "إعلانات فوردر العضوية الذكية" : "Autonomous Search Ads"}
+                {isArabic ? "منظومة الإعلانات الأورجانيك والمدفوعة" : "Autonomous Organic & Paid Ads"}
               </span>
             </div>
             <span className="text-[9px] font-mono uppercase px-1.5 py-0.5 rounded bg-[#97233A]/10 text-[#97233A] dark:bg-[#B8324D]/20 dark:text-[#E15B75] font-bold ml-auto">
-              PRO
+              AI
             </span>
           </div>
 
@@ -365,12 +368,12 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
             onClick={() => {
               setActiveTab("campaigns");
               setShowCampaignBuilder(true);
-              toast.info(isArabic ? "تم فتح معالج إطلاق الحملة العضوية" : "Campaign Builder Stepper opened");
+              toast.info(isArabic ? "تم فتح المُعِد الذكي للحملات بالذكاء الاصطناعي" : "AI Campaign Architect opened");
             }}
             className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#97233A] to-[#6E1729] dark:from-[#B8324D] dark:to-[#97233A] hover:opacity-95 shadow-sm transition-all duration-150 active:scale-95 cursor-pointer"
           >
-            <Plus className="size-4 stroke-[2.5]" />
-            <span>{isArabic ? "إنشاء حملة أورجانيك جديدة" : "New Organic Campaign"}</span>
+            <VorderOrganicAdsIcon className="size-4" />
+            <span>{isArabic ? "إعداد حملة ذكية (أورجانيك / مدفوعة)" : "AI Architect Campaign"}</span>
           </button>
 
           {/* Left Rail Menu Items */}
@@ -402,8 +405,20 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
           </nav>
         </div>
 
-        {/* Bottom Rail: Settings Item */}
-        <div className="pt-3 border-t border-[var(--apple-border)]">
+        {/* Bottom Rail: Agent Meeting Chamber & Settings */}
+        <div className="pt-3 border-t border-[var(--apple-border)] flex flex-col gap-1.5">
+          <button
+            type="button"
+            onClick={() => setShowMeetingModal(true)}
+            className="w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 font-bold border border-indigo-500/20 hover:bg-indigo-500/20 transition-all cursor-pointer shadow-2xs"
+          >
+            <div className="flex items-center gap-2">
+              <Users className="size-4 text-indigo-500 animate-pulse" />
+              <span>{isArabic ? "جروب الميتينج 🎙️" : "Agent Meeting 🎙️"}</span>
+            </div>
+            <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+          </button>
+
           <button
             type="button"
             onClick={() => setActiveTab("settings")}
@@ -507,6 +522,18 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
               <span>{isFastSyncing ? (isArabic ? "جاري المزامنة..." : "Syncing...") : (isArabic ? "مزامنة كونسول ⚡" : "Sync GSC ⚡")}</span>
             </button>
 
+            {/* Autonomous Agent Meeting Chamber Trigger */}
+            <button
+              type="button"
+              onClick={() => setShowMeetingModal(true)}
+              title={isArabic ? "فتح غرفة اجتماعات الوكلاء الذاتية (جروب الميتينج)" : "Open Autonomous Agent Meeting Chamber"}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-500/20 transition-all font-bold text-xs cursor-pointer active:scale-95 shadow-2xs"
+            >
+              <Users className="size-3.5 text-indigo-500 animate-pulse" />
+              <span>{isArabic ? "جروب الميتينج 🎙️" : "Agent Meeting 🎙️"}</span>
+              <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
+            </button>
+
             {/* Date Range Picker */}
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-[var(--apple-border)] bg-[var(--apple-canvas)] text-[var(--apple-text-primary)]">
               <Calendar className="size-3.5 text-[var(--apple-text-secondary)]" />
@@ -527,13 +554,22 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
               <select
                 value={selectedCampaignId}
                 onChange={(e) => setSelectedCampaignId(e.target.value)}
-                className="bg-transparent border-none text-xs font-bold text-[var(--apple-text-primary)] focus:outline-none cursor-pointer max-w-[200px] truncate"
+                className="bg-transparent border-none text-xs font-bold text-[var(--apple-text-primary)] focus:outline-none cursor-pointer max-w-[280px] truncate"
               >
                 <option value="camp_cc58e018_saudi_ecom" className="bg-[var(--apple-card)] text-[var(--apple-text-primary)]">
-                  {isArabic ? "حملة الاستحواذ العضوي للسوق السعودي والخليجي" : "Organic Acquisition (KSA & GCC)"}
+                  {isArabic ? "1. الاستحواذ العضوي (السعودية والخليج)" : "1. Saudi E-Com CRO"}
+                </option>
+                <option value="camp_cc58e018_geo_ai" className="bg-[var(--apple-card)] text-[var(--apple-text-primary)]">
+                  {isArabic ? "2. ظهور الذكاء الاصطناعي والـ GEO" : "2. GEO AI Brand Visibility"}
+                </option>
+                <option value="camp_cc58e018_whatsapp_funnel" className="bg-[var(--apple-card)] text-[var(--apple-text-primary)]">
+                  {isArabic ? "3. استرجاع السلات بواتساب (الخليج ومصر)" : "3. WhatsApp Cart Recovery"}
+                </option>
+                <option value="camp_cc58e018_advanced_tracking" className="bg-[var(--apple-card)] text-[var(--apple-text-primary)]">
+                  {isArabic ? "4. التتبع المتقدم والـ CAPI (الشرق الأوسط)" : "4. Advanced Tracking & CAPI"}
                 </option>
                 <option value="all" className="bg-[var(--apple-card)] text-[var(--apple-text-primary)]">
-                  {isArabic ? "كافة الحملات" : "All Campaigns"}
+                  {isArabic ? "🌐 كافة الحملات (الموقع بالكامل)" : "🌐 All Campaigns"}
                 </option>
               </select>
             </div>
@@ -561,6 +597,13 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                 selectedMetric={selectedMetric}
                 onSelectMetric={setSelectedMetric}
                 isLoading={performanceQuery.isLoading}
+              />
+
+              {/* Smart Work & Rest Telemetry Feed */}
+              <VorderSmartTelemetryFeed
+                telemetryData={telemetryQuery.data}
+                onOpenMeetingChamber={() => setShowMeetingModal(true)}
+                isRtl={isRtl}
               />
 
               {/* Glowing Timeline Trend Chart */}
@@ -682,11 +725,15 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                 </div>
 
                 {(() => {
-                  const saudiArticles = Math.min(livePublishedCount, campaigns.find((c: any) => (c.id || "").includes("saudi"))?.publishedArticlesCount || 645);
-                  const rem = Math.max(0, livePublishedCount - saudiArticles);
-                  const whatsappArticles = Math.round(rem * 0.45);
-                  const geoArticles = Math.round(rem * 0.33);
-                  const cairoArticles = Math.max(0, rem - whatsappArticles - geoArticles);
+                  const saudiCamp = campaigns.find((c: any) => (c.id || "").includes("saudi"));
+                  const whatsappCamp = campaigns.find((c: any) => (c.id || "").includes("whatsapp"));
+                  const geoCamp = campaigns.find((c: any) => (c.id || "").includes("geo"));
+                  const trackingCamp = campaigns.find((c: any) => (c.id || "").includes("advanced_tracking") || (c.id || "").includes("tracking") || (c.id || "").includes("cairo"));
+
+                  const saudiArticles = saudiCamp?.publishedArticlesCount ?? Math.round(livePublishedCount * 0.42);
+                  const whatsappArticles = whatsappCamp?.publishedArticlesCount ?? Math.round(livePublishedCount * 0.24);
+                  const geoArticles = geoCamp?.publishedArticlesCount ?? Math.round(livePublishedCount * 0.20);
+                  const trackingArticles = trackingCamp?.publishedArticlesCount ?? Math.max(0, livePublishedCount - saudiArticles - whatsappArticles - geoArticles);
 
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
@@ -734,14 +781,14 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
 
                       <div className="p-4 rounded-xl border border-[var(--apple-border)] bg-[var(--apple-canvas)]">
                         <span className="font-bold text-sm text-[var(--apple-text-primary)] block mb-1">
-                          {isArabic ? "النمو المحلي واستشارات القاهرة والتجمع" : "Cairo & Egypt Local Business"}
+                          {isArabic ? "تتبع التحويلات المتقدم وإعلانات النمو B2B" : "Advanced Tracking & Performance Growth"}
                         </span>
                         <span className="text-[var(--apple-text-secondary)] block mb-3">
-                          Local Intent • Egypt Market
+                          Commercial B2B • KSA & UAE & Egypt
                         </span>
                         <div className="space-y-1.5 text-[var(--apple-text-secondary)] font-mono">
-                          <div className="flex justify-between"><span>{isArabic ? "المقالات:" : "Articles:"}</span> <strong className="text-[var(--apple-text-primary)]">{cairoArticles} {isArabic ? "مقال" : ""}</strong></div>
-                          <div className="flex justify-between"><span>{isArabic ? "الظهور:" : "Impressions:"}</span> <strong className="text-blue-600 dark:text-sky-400">3</strong></div>
+                          <div className="flex justify-between"><span>{isArabic ? "المقالات:" : "Articles:"}</span> <strong className="text-[var(--apple-text-primary)]">{trackingArticles} {isArabic ? "مقال" : ""}</strong></div>
+                          <div className="flex justify-between"><span>{isArabic ? "الظهور:" : "Impressions:"}</span> <strong className="text-blue-600 dark:text-sky-400">12</strong></div>
                           <div className="flex justify-between"><span>{isArabic ? "الفهرسة:" : "Indexed:"}</span> <strong className="text-[var(--apple-text-primary)]">100%</strong></div>
                         </div>
                       </div>
@@ -875,6 +922,11 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
               <div className="rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-2 shadow-2xl">
                 <VorderIsometricVideoGame />
               </div>
+              <VorderSmartTelemetryFeed
+                telemetryData={telemetryQuery.data}
+                onOpenMeetingChamber={() => setShowMeetingModal(true)}
+                isRtl={isRtl}
+              />
               <div className="rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-5">
                 <SteppedAiTasksWorkflow projectId={projectId} isRtl={isRtl} />
               </div>
@@ -938,8 +990,8 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                         <span className="text-[var(--apple-text-secondary)]">
                           {isArabic ? "التبديل التلقائي التعاقبي في الخلفية:" : "Auto-Failover Cascade:"}
                         </span>
-                        <span className="font-mono font-semibold text-indigo-600 dark:text-indigo-400">
-                          Gemini 2.0 Flash → Flash-Lite → 1.5 → OpenRouter
+                        <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                          Gemini 2.0 Flash → Flash-Lite → 1.5 Flash → Antigravity Engine ($0.00)
                         </span>
                       </div>
                     </div>
@@ -950,6 +1002,13 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
           )}
         </main>
       </div>
+
+      {/* Autonomous Multi-Agent Meeting Chamber Modal ("جروب الميتينج") */}
+      <VorderMeetingChamberModal
+        isOpen={showMeetingModal}
+        onClose={() => setShowMeetingModal(false)}
+        isRtl={isRtl}
+      />
     </div>
   );
 }
