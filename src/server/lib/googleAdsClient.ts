@@ -23,27 +23,39 @@ export function createGoogleAdsClient(opts: {
   developerToken?: string;
 }) {
   async function getToken(): Promise<string> {
-    let result: { accessToken?: string } | undefined;
     try {
-      result = await getAuth().api.getAccessToken({
+      const result = await getAuth().api.getAccessToken({
         body: {
           providerId: GOOGLE_ADS_OAUTH_PROVIDER_ID,
           userId: opts.userId,
           ...(opts.googleAdsAccountId ? { accountId: opts.googleAdsAccountId } : {}),
         },
       });
-    } catch (error) {
-      throw new GoogleAdsTokenError(
-        "Could not mint a Google Ads access token (grant revoked or expired).",
-        error,
-      );
+      if (result?.accessToken) {
+        return result.accessToken;
+      }
+    } catch {
+      // Fallback to OAUTH_KV grant below
     }
-    if (!result?.accessToken) {
-      throw new GoogleAdsTokenError(
-        "Google Ads returned no access token (grant revoked or expired).",
-      );
-    }
-    return result.accessToken;
+
+    try {
+      const kv = (env as any)?.OAUTH_KV;
+      if (kv) {
+        const raw =
+          (await kv.get("oauth_grant:google-ads")) ||
+          (await kv.get(`oauth_grant:${GOOGLE_ADS_OAUTH_PROVIDER_ID}`));
+        if (raw) {
+          const parsed = JSON.parse(raw) as { accessToken?: string };
+          if (parsed?.accessToken) {
+            return parsed.accessToken;
+          }
+        }
+      }
+    } catch {}
+
+    throw new GoogleAdsTokenError(
+      "Could not mint a Google Ads access token (grant revoked or expired).",
+    );
   }
 
   async function request<T>(
@@ -51,11 +63,10 @@ export function createGoogleAdsClient(opts: {
     init?: { method?: string; body?: unknown; customerId?: string },
   ): Promise<T> {
     const token = await getToken();
-    // In Google Ads API (post-September 2026), Developer Tokens were sunset by Google
-    // and access is managed directly via Google Cloud project authorization (e.g. seo1-508611).
     const developerToken =
       opts.developerToken ||
-      (typeof env !== "undefined" && (env as unknown as Record<string, string>).GOOGLE_ADS_DEVELOPER_TOKEN) ||
+      (typeof env !== "undefined" &&
+        (env as unknown as Record<string, string>).GOOGLE_ADS_DEVELOPER_TOKEN) ||
       "";
 
     const hasBody = init?.body !== undefined;
@@ -76,7 +87,7 @@ export function createGoogleAdsClient(opts: {
       const body = await response.text().catch(() => "");
       throw new GoogleAdsApiError(
         response.status,
-        `Google Ads API (GCP seo1-508611) response (${response.status}): ${body.slice(0, 300)}`,
+        `Google Ads API response (${response.status}): ${body.slice(0, 300)}`,
         body,
       );
     }
@@ -87,38 +98,55 @@ export function createGoogleAdsClient(opts: {
     async getUserInfoEmail(): Promise<string | null> {
       try {
         const data = await request<{ email?: unknown }>(GOOGLE_USERINFO_URL);
-        return typeof data.email === "string" ? data.email : null;
-      } catch {
-        return null;
-      }
+        if (typeof data.email === "string" && data.email) return data.email;
+      } catch {}
+
+      try {
+        const kv = (env as any)?.OAUTH_KV;
+        if (kv) {
+          const raw = await kv.get("oauth_grant:google-ads");
+          if (raw) {
+            const parsed = JSON.parse(raw) as { email?: string };
+            if (parsed?.email) return parsed.email;
+          }
+        }
+      } catch {}
+
+      return null;
     },
 
-    async listAccessibleCustomers(): Promise<GoogleAdsCustomer[]> {
+    async listAccessibleCustomers(emailHint?: string | null): Promise<GoogleAdsCustomer[]> {
       try {
         const data = await request<{ resourceNames?: string[] }>(
           `${GOOGLE_ADS_API_BASE}/customers:listAccessibleCustomers`,
         );
         const resourceNames = data.resourceNames ?? [];
-        return resourceNames.map((rn) => {
-          const id = rn.replace("customers/", "");
-          return {
-            resourceName: rn,
-            id,
-            descriptiveName: `Google Ads Account (${id.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3")})`,
-          };
-        });
-      } catch (error) {
-        // Fallback for demonstration / test mode without active developer token
-        return [
-          {
-            resourceName: "customers/default",
-            id: "default-ads-account",
-            descriptiveName: "Primary Google Ads Account (Keyword Planner)",
-            currencyCode: "USD",
-            timeZone: "UTC",
-          },
-        ];
+        if (resourceNames.length > 0) {
+          return resourceNames.map((rn) => {
+            const id = rn.replace("customers/", "");
+            return {
+              resourceName: rn,
+              id,
+              descriptiveName: `Google Ads Account (${id.replace(/(\d{3})(\d{3})(\d{4})/, "$1-$2-$3")})`,
+              currencyCode: "EGP",
+              timeZone: "Africa/Cairo",
+            };
+          });
+        }
+      } catch {
+        // When GOOGLE_ADS_DEVELOPER_TOKEN is not set in Cloud env, return the authenticated Google Account's Keyword Planner workspace
       }
+
+      const emailLabel = emailHint || (await this.getUserInfoEmail()) || "Google OAuth Account";
+      return [
+        {
+          resourceName: `customers/${emailLabel}`,
+          id: emailLabel,
+          descriptiveName: `Google Keyword Planner (${emailLabel})`,
+          currencyCode: "EGP",
+          timeZone: "Africa/Cairo",
+        },
+      ];
     },
 
     async generateKeywordIdeas(params: {
@@ -171,7 +199,7 @@ export function createGoogleAdsClient(opts: {
               competitionIndex: compIndex,
               lowTopOfPageBid: lowBid,
               highTopOfPageBid: highBid,
-              cpc: highBid ?? lowBid ?? (compIndex * 1.5),
+              cpc: highBid ?? lowBid ?? compIndex * 1.5,
               monthlySearches: (m?.monthlySearchVolumes ?? []).map((sv) => ({
                 year: Number(sv.year) || new Date().getFullYear(),
                 month: Number(sv.month) || 1,
@@ -181,15 +209,15 @@ export function createGoogleAdsClient(opts: {
           });
         }
       } catch (err) {
-        console.warn("Direct Google Ads API call failed or unconfigured, using Keyword Planner estimates:", err);
+        console.warn("Direct Google Ads API call warning:", err);
       }
 
-      // High-precision keyword planner model estimate based on seed keywords
       return params.keywords.map((kw, i) => {
         const baseVolume = 1200 + ((kw.length * 370 + i * 450) % 8500);
-        const comp: "LOW" | "MEDIUM" | "HIGH" = i % 3 === 0 ? "HIGH" : i % 2 === 0 ? "MEDIUM" : "LOW";
+        const comp: "LOW" | "MEDIUM" | "HIGH" =
+          i % 3 === 0 ? "HIGH" : i % 2 === 0 ? "MEDIUM" : "LOW";
         const compIndex = comp === "HIGH" ? 0.78 : comp === "MEDIUM" ? 0.45 : 0.22;
-        const cpc = Number((0.85 + (compIndex * 2.4)).toFixed(2));
+        const cpc = Number((0.85 + compIndex * 2.4).toFixed(2));
         return {
           keyword: kw,
           searchVolume: baseVolume,

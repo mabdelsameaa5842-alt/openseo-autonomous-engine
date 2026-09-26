@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { Search, Sparkles } from "lucide-react";
+import { Search } from "lucide-react";
 import { CardShell, moreDetailsClass, Stat } from "@/client/features/dashboard/cardParts";
-import { GoogleAdsLogo } from "@/client/features/integrations/GoogleProductLogos";
+import { GoogleAdsConnectionCard } from "@/client/features/google-ads/GoogleAdsConnectionCard";
 import {
   getGoogleAdsConnection,
   searchKeywordPlanner,
@@ -39,6 +39,14 @@ export function GoogleAdsCard({
       }),
   });
 
+  if (!connected) {
+    return (
+      <div id="connect-google-ads">
+        <GoogleAdsConnectionCard projectId={projectId} />
+      </div>
+    );
+  }
+
   const handleSearchPlanner = (e: React.FormEvent) => {
     e.preventDefault();
     if (!plannerQuery.trim()) return;
@@ -60,7 +68,11 @@ export function GoogleAdsCard({
   return (
     <CardShell
       title={t("card.google_ads.title", "Google Ads & Keyword Planner")}
-      subtitle={t("card.google_ads.subtitle", "Lookup tools")}
+      subtitle={
+        connection?.customerDescriptiveName
+          ? `${connection.customerDescriptiveName} (${connection.connectedByEmail || connection.customerId})`
+          : t("card.google_ads.subtitle", "Live Keyword Planner lookup")
+      }
       action={
         <Link
           to="/p/$projectId/settings/integrations"
@@ -68,12 +80,11 @@ export function GoogleAdsCard({
           hash="google-ads"
           className={moreDetailsClass}
         >
-          {connected ? (isRtl ? "إدارة" : "Manage") : (isRtl ? "إعداد" : "Settings")}
+          {isRtl ? "إدارة" : "Manage"}
         </Link>
       }
     >
       <div className="flex flex-col justify-between h-full space-y-4">
-        {/* Two Pill Input Bars matching Image 5 */}
         <div className="space-y-3 pt-1">
           {/* Input 1: Lookup Ads */}
           <form onSubmit={handleSearchAds} className="flex items-center gap-2">
@@ -147,14 +158,18 @@ export function GoogleAdsCard({
           <div className="flex items-center justify-between pt-1 border-t border-white/[0.06] text-xs">
             <div className="flex items-center gap-1.5 text-zinc-300">
               <span className="size-1.5 rounded-full bg-[#30D158]" />
-              <span>Keyword Planner:</span>
-              <span className="font-semibold text-white font-mono">{t("metric.ready", "Ready")}</span>
+              <span>ID:</span>
+              <span className="font-semibold text-white font-mono">
+                {connection?.customerId ?? "Connected"}
+              </span>
             </div>
 
             <div className="flex items-center gap-1.5 text-zinc-300">
               <span className="size-1.5 rounded-full bg-[#30D158]" />
-              <span>Coverage:</span>
-              <span className="font-semibold text-[#30D158] font-mono">100%</span>
+              <span>Account:</span>
+              <span className="font-semibold text-[#30D158] font-mono truncate max-w-[140px]">
+                {connection?.connectedByEmail ?? "Active"}
+              </span>
             </div>
           </div>
         )}

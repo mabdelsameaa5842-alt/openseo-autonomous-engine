@@ -69,21 +69,9 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
     return map;
   }, [platformsQuery.data]);
 
-  const gscConnected = Boolean(
-    gscQuery.data?.connected ||
-      gscQuery.data?.currentUserHasGrant ||
-      platformMap.get("gsc")?.status === "connected",
-  );
-  const ga4Connected = Boolean(
-    ga4Query.data?.connected ||
-      ga4Query.data?.currentUserHasGrant ||
-      platformMap.get("ga4")?.status === "connected",
-  );
-  const adsConnected = Boolean(
-    adsQuery.data?.connected ||
-      adsQuery.data?.currentUserHasGrant ||
-      platformMap.get("google_ads")?.status === "connected",
-  );
+  const gscConnected = Boolean(gscQuery.data?.connected);
+  const ga4Connected = Boolean(ga4Query.data?.connected);
+  const adsConnected = Boolean(adsQuery.data?.connected);
   const supabaseConnected = platformMap.get("supabase")?.status === "connected";
   const githubConnected = platformMap.get("github")?.status === "connected";
   const vercelConnected = platformMap.get("vercel")?.status === "connected";
@@ -154,14 +142,26 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
   const isAllConnected = unconnectedPlatforms.length === 0;
   const efficiencyPercent = Math.round((connectedCount / platforms.length) * 100);
 
+  const sectionIdMap: Record<string, string> = {
+    gsc: "search-console",
+    ga4: "google-analytics",
+    google_ads: "google-ads",
+    google_ai_studio: "google-ai-studio",
+    supabase: "supabase",
+    github: "github",
+    vercel: "vercel",
+    cloudflare: "cloudflare",
+  };
+
   const handleGoToIntegrations = (platformKey?: string) => {
     void navigate({
       to: "/p/$projectId/settings/integrations",
       params: { projectId },
     });
     if (platformKey && typeof window !== "undefined") {
+      const targetId = sectionIdMap[platformKey] || platformKey;
       setTimeout(() => {
-        const el = document.getElementById(`platform-card-${platformKey}`);
+        const el = document.getElementById(targetId);
         if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
       }, 250);
     }

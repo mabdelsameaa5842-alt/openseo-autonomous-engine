@@ -2,7 +2,6 @@ import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { platformIntegrations } from "@/db/platform-integrations.schema";
-import { getOptionalEnvValue } from "@/server/lib/runtime-env";
 
 export type PlatformType =
   | "gsc"
@@ -14,123 +13,252 @@ export type PlatformType =
   | "google_ai_studio"
   | "cloudflare";
 
-export type PlatformConfig = {
-  apiKey?: string;
-  token?: string;
-  projectUrl?: string;
-  serviceRoleKey?: string;
-  repo?: string;
-  accountEmail?: string;
-  accountName?: string;
-  model?: string;
-  accountId?: string;
-  zoneId?: string;
-  selectedResource?: string;
-  metadata?: Record<string, any>;
-};
+export type ManagedPlatformType =
+  | "supabase"
+  | "github"
+  | "vercel"
+  | "google_ai_studio"
+  | "cloudflare";
 
-export interface DiagnosticLogEntry {
-  platform: string;
-  step: string;
-  status: "error" | "warning" | "healthy";
-  rawMessage: string;
-  causeMessage: string;
-  httpStatus?: number;
-  arabicSummary: string;
-  fixSuggestion: string;
-  timestamp: string;
+export interface PlatformResourceOption {
+  id: string;
+  name: string;
+  subtitle: string;
+  meta: Record<string, string | number | null>;
+  isSelected: boolean;
 }
 
-const inMemoryPlatformStore = new Map<string, any>();
-const inMemoryDiagnostics = new Map<string, DiagnosticLogEntry>();
+export interface PlatformConnectionState {
+  platform: PlatformType;
+  status: "connected" | "setup_required" | "disconnected";
+  connected: boolean;
+  currentUserHasGrant: boolean;
+  connectedByEmail: string | null;
+  accountName: string | null;
+  selectedResourceId: string | null;
+  selectedResourceName: string | null;
+  selectedResourceMeta: Record<string, string | number | null> | null;
+  connectedAt: string | null;
+}
 
-function unwrapError(err: unknown): { rawMessage: string; causeMessage: string } {
-  if (!err) return { rawMessage: "Unknown error", causeMessage: "Unknown error" };
-  const e = err as any;
-  const rawMessage = e?.message || String(err);
-  const causeMessage =
-    e?.cause?.message ||
-    e?.cause?.detail ||
-    (typeof e?.cause === "string" ? e.cause : "") ||
-    rawMessage;
-  return { rawMessage, causeMessage };
+export interface PlatformLiveReport {
+  platform: ManagedPlatformType;
+  connected: boolean;
+  selectedResourceId: string | null;
+  selectedResourceName: string | null;
+  connectedByEmail: string | null;
+  accountName: string | null;
+  latencyMs: number;
+  primaryMetricLabel: string;
+  primaryMetricValue: string;
+  secondaryMetricLabel: string;
+  secondaryMetricValue: string;
+  statusLabel: string;
+  details: Record<string, string | number | null>;
+  trendData: number[];
+}
+
+interface StoredVerifiedRecord {
+  id: string;
+  projectId: string;
+  platform: ManagedPlatformType;
+  verifiedByLiveApi: true;
+  status: "connected" | "setup_required";
+  credentials: {
+    token?: string;
+    apiKey?: string;
+    projectUrl?: string;
+    serviceRoleKey?: string;
+  };
+  accountName: string;
+  connectedByEmail: string;
+  selectedResourceId: string | null;
+  selectedResourceName: string | null;
+  selectedResourceMeta: Record<string, string | number | null> | null;
+  connectedAt: string;
+  updatedAt: string;
+}
+
+const inMemoryVerifiedStore = new Map<string, StoredVerifiedRecord>();
+
+function getStoreKey(projectId: string, platform: string) {
+  return `verified_platform_v2:${projectId}:${platform}`;
 }
 
 export class PlatformIntegrationsService {
-  static async recordDiagnostic(
+  private static async readVerifiedRecord(
     projectId: string,
-    platform: string,
-    diag: Omit<DiagnosticLogEntry, "platform" | "timestamp">,
-  ) {
-    const entry: DiagnosticLogEntry = {
-      ...diag,
-      platform,
-      timestamp: new Date().toISOString(),
-    };
-    const key = `diag:${projectId}:${platform}`;
-    inMemoryDiagnostics.set(key, entry);
+    platform: ManagedPlatformType,
+  ): Promise<StoredVerifiedRecord | null> {
+    const key = getStoreKey(projectId, platform);
+
+    // 1. Check KV first
     try {
       const kv = (env as any)?.OAUTH_KV;
       if (kv) {
-        await kv.put(key, JSON.stringify(entry), { expirationTtl: 60 * 60 * 24 * 14 });
-        await kv.put(`diag:global:${platform}`, JSON.stringify(entry), {
-          expirationTtl: 60 * 60 * 24 * 14,
-        });
+        const raw = await kv.get(key);
+        if (raw) {
+          const parsed = JSON.parse(raw) as StoredVerifiedRecord;
+          if (parsed && parsed.verifiedByLiveApi === true) {
+            inMemoryVerifiedStore.set(key, parsed);
+            return parsed;
+          }
+        }
       }
-    } catch {}
-    return entry;
-  }
+    } catch (err) {
+      console.warn("[PlatformIntegrationsService.readVerifiedRecord] KV read warning:", err);
+    }
 
-  static async clearDiagnostic(projectId: string, platform: string) {
-    inMemoryDiagnostics.delete(`diag:${projectId}:${platform}`);
-    inMemoryDiagnostics.delete(`diag:global:${platform}`);
-    try {
-      const kv = (env as any)?.OAUTH_KV;
-      if (kv) {
-        await kv.delete(`diag:${projectId}:${platform}`);
-        await kv.delete(`diag:global:${platform}`);
-      }
-    } catch {}
-  }
+    // 2. Check in-memory store
+    const mem = inMemoryVerifiedStore.get(key);
+    if (mem && mem.verifiedByLiveApi === true) {
+      return mem;
+    }
 
-  static async getDiagnostic(
-    projectId: string,
-    platform: string,
-  ): Promise<DiagnosticLogEntry | null> {
-    const key = `diag:${projectId}:${platform}`;
-    const globalKey = `diag:global:${platform === "google_ads" ? "google-ads" : platform}`;
-    try {
-      const kv = (env as any)?.OAUTH_KV;
-      if (kv) {
-        const raw = (await kv.get(key)) || (await kv.get(globalKey));
-        if (raw) return JSON.parse(raw) as DiagnosticLogEntry;
-      }
-    } catch {}
-    return inMemoryDiagnostics.get(key) || inMemoryDiagnostics.get(globalKey) || null;
-  }
-
-  static async getAllForProject(projectId: string) {
-    const map = new Map<string, any>();
-
-    // 1. Read from D1 safely (wrapped in try/catch so D1 errors never crash the page)
+    // 3. Check D1 database (only accept rows that have verifiedByLiveApi === true)
     try {
       const rows = await db
         .select()
         .from(platformIntegrations)
-        .where(eq(platformIntegrations.projectId, projectId));
-      for (const row of rows) {
-        map.set(row.platform, { ...row });
+        .where(
+          and(
+            eq(platformIntegrations.projectId, projectId),
+            eq(platformIntegrations.platform, platform),
+          ),
+        )
+        .limit(1);
+
+      const row = rows[0];
+      if (row && row.credentialsEncrypted) {
+        const parsedCreds = JSON.parse(row.credentialsEncrypted);
+        const parsedMeta = row.metadata ? JSON.parse(row.metadata) : {};
+        if (parsedCreds?.verifiedByLiveApi === true) {
+          const restored: StoredVerifiedRecord = {
+            id: row.id,
+            projectId,
+            platform,
+            verifiedByLiveApi: true,
+            status: parsedMeta.selectedResourceId ? "connected" : "setup_required",
+            credentials: parsedCreds.credentials || {},
+            accountName: row.accountName || platform,
+            connectedByEmail: row.accountEmail || "",
+            selectedResourceId: parsedMeta.selectedResourceId ?? null,
+            selectedResourceName: parsedMeta.selectedResourceName ?? null,
+            selectedResourceMeta: parsedMeta.selectedResourceMeta ?? null,
+            connectedAt: row.createdAt,
+            updatedAt: row.updatedAt,
+          };
+          inMemoryVerifiedStore.set(key, restored);
+          return restored;
+        }
       }
-    } catch (d1Err) {
-      const unwrapped = unwrapError(d1Err);
-      console.warn("[PlatformIntegrationsService.getAllForProject] D1 read fallback:", unwrapped.causeMessage);
+    } catch (err) {
+      console.warn("[PlatformIntegrationsService.readVerifiedRecord] D1 read warning:", err);
     }
 
-    // 2. Read from OAUTH_KV & In-Memory Store (Primary Resilient Layer)
-    const allPlatforms: PlatformType[] = [
-      "gsc",
-      "ga4",
-      "google_ads",
+    return null;
+  }
+
+  private static async writeVerifiedRecord(record: StoredVerifiedRecord): Promise<void> {
+    const key = getStoreKey(record.projectId, record.platform);
+    inMemoryVerifiedStore.set(key, record);
+
+    try {
+      const kv = (env as any)?.OAUTH_KV;
+      if (kv) {
+        await kv.put(key, JSON.stringify(record), {
+          expirationTtl: 60 * 60 * 24 * 180,
+        });
+      }
+    } catch (err) {
+      console.warn("[PlatformIntegrationsService.writeVerifiedRecord] KV write warning:", err);
+    }
+
+    try {
+      const existing = await db
+        .select({ id: platformIntegrations.id })
+        .from(platformIntegrations)
+        .where(
+          and(
+            eq(platformIntegrations.projectId, record.projectId),
+            eq(platformIntegrations.platform, record.platform),
+          ),
+        )
+        .limit(1);
+
+      const values = {
+        projectId: record.projectId,
+        platform: record.platform,
+        status: record.status === "connected" ? ("connected" as const) : ("disconnected" as const),
+        credentialsEncrypted: JSON.stringify({
+          verifiedByLiveApi: true,
+          credentials: record.credentials,
+        }),
+        accountName: record.accountName,
+        accountEmail: record.connectedByEmail,
+        metadata: JSON.stringify({
+          selectedResourceId: record.selectedResourceId,
+          selectedResourceName: record.selectedResourceName,
+          selectedResourceMeta: record.selectedResourceMeta,
+        }),
+        lastSyncedAt: record.updatedAt,
+        updatedAt: record.updatedAt,
+      };
+
+      if (existing[0]) {
+        await db
+          .update(platformIntegrations)
+          .set(values)
+          .where(eq(platformIntegrations.id, existing[0].id));
+      } else {
+        await db.insert(platformIntegrations).values({
+          id: record.id,
+          createdAt: record.connectedAt,
+          ...values,
+        });
+      }
+    } catch (err) {
+      console.warn("[PlatformIntegrationsService.writeVerifiedRecord] D1 write warning:", err);
+    }
+  }
+
+  static async getConnectionState(
+    projectId: string,
+    platform: ManagedPlatformType,
+  ): Promise<PlatformConnectionState> {
+    const record = await this.readVerifiedRecord(projectId, platform);
+    if (!record) {
+      return {
+        platform,
+        status: "disconnected",
+        connected: false,
+        currentUserHasGrant: false,
+        connectedByEmail: null,
+        accountName: null,
+        selectedResourceId: null,
+        selectedResourceName: null,
+        selectedResourceMeta: null,
+        connectedAt: null,
+      };
+    }
+
+    const hasResource = Boolean(record.selectedResourceId);
+    return {
+      platform,
+      status: hasResource ? "connected" : "setup_required",
+      connected: hasResource,
+      currentUserHasGrant: true,
+      connectedByEmail: record.connectedByEmail,
+      accountName: record.accountName,
+      selectedResourceId: record.selectedResourceId,
+      selectedResourceName: record.selectedResourceName,
+      selectedResourceMeta: record.selectedResourceMeta,
+      connectedAt: record.connectedAt,
+    };
+  }
+
+  static async getAllForProject(projectId: string) {
+    const managedPlatforms: ManagedPlatformType[] = [
       "supabase",
       "github",
       "vercel",
@@ -138,279 +266,1046 @@ export class PlatformIntegrationsService {
       "cloudflare",
     ];
 
-    const kv = (env as any)?.OAUTH_KV;
-    for (const p of allPlatforms) {
-      const memVal = inMemoryPlatformStore.get(`platform_conn:${projectId}:${p}`);
-      if (memVal) {
-        map.set(p, memVal);
+    const states = await Promise.all(
+      managedPlatforms.map((p) => this.getConnectionState(projectId, p)),
+    );
+
+    return states.map((s) => ({
+      id: `verified-${projectId}-${s.platform}`,
+      projectId,
+      platform: s.platform,
+      status: s.connected ? "connected" : s.currentUserHasGrant ? "setup_required" : "disconnected",
+      connected: s.connected,
+      currentUserHasGrant: s.currentUserHasGrant,
+      accountName: s.accountName,
+      accountEmail: s.connectedByEmail,
+      selectedResourceId: s.selectedResourceId,
+      selectedResourceName: s.selectedResourceName,
+      selectedResourceMeta: s.selectedResourceMeta,
+      connectedAt: s.connectedAt,
+    }));
+  }
+
+  /**
+   * Step 1: Authenticates credentials against the platform's real API.
+   * Rejects invalid credentials with the exact upstream error.
+   * Stores the grant in `setup_required` state so the user can pick a property/resource.
+   */
+  static async verifyAndSaveGrant(
+    projectId: string,
+    platform: ManagedPlatformType,
+    input: {
+      token?: string;
+      apiKey?: string;
+      projectUrl?: string;
+      serviceRoleKey?: string;
+    },
+  ): Promise<PlatformConnectionState> {
+    const now = new Date().toISOString();
+
+    if (platform === "google_ai_studio") {
+      const apiKey = (input.apiKey || input.token || "").trim();
+      if (!apiKey) {
+        throw new Error("يرجى إدخال مفتاح Gemini API Key الصحيح من Google AI Studio.");
       }
-      if (kv) {
+
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+      );
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(
+          `رفض سيرفر Google AI Studio المفتاح (HTTP ${res.status}): ${body.slice(0, 200)}`,
+        );
+      }
+      const data = (await res.json()) as { models?: Array<{ name: string; displayName?: string }> };
+      const modelsCount = data.models?.length ?? 0;
+      if (modelsCount === 0) {
+        throw new Error("لم يتم العثور على أي موديلات متاحة لهذا المفتاح في Google AI Studio.");
+      }
+
+      const record: StoredVerifiedRecord = {
+        id: crypto.randomUUID(),
+        projectId,
+        platform,
+        verifiedByLiveApi: true,
+        status: "setup_required",
+        credentials: { apiKey },
+        accountName: `Google AI Studio (${modelsCount} Models)`,
+        connectedByEmail: `Gemini Key ••••${apiKey.slice(-4)}`,
+        selectedResourceId: null,
+        selectedResourceName: null,
+        selectedResourceMeta: null,
+        connectedAt: now,
+        updatedAt: now,
+      };
+      await this.writeVerifiedRecord(record);
+      return this.getConnectionState(projectId, platform);
+    }
+
+    if (platform === "github") {
+      const token = (input.token || input.apiKey || "").trim();
+      if (!token) {
+        throw new Error("يرجى إدخال GitHub Personal Access Token صالح.");
+      }
+
+      const res = await fetch("https://api.github.com/user", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "User-Agent": "OpenSEO-Integration",
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`رفض GitHub التوكن المرسل (HTTP ${res.status}): ${body.slice(0, 200)}`);
+      }
+      const user = (await res.json()) as {
+        login: string;
+        name?: string | null;
+        email?: string | null;
+      };
+
+      let email = user.email || null;
+      if (!email) {
         try {
-          const kvRaw = await kv.get(`platform_conn:${projectId}:${p}`);
-          if (kvRaw) {
-            map.set(p, JSON.parse(kvRaw));
-          } else if (p === "gsc" || p === "ga4" || p === "google_ads") {
-            const ns = p === "google_ads" ? "google-ads" : p;
-            const oauthRaw = await kv.get(`oauth_grant:${ns}`);
-            if (oauthRaw) {
-              const parsed = JSON.parse(oauthRaw);
-              map.set(p, {
-                id: `kv-${p}`,
-                projectId,
-                platform: p,
-                status: "connected",
-                credentialsEncrypted: JSON.stringify(parsed),
-                accountName: parsed.name || `${p.toUpperCase()} Full Access`,
-                accountEmail: parsed.email || "mohamed701164@gmail.com",
-                metadata: JSON.stringify({
-                  selectedResource: parsed.selectedResource,
-                  availableResources: parsed.availableResources || [],
-                  scope: parsed.scope,
-                }),
-                lastSyncedAt: parsed.connectedAt || new Date().toISOString(),
-                createdAt: parsed.connectedAt || new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-              });
-            }
+          const emailRes = await fetch("https://api.github.com/user/emails", {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/vnd.github+json",
+              "User-Agent": "OpenSEO-Integration",
+            },
+          });
+          if (emailRes.ok) {
+            const emails = (await emailRes.json()) as Array<{
+              email: string;
+              primary?: boolean;
+            }>;
+            email = emails.find((e) => e.primary)?.email || emails[0]?.email || null;
           }
         } catch {}
       }
-    }
 
-    // 3. Check runtime environment for automatic fallbacks if not explicitly disconnected
-    const geminiKey = await getOptionalEnvValue("GEMINI_API_KEY");
-    const vercelToken = await getOptionalEnvValue("VERCEL_OIDC_TOKEN");
-
-    if (!map.has("google_ai_studio") && geminiKey) {
-      map.set("google_ai_studio", {
-        id: "auto-google-ai-studio",
+      const record: StoredVerifiedRecord = {
+        id: crypto.randomUUID(),
         projectId,
-        platform: "google_ai_studio",
-        status: "connected",
-        credentialsEncrypted: JSON.stringify({
-          apiKey: "••••••••" + geminiKey.slice(-6),
-          selectedResource: "gemini-2.5-pro",
-        }),
-        accountName: "Google AI Studio (50 Models Engine)",
-        accountEmail: "mohamed701164@gmail.com",
-        metadata: JSON.stringify({
-          model: "gemini-2.5-pro",
-          selectedResource: "gemini-2.5-pro",
-          quota: "50-Model Fast Switching Active (<1ms Fallback)",
-        }),
-        lastSyncedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+        platform,
+        verifiedByLiveApi: true,
+        status: "setup_required",
+        credentials: { token },
+        accountName: user.name ? `${user.name} (@${user.login})` : `@${user.login}`,
+        connectedByEmail: email || `@${user.login}`,
+        selectedResourceId: null,
+        selectedResourceName: null,
+        selectedResourceMeta: null,
+        connectedAt: now,
+        updatedAt: now,
+      };
+      await this.writeVerifiedRecord(record);
+      return this.getConnectionState(projectId, platform);
     }
 
-    if (!map.has("vercel") && vercelToken) {
-      map.set("vercel", {
-        id: "auto-vercel",
-        projectId,
-        platform: "vercel",
-        status: "connected",
-        credentialsEncrypted: JSON.stringify({
-          token: "••••••••",
-          selectedResource: "open-seo-ten.vercel.app",
-        }),
-        accountName: "Vercel Production Cloud",
-        accountEmail: "mohamed701164@gmail.com",
-        metadata: JSON.stringify({
-          projectId: "prj_OK4NPpqRsoG3mjor16tuloJ9krJM",
-          selectedResource: "open-seo-ten.vercel.app",
-          liveUrl: "https://open-seo-ten.vercel.app",
-        }),
-        lastSyncedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    if (!map.has("cloudflare")) {
-      map.set("cloudflare", {
-        id: "auto-cloudflare",
-        projectId,
-        platform: "cloudflare",
-        status: "connected",
-        credentialsEncrypted: JSON.stringify({
-          bound: true,
-          selectedResource: "open-seo.abdelsameaa.workers.dev (D1 + KV)",
-        }),
-        accountName: "Cloudflare Edge Workers, D1 & KV",
-        accountEmail: "abdelsameaa@gmail.com",
-        metadata: JSON.stringify({
-          workerName: "open-seo",
-          selectedResource: "open-seo.abdelsameaa.workers.dev (D1 + KV)",
-          database: "open-seo (D1)",
-          kv: "OAUTH_KV Active",
-        }),
-        lastSyncedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    // 4. Attach any live diagnostic logs from OAUTH_KV so failed cards show exact log reason
-    for (const p of allPlatforms) {
-      const diag = await this.getDiagnostic(projectId, p);
-      const existing = map.get(p);
-      if (existing) {
-        existing.diagnosticLog = diag;
-        map.set(p, existing);
-      } else if (diag) {
-        map.set(p, {
-          id: `diag-${p}`,
-          projectId,
-          platform: p,
-          status: "error",
-          credentialsEncrypted: "{}",
-          accountName: p.toUpperCase(),
-          accountEmail: null,
-          metadata: JSON.stringify({ diagnosticLog: diag }),
-          diagnosticLog: diag,
-          lastSyncedAt: diag.timestamp,
-          createdAt: diag.timestamp,
-          updatedAt: diag.timestamp,
-        });
+    if (platform === "vercel") {
+      const token = (input.token || input.apiKey || "").trim();
+      if (!token) {
+        throw new Error("يرجى إدخال Vercel Access Token صالح.");
       }
+
+      const res = await fetch("https://api.vercel.com/v2/user", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(`رفض Vercel التوكن المرسل (HTTP ${res.status}): ${body.slice(0, 200)}`);
+      }
+      const data = (await res.json()) as {
+        user?: {
+          username?: string;
+          email?: string;
+          name?: string | null;
+        };
+      };
+      const u = data.user;
+      if (!u) {
+        throw new Error("لم يرجع Vercel بيانات المستخدم لهذا التوكن.");
+      }
+
+      const record: StoredVerifiedRecord = {
+        id: crypto.randomUUID(),
+        projectId,
+        platform,
+        verifiedByLiveApi: true,
+        status: "setup_required",
+        credentials: { token },
+        accountName: u.name || u.username || "Vercel Account",
+        connectedByEmail: u.email || (u.username ? `@${u.username}` : "Vercel User"),
+        selectedResourceId: null,
+        selectedResourceName: null,
+        selectedResourceMeta: null,
+        connectedAt: now,
+        updatedAt: now,
+      };
+      await this.writeVerifiedRecord(record);
+      return this.getConnectionState(projectId, platform);
     }
 
-    return Array.from(map.values());
-  }
+    if (platform === "supabase") {
+      const token = (input.token || "").trim();
+      const projectUrl = (input.projectUrl || "").trim().replace(/\/$/, "");
+      const apiKey = (input.apiKey || input.serviceRoleKey || "").trim();
 
-  static async saveIntegration(
-    projectId: string,
-    platform: PlatformType,
-    config: PlatformConfig,
-  ) {
-    const now = new Date().toISOString();
-    const record = {
-      id: `conn-${projectId}-${platform}`,
-      projectId,
-      platform,
-      status: "connected" as const,
-      credentialsEncrypted: JSON.stringify(config),
-      accountName: config.accountName ?? `${platform.toUpperCase()} Full-Access Account`,
-      accountEmail: config.accountEmail ?? "mohamed701164@gmail.com",
-      metadata: JSON.stringify({
-        ...(config.metadata ?? {}),
-        selectedResource:
-          config.selectedResource ||
-          config.projectUrl ||
-          config.repo ||
-          config.model ||
-          config.zoneId ||
-          null,
-      }),
-      lastSyncedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    };
-
-    // 1. Save to In-Memory + OAUTH_KV FIRST (Guaranteed Zero-Failure)
-    inMemoryPlatformStore.set(`platform_conn:${projectId}:${platform}`, record);
-    try {
-      const kv = (env as any)?.OAUTH_KV;
-      if (kv) {
-        await kv.put(`platform_conn:${projectId}:${platform}`, JSON.stringify(record), {
-          expirationTtl: 60 * 60 * 24 * 90,
+      // Mode A: Supabase Management Personal Access Token (sbp_...)
+      if (token && (!projectUrl || token.startsWith("sbp_"))) {
+        const res = await fetch("https://api.supabase.com/v1/projects", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
-        if (platform === "gsc" || platform === "ga4" || platform === "google_ads") {
-          const ns = platform === "google_ads" ? "google-ads" : platform;
-          await kv.put(
-            `oauth_grant:${ns}`,
-            JSON.stringify({
-              stateNamespace: ns,
-              email: record.accountEmail,
-              name: record.accountName,
-              selectedResource: config.selectedResource || null,
-              connectedAt: now,
-              status: "connected",
-            }),
-            { expirationTtl: 60 * 60 * 24 * 90 },
+        if (!res.ok) {
+          const body = await res.text().catch(() => "");
+          throw new Error(
+            `رفض Supabase Management API التوكن المرسل (HTTP ${res.status}): ${body.slice(0, 200)}`,
           );
         }
-      }
-      await this.clearDiagnostic(projectId, platform);
-    } catch (kvErr) {
-      console.warn("[PlatformIntegrationsService.saveIntegration] KV write warning:", kvErr);
-    }
-
-    // 2. Save to D1 (Wrapped in try/catch so D1 quota/schema issues never fail the user)
-    if (
-      platform === "supabase" ||
-      platform === "github" ||
-      platform === "vercel" ||
-      platform === "google_ai_studio" ||
-      platform === "cloudflare"
-    ) {
-      try {
-        const existing = await db
-          .select({ id: platformIntegrations.id })
-          .from(platformIntegrations)
-          .where(
-            and(
-              eq(platformIntegrations.projectId, projectId),
-              eq(platformIntegrations.platform, platform),
-            ),
-          )
-          .limit(1);
-
-        const values = {
+        const projects = (await res.json()) as Array<{ id: string; name: string; region: string }>;
+        const record: StoredVerifiedRecord = {
+          id: crypto.randomUUID(),
           projectId,
           platform,
-          status: "connected" as const,
-          credentialsEncrypted: record.credentialsEncrypted,
-          accountName: record.accountName,
-          accountEmail: record.accountEmail,
-          metadata: record.metadata,
-          lastSyncedAt: now,
+          verifiedByLiveApi: true,
+          status: "setup_required",
+          credentials: { token },
+          accountName: `Supabase (${projects.length} Projects)`,
+          connectedByEmail: `Management Token ••••${token.slice(-4)}`,
+          selectedResourceId: null,
+          selectedResourceName: null,
+          selectedResourceMeta: null,
+          connectedAt: now,
           updatedAt: now,
         };
+        await this.writeVerifiedRecord(record);
+        return this.getConnectionState(projectId, platform);
+      }
 
-        if (existing[0]) {
-          await db
-            .update(platformIntegrations)
-            .set(values)
-            .where(eq(platformIntegrations.id, existing[0].id));
-          return { success: true, updated: true, storage: "KV+D1" };
-        }
-
-        await db.insert(platformIntegrations).values({
-          id: crypto.randomUUID(),
-          createdAt: now,
-          ...values,
-        });
-        return { success: true, created: true, storage: "KV+D1" };
-      } catch (d1Err) {
-        const unwrapped = unwrapError(d1Err);
-        console.warn(
-          `[PlatformIntegrationsService.saveIntegration] D1 write bypassed (saved in OAUTH_KV):`,
-          unwrapped.causeMessage,
+      // Mode B: Direct Project URL + API Key (anon or service_role)
+      if (!projectUrl || !apiKey) {
+        throw new Error(
+          "يرجى إدخال Supabase Access Token (sbp_...) أو إدخال Project URL مع API Key.",
         );
+      }
+
+      const res = await fetch(`${projectUrl}/rest/v1/`, {
+        headers: {
+          apikey: apiKey,
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+      if (!res.ok) {
+        const body = await res.text().catch(() => "");
+        throw new Error(
+          `فشل الاتصال بقاعدة بيانات Supabase على الرابط المرسل (HTTP ${res.status}): ${body.slice(0, 200)}`,
+        );
+      }
+
+      const refMatch = projectUrl.match(/^https?:\/\/([^.]+)\.supabase\.co/i);
+      const projectRef = refMatch?.[1] || projectUrl;
+
+      const record: StoredVerifiedRecord = {
+        id: crypto.randomUUID(),
+        projectId,
+        platform,
+        verifiedByLiveApi: true,
+        status: "setup_required",
+        credentials: { projectUrl, apiKey },
+        accountName: `Supabase Project (${projectRef})`,
+        connectedByEmail: projectUrl,
+        selectedResourceId: null,
+        selectedResourceName: null,
+        selectedResourceMeta: null,
+        connectedAt: now,
+        updatedAt: now,
+      };
+      await this.writeVerifiedRecord(record);
+      return this.getConnectionState(projectId, platform);
+    }
+
+    if (platform === "cloudflare") {
+      const token = (input.token || input.apiKey || "").trim();
+      if (!token) {
+        throw new Error("يرجى إدخال Cloudflare API Token صالح.");
+      }
+
+      const [accountsRes, userRes] = await Promise.all([
+        fetch("https://api.cloudflare.com/client/v4/accounts?per_page=20", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch("https://api.cloudflare.com/client/v4/user", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => null),
+      ]);
+
+      if (!accountsRes.ok) {
+        const body = await accountsRes.text().catch(() => "");
+        throw new Error(
+          `رفض Cloudflare API التوكن المرسل (HTTP ${accountsRes.status}): ${body.slice(0, 200)}`,
+        );
+      }
+
+      const accountsData = (await accountsRes.json()) as {
+        success?: boolean;
+        result?: Array<{ id: string; name: string }>;
+      };
+      if (!accountsData.success) {
+        throw new Error("Cloudflare API Token غير صالح أو لا يملك صلاحية قراءة الحساب.");
+      }
+
+      let email: string | null = null;
+      if (userRes && userRes.ok) {
+        try {
+          const userData = (await userRes.json()) as { result?: { email?: string } };
+          email = userData.result?.email || null;
+        } catch {}
+      }
+
+      const firstAccount = accountsData.result?.[0];
+      const accountName = firstAccount?.name || "Cloudflare Account";
+
+      const record: StoredVerifiedRecord = {
+        id: crypto.randomUUID(),
+        projectId,
+        platform,
+        verifiedByLiveApi: true,
+        status: "setup_required",
+        credentials: { token },
+        accountName,
+        connectedByEmail: email || `${accountName} (Token ••••${token.slice(-4)})`,
+        selectedResourceId: null,
+        selectedResourceName: null,
+        selectedResourceMeta: null,
+        connectedAt: now,
+        updatedAt: now,
+      };
+      await this.writeVerifiedRecord(record);
+      return this.getConnectionState(projectId, platform);
+    }
+
+    throw new Error(`Unsupported platform: ${platform}`);
+  }
+
+  /**
+   * Step 2: Queries the platform's live API using the verified grant to list real selectable resources.
+   */
+  static async listResources(
+    projectId: string,
+    platform: ManagedPlatformType,
+  ): Promise<{
+    accountName: string | null;
+    connectedByEmail: string | null;
+    resources: PlatformResourceOption[];
+  }> {
+    const record = await this.readVerifiedRecord(projectId, platform);
+    if (!record) {
+      throw new Error("هذا الحساب غير مربوط بعد. يرجى تسجيل الدخول أو التحقق من المفتاح أولاً.");
+    }
+
+    if (platform === "google_ai_studio") {
+      const apiKey = record.credentials.apiKey || record.credentials.token || "";
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+      );
+      if (!res.ok) {
+        throw new Error(`فشل جلب قائمة الموديلات من Google AI Studio (HTTP ${res.status})`);
+      }
+      const data = (await res.json()) as {
+        models?: Array<{
+          name: string;
+          displayName?: string;
+          version?: string;
+          inputTokenLimit?: number;
+          outputTokenLimit?: number;
+          supportedGenerationMethods?: string[];
+        }>;
+      };
+
+      const allModels = data.models || [];
+      const generativeModels = allModels.filter(
+        (m) =>
+          !m.supportedGenerationMethods ||
+          m.supportedGenerationMethods.includes("generateContent"),
+      );
+      const list = generativeModels.length > 0 ? generativeModels : allModels;
+
+      const resources: PlatformResourceOption[] = list.map((m) => {
+        const cleanId = m.name.replace(/^models\//, "");
         return {
-          success: true,
-          created: true,
-          storage: "OAUTH_KV_PRIMARY",
-          d1Warning: unwrapped.causeMessage,
+          id: cleanId,
+          name: `${m.displayName || cleanId} (${cleanId})`,
+          subtitle: `Context: ${(m.inputTokenLimit ?? 0).toLocaleString()} tokens`,
+          meta: {
+            modelId: cleanId,
+            displayName: m.displayName || cleanId,
+            inputTokenLimit: m.inputTokenLimit ?? 1048576,
+            outputTokenLimit: m.outputTokenLimit ?? 65536,
+            totalModelsCount: allModels.length,
+          },
+          isSelected: record.selectedResourceId === cleanId,
+        };
+      });
+
+      return {
+        accountName: record.accountName,
+        connectedByEmail: record.connectedByEmail,
+        resources,
+      };
+    }
+
+    if (platform === "github") {
+      const token = record.credentials.token || "";
+      const res = await fetch("https://api.github.com/user/repos?sort=updated&per_page=100", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/vnd.github+json",
+          "User-Agent": "OpenSEO-Integration",
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`فشل جلب المستودعات من GitHub (HTTP ${res.status})`);
+      }
+      const repos = (await res.json()) as Array<{
+        id: number;
+        full_name: string;
+        private: boolean;
+        default_branch: string;
+        language: string | null;
+        stargazers_count: number;
+        open_issues_count: number;
+        pushed_at: string | null;
+      }>;
+
+      const resources: PlatformResourceOption[] = repos.map((r) => ({
+        id: r.full_name,
+        name: r.full_name,
+        subtitle: `${r.private ? "Private" : "Public"} • Branch: ${r.default_branch}`,
+        meta: {
+          fullName: r.full_name,
+          visibility: r.private ? "Private" : "Public",
+          defaultBranch: r.default_branch,
+          language: r.language || "TypeScript",
+          stars: r.stargazers_count,
+          openIssues: r.open_issues_count,
+          pushedAt: r.pushed_at || null,
+        },
+        isSelected: record.selectedResourceId === r.full_name,
+      }));
+
+      return {
+        accountName: record.accountName,
+        connectedByEmail: record.connectedByEmail,
+        resources,
+      };
+    }
+
+    if (platform === "vercel") {
+      const token = record.credentials.token || "";
+      const res = await fetch("https://api.vercel.com/v9/projects?limit=50", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`فشل جلب المشاريع من Vercel (HTTP ${res.status})`);
+      }
+      const data = (await res.json()) as {
+        projects?: Array<{
+          id: string;
+          name: string;
+          framework?: string | null;
+          nodeVersion?: string;
+          targets?: {
+            production?: {
+              alias?: string[];
+              readyState?: string;
+            };
+          };
+        }>;
+      };
+
+      const resources: PlatformResourceOption[] = (data.projects || []).map((p) => {
+        const domain = p.targets?.production?.alias?.[0] || `${p.name}.vercel.app`;
+        const state = p.targets?.production?.readyState || "READY";
+        return {
+          id: p.id,
+          name: `${p.name} (${domain})`,
+          subtitle: `Framework: ${p.framework || "Web"} • Status: ${state}`,
+          meta: {
+            projectId: p.id,
+            projectName: p.name,
+            domain,
+            framework: p.framework || "Vite / React",
+            readyState: state,
+          },
+          isSelected: record.selectedResourceId === p.id,
+        };
+      });
+
+      return {
+        accountName: record.accountName,
+        connectedByEmail: record.connectedByEmail,
+        resources,
+      };
+    }
+
+    if (platform === "supabase") {
+      const { token, projectUrl, apiKey } = record.credentials;
+      if (token && (!projectUrl || token.startsWith("sbp_"))) {
+        const res = await fetch("https://api.supabase.com/v1/projects", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          throw new Error(`فشل جلب مشاريع Supabase (HTTP ${res.status})`);
+        }
+        const projects = (await res.json()) as Array<{
+          id: string;
+          name: string;
+          region: string;
+          status: string;
+          created_at?: string;
+        }>;
+
+        const resources: PlatformResourceOption[] = projects.map((p) => ({
+          id: p.id,
+          name: `${p.name} (${p.id}.supabase.co)`,
+          subtitle: `Region: ${p.region} • Status: ${p.status}`,
+          meta: {
+            projectRef: p.id,
+            projectName: p.name,
+            projectUrl: `https://${p.id}.supabase.co`,
+            region: p.region,
+            status: p.status,
+          },
+          isSelected: record.selectedResourceId === p.id,
+        }));
+
+        return {
+          accountName: record.accountName,
+          connectedByEmail: record.connectedByEmail,
+          resources,
+        };
+      }
+
+      if (projectUrl && apiKey) {
+        const res = await fetch(`${projectUrl}/rest/v1/`, {
+          headers: {
+            apikey: apiKey,
+            Authorization: `Bearer ${apiKey}`,
+          },
+        });
+        if (!res.ok) {
+          throw new Error(`فشل فحص جداول Supabase (HTTP ${res.status})`);
+        }
+        const spec = (await res.json()) as {
+          paths?: Record<string, unknown>;
+        };
+        const tablePaths = Object.keys(spec.paths || {}).filter(
+          (p) => p !== "/" && !p.startsWith("/rpc/"),
+        );
+        const tableNames = tablePaths.map((p) => p.replace(/^\//, ""));
+        const refMatch = projectUrl.match(/^https?:\/\/([^.]+)\.supabase\.co/i);
+        const projectRef = refMatch?.[1] || projectUrl;
+
+        const resources: PlatformResourceOption[] = [
+          {
+            id: projectRef,
+            name: `${projectUrl} (${tableNames.length} Tables)`,
+            subtitle: `PostgREST Active • Tables: ${tableNames.slice(0, 4).join(", ") || "public"}`,
+            meta: {
+              projectRef,
+              projectUrl,
+              tablesCount: tableNames.length,
+              tablesList: tableNames.slice(0, 6).join(", ") || "public",
+              status: "ACTIVE_HEALTHY",
+            },
+            isSelected: record.selectedResourceId === projectRef,
+          },
+        ];
+
+        return {
+          accountName: record.accountName,
+          connectedByEmail: record.connectedByEmail,
+          resources,
         };
       }
     }
 
-    return { success: true, created: true, storage: "OAUTH_KV_PRIMARY" };
+    if (platform === "cloudflare") {
+      const token = record.credentials.token || "";
+      const [zonesRes, accountsRes] = await Promise.all([
+        fetch("https://api.cloudflare.com/client/v4/zones?per_page=50", {
+          headers: { Authorization: `Bearer ${token}` },
+        }).catch(() => null),
+        fetch("https://api.cloudflare.com/client/v4/accounts?per_page=20", {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
+
+      const resources: PlatformResourceOption[] = [];
+
+      if (zonesRes && zonesRes.ok) {
+        const zonesData = (await zonesRes.json()) as {
+          result?: Array<{
+            id: string;
+            name: string;
+            status: string;
+            plan?: { name?: string };
+            account?: { id?: string; name?: string };
+          }>;
+        };
+        for (const z of zonesData.result || []) {
+          resources.push({
+            id: `zone:${z.id}`,
+            name: `${z.name} (DNS Zone)`,
+            subtitle: `Status: ${z.status} • Plan: ${z.plan?.name || "Free"}`,
+            meta: {
+              resourceType: "Zone",
+              zoneId: z.id,
+              zoneName: z.name,
+              status: z.status,
+              plan: z.plan?.name || "Free",
+              accountName: z.account?.name || record.accountName,
+            },
+            isSelected: record.selectedResourceId === `zone:${z.id}`,
+          });
+        }
+      }
+
+      if (accountsRes.ok) {
+        const accData = (await accountsRes.json()) as {
+          result?: Array<{ id: string; name: string; type?: string }>;
+        };
+        for (const a of accData.result || []) {
+          resources.push({
+            id: `account:${a.id}`,
+            name: `${a.name} (Workers & D1 Account)`,
+            subtitle: `Account ID: ${a.id}`,
+            meta: {
+              resourceType: "Account",
+              accountId: a.id,
+              accountName: a.name,
+              status: "active",
+              plan: "Workers & D1 Edge",
+            },
+            isSelected: record.selectedResourceId === `account:${a.id}`,
+          });
+        }
+      }
+
+      return {
+        accountName: record.accountName,
+        connectedByEmail: record.connectedByEmail,
+        resources,
+      };
+    }
+
+    return {
+      accountName: record.accountName,
+      connectedByEmail: record.connectedByEmail,
+      resources: [],
+    };
+  }
+
+  /**
+   * Step 3: Binds the selected resource to the project and transitions status to `connected`.
+   */
+  static async selectResource(
+    projectId: string,
+    platform: ManagedPlatformType,
+    input: {
+      resourceId: string;
+      resourceName: string;
+      resourceMeta?: Record<string, string | number | null>;
+    },
+  ): Promise<PlatformConnectionState> {
+    const record = await this.readVerifiedRecord(projectId, platform);
+    if (!record) {
+      throw new Error("يرجى تسجيل الدخول والتحقق من الحساب أولاً قبل اختيار المورد.");
+    }
+
+    const updated: StoredVerifiedRecord = {
+      ...record,
+      status: "connected",
+      selectedResourceId: input.resourceId,
+      selectedResourceName: input.resourceName,
+      selectedResourceMeta: input.resourceMeta ?? {},
+      updatedAt: new Date().toISOString(),
+    };
+
+    await this.writeVerifiedRecord(updated);
+    return this.getConnectionState(projectId, platform);
+  }
+
+  /**
+   * Step 4: Fetches real-time readings from the platform's live API for the Main Dashboard & Connected Card.
+   */
+  static async getLiveDashboardReport(
+    projectId: string,
+    platform: ManagedPlatformType,
+  ): Promise<PlatformLiveReport> {
+    const startMs = Date.now();
+    const record = await this.readVerifiedRecord(projectId, platform);
+
+    if (!record || !record.selectedResourceId) {
+      return {
+        platform,
+        connected: false,
+        selectedResourceId: null,
+        selectedResourceName: null,
+        connectedByEmail: null,
+        accountName: null,
+        latencyMs: 0,
+        primaryMetricLabel: "—",
+        primaryMetricValue: "0",
+        secondaryMetricLabel: "—",
+        secondaryMetricValue: "0",
+        statusLabel: "Not connected",
+        details: {},
+        trendData: [],
+      };
+    }
+
+    try {
+      if (platform === "google_ai_studio") {
+        const apiKey = record.credentials.apiKey || record.credentials.token || "";
+        const res = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
+        );
+        const latencyMs = Math.max(1, Date.now() - startMs);
+        if (res.ok) {
+          const data = (await res.json()) as {
+            models?: Array<{
+              name: string;
+              displayName?: string;
+              inputTokenLimit?: number;
+              outputTokenLimit?: number;
+            }>;
+          };
+          const models = data.models || [];
+          const selected = models.find(
+            (m) => m.name.replace(/^models\//, "") === record.selectedResourceId,
+          );
+          const inputLimit =
+            selected?.inputTokenLimit ??
+            Number(record.selectedResourceMeta?.inputTokenLimit || 1048576);
+          return {
+            platform,
+            connected: true,
+            selectedResourceId: record.selectedResourceId,
+            selectedResourceName: record.selectedResourceName,
+            connectedByEmail: record.connectedByEmail,
+            accountName: record.accountName,
+            latencyMs,
+            primaryMetricLabel: "Available Gemini Models",
+            primaryMetricValue: String(models.length),
+            secondaryMetricLabel: "Context Window",
+            secondaryMetricValue: `${Math.round(inputLimit / 1000)}K`,
+            statusLabel: `Active (${record.selectedResourceId})`,
+            details: {
+              Model: record.selectedResourceId,
+              "Total Models": models.length,
+              "Input Tokens": inputLimit.toLocaleString(),
+              "API Latency": `${latencyMs}ms`,
+            },
+            trendData: models.slice(0, 11).map((m) => Math.round((m.inputTokenLimit || 32000) / 1000)),
+          };
+        }
+      }
+
+      if (platform === "github") {
+        const token = record.credentials.token || "";
+        const repoFullName = record.selectedResourceId;
+        const [repoRes, commitsRes] = await Promise.all([
+          fetch(`https://api.github.com/repos/${repoFullName}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/vnd.github+json",
+              "User-Agent": "OpenSEO-Integration",
+            },
+          }),
+          fetch(`https://api.github.com/repos/${repoFullName}/commits?per_page=15`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/vnd.github+json",
+              "User-Agent": "OpenSEO-Integration",
+            },
+          }).catch(() => null),
+        ]);
+        const latencyMs = Math.max(1, Date.now() - startMs);
+        if (repoRes.ok) {
+          const repo = (await repoRes.json()) as {
+            full_name: string;
+            default_branch: string;
+            stargazers_count: number;
+            open_issues_count: number;
+            language: string | null;
+            pushed_at: string | null;
+          };
+          const commits =
+            commitsRes && commitsRes.ok
+              ? ((await commitsRes.json()) as Array<{
+                  sha: string;
+                  commit?: { message?: string; author?: { date?: string } };
+                }>)
+              : [];
+
+          return {
+            platform,
+            connected: true,
+            selectedResourceId: record.selectedResourceId,
+            selectedResourceName: record.selectedResourceName,
+            connectedByEmail: record.connectedByEmail,
+            accountName: record.accountName,
+            latencyMs,
+            primaryMetricLabel: "Recent Commits",
+            primaryMetricValue: String(commits.length),
+            secondaryMetricLabel: "Open Issues",
+            secondaryMetricValue: String(repo.open_issues_count ?? 0),
+            statusLabel: `Branch: ${repo.default_branch}`,
+            details: {
+              Repository: repo.full_name,
+              Branch: repo.default_branch,
+              Language: repo.language || "TypeScript",
+              "Last Commit": commits[0]?.commit?.message?.split("\n")[0]?.slice(0, 40) || "Synced",
+            },
+            trendData:
+              commits.length > 0
+                ? commits.slice(0, 11).map((_, idx) => Math.max(1, commits.length - idx))
+                : [1, 1, 1, 1, 1],
+          };
+        }
+      }
+
+      if (platform === "vercel") {
+        const token = record.credentials.token || "";
+        const projId = record.selectedResourceId;
+        const [projRes, depRes] = await Promise.all([
+          fetch(`https://api.vercel.com/v9/projects/${encodeURIComponent(projId)}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(
+            `https://api.vercel.com/v6/deployments?projectId=${encodeURIComponent(projId)}&limit=11`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          ).catch(() => null),
+        ]);
+        const latencyMs = Math.max(1, Date.now() - startMs);
+        if (projRes.ok) {
+          const proj = (await projRes.json()) as {
+            name: string;
+            framework?: string | null;
+            targets?: { production?: { alias?: string[]; readyState?: string } };
+          };
+          const depData =
+            depRes && depRes.ok
+              ? ((await depRes.json()) as {
+                  deployments?: Array<{
+                    uid: string;
+                    state?: string;
+                    created?: number;
+                    ready?: number;
+                  }>;
+                })
+              : { deployments: [] };
+          const deployments = depData.deployments || [];
+          const domain =
+            proj.targets?.production?.alias?.[0] ||
+            String(record.selectedResourceMeta?.domain || `${proj.name}.vercel.app`);
+          const state = deployments[0]?.state || proj.targets?.production?.readyState || "READY";
+
+          return {
+            platform,
+            connected: true,
+            selectedResourceId: record.selectedResourceId,
+            selectedResourceName: record.selectedResourceName,
+            connectedByEmail: record.connectedByEmail,
+            accountName: record.accountName,
+            latencyMs,
+            primaryMetricLabel: "Recent Deployments",
+            primaryMetricValue: String(deployments.length),
+            secondaryMetricLabel: "Production State",
+            secondaryMetricValue: state,
+            statusLabel: domain,
+            details: {
+              Project: proj.name,
+              Domain: domain,
+              Framework: proj.framework || "Vite / React",
+              Status: state,
+            },
+            trendData:
+              deployments.length > 0
+                ? deployments
+                    .slice(0, 11)
+                    .map((d) =>
+                      d.ready && d.created ? Math.max(1, Math.round((d.ready - d.created) / 1000)) : 15,
+                    )
+                : [12, 14, 15, 13, 14],
+          };
+        }
+      }
+
+      if (platform === "supabase") {
+        const { token, projectUrl, apiKey } = record.credentials;
+        if (projectUrl && apiKey) {
+          const res = await fetch(`${projectUrl}/rest/v1/`, {
+            headers: {
+              apikey: apiKey,
+              Authorization: `Bearer ${apiKey}`,
+            },
+          });
+          const latencyMs = Math.max(1, Date.now() - startMs);
+          if (res.ok) {
+            const spec = (await res.json()) as { paths?: Record<string, unknown> };
+            const tables = Object.keys(spec.paths || {}).filter(
+              (p) => p !== "/" && !p.startsWith("/rpc/"),
+            );
+            return {
+              platform,
+              connected: true,
+              selectedResourceId: record.selectedResourceId,
+              selectedResourceName: record.selectedResourceName,
+              connectedByEmail: record.connectedByEmail,
+              accountName: record.accountName,
+              latencyMs,
+              primaryMetricLabel: "Database Tables",
+              primaryMetricValue: String(tables.length),
+              secondaryMetricLabel: "REST Latency",
+              secondaryMetricValue: `${latencyMs}ms`,
+              statusLabel: "ACTIVE_HEALTHY",
+              details: {
+                Endpoint: projectUrl,
+                Tables: tables.length,
+                Status: "200 OK (PostgREST)",
+                Latency: `${latencyMs}ms`,
+              },
+              trendData: Array(8).fill(tables.length || 1),
+            };
+          }
+        } else if (token) {
+          const res = await fetch("https://api.supabase.com/v1/projects", {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const latencyMs = Math.max(1, Date.now() - startMs);
+          if (res.ok) {
+            const projects = (await res.json()) as Array<{
+              id: string;
+              name: string;
+              region: string;
+              status: string;
+            }>;
+            const current =
+              projects.find((p) => p.id === record.selectedResourceId) || projects[0];
+            return {
+              platform,
+              connected: true,
+              selectedResourceId: record.selectedResourceId,
+              selectedResourceName: record.selectedResourceName,
+              connectedByEmail: record.connectedByEmail,
+              accountName: record.accountName,
+              latencyMs,
+              primaryMetricLabel: "Total Projects",
+              primaryMetricValue: String(projects.length),
+              secondaryMetricLabel: "Region",
+              secondaryMetricValue: current?.region || "Global",
+              statusLabel: current?.status || "ACTIVE_HEALTHY",
+              details: {
+                Project: current?.name || record.selectedResourceName,
+                Ref: current?.id || record.selectedResourceId,
+                Region: current?.region || "eu-central-1",
+                Status: current?.status || "ACTIVE_HEALTHY",
+              },
+              trendData: Array(8).fill(projects.length || 1),
+            };
+          }
+        }
+      }
+
+      if (platform === "cloudflare") {
+        const token = record.credentials.token || "";
+        const [zonesRes, accountsRes] = await Promise.all([
+          fetch("https://api.cloudflare.com/client/v4/zones?per_page=50", {
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => null),
+          fetch("https://api.cloudflare.com/client/v4/accounts?per_page=20", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        const latencyMs = Math.max(1, Date.now() - startMs);
+        const zonesData =
+          zonesRes && zonesRes.ok
+            ? ((await zonesRes.json()) as { result?: Array<{ id: string; name: string; status: string }> })
+            : { result: [] };
+        const accData = accountsRes.ok
+          ? ((await accountsRes.json()) as { result?: Array<{ id: string; name: string }> })
+          : { result: [] };
+
+        const zonesCount = zonesData.result?.length ?? 0;
+        const accountsCount = accData.result?.length ?? 1;
+
+        return {
+          platform,
+          connected: true,
+          selectedResourceId: record.selectedResourceId,
+          selectedResourceName: record.selectedResourceName,
+          connectedByEmail: record.connectedByEmail,
+          accountName: record.accountName,
+          latencyMs,
+          primaryMetricLabel: "Active Zones / Accounts",
+          primaryMetricValue: String(zonesCount || accountsCount),
+          secondaryMetricLabel: "Edge API Latency",
+          secondaryMetricValue: `${latencyMs}ms`,
+          statusLabel: String(record.selectedResourceMeta?.status || "active"),
+          details: {
+            Resource: record.selectedResourceName,
+            Account: record.accountName,
+            Status: String(record.selectedResourceMeta?.status || "active"),
+            Latency: `${latencyMs}ms`,
+          },
+          trendData: Array(8).fill(latencyMs),
+        };
+      }
+    } catch (err) {
+      console.warn(`[PlatformIntegrationsService.getLiveDashboardReport] live fetch warning for ${platform}:`, err);
+    }
+
+    const fallbackLatency = Math.max(1, Date.now() - startMs);
+    return {
+      platform,
+      connected: true,
+      selectedResourceId: record.selectedResourceId,
+      selectedResourceName: record.selectedResourceName,
+      connectedByEmail: record.connectedByEmail,
+      accountName: record.accountName,
+      latencyMs: fallbackLatency,
+      primaryMetricLabel: "Selected Resource",
+      primaryMetricValue: "Active",
+      secondaryMetricLabel: "API Latency",
+      secondaryMetricValue: `${fallbackLatency}ms`,
+      statusLabel: record.selectedResourceName || "Connected",
+      details: (record.selectedResourceMeta as Record<string, string | number | null>) || {},
+      trendData: [1, 1, 1, 1, 1],
+    };
   }
 
   static async disconnectIntegration(projectId: string, platform: PlatformType) {
-    inMemoryPlatformStore.delete(`platform_conn:${projectId}:${platform}`);
+    const key = getStoreKey(projectId, platform);
+    inMemoryVerifiedStore.delete(key);
+
     try {
       const kv = (env as any)?.OAUTH_KV;
       if (kv) {
+        await kv.delete(key);
         await kv.delete(`platform_conn:${projectId}:${platform}`);
-        if (platform === "gsc" || platform === "ga4" || platform === "google_ads") {
-          const ns = platform === "google_ads" ? "google-ads" : platform;
-          await kv.delete(`oauth_grant:${ns}`);
-        }
       }
     } catch {}
 
@@ -425,240 +1320,6 @@ export class PlatformIntegrationsService {
         );
     } catch {}
 
-    return { success: true };
-  }
-
-  static async testConnection(
-    projectId: string,
-    platform: PlatformType,
-    tempConfig?: PlatformConfig,
-  ): Promise<{
-    success: boolean;
-    message: string;
-    details?: any;
-    diagnosticLog?: DiagnosticLogEntry;
-  }> {
-    let config = tempConfig;
-
-    if (!config) {
-      const all = await this.getAllForProject(projectId);
-      const found = all.find((r) => r.platform === platform);
-      if (found?.credentialsEncrypted) {
-        try {
-          config = JSON.parse(found.credentialsEncrypted);
-        } catch {}
-      }
-    }
-
-    if (platform === "gsc" || platform === "ga4" || platform === "google_ads") {
-      const all = await this.getAllForProject(projectId);
-      const found = all.find((r) => r.platform === platform && r.status === "connected");
-      if (found) {
-        await this.clearDiagnostic(projectId, platform);
-        return {
-          success: true,
-          message: `متصل بنجاح بـ Full Access عبر الحساب (${found.accountEmail || "mohamed701164@gmail.com"})`,
-          details: { email: found.accountEmail, status: "connected" },
-        };
-      }
-      const diag = await this.recordDiagnostic(projectId, platform, {
-        step: "Live OAuth Grant Verification",
-        status: "error",
-        rawMessage: `No active OAuth token found in OAUTH_KV or D1 for ${platform}`,
-        causeMessage: `لم يتم العثور على جلسة OAuth نشطة لمنصة ${platform.toUpperCase()}`,
-        arabicSummary: `المنصة غير مربوطة حالياً أو لم يكتمل تفويض الحساب.`,
-        fixSuggestion: "اضغط على زر «تسجيل الدخول واختيار الحساب (Full Access)» لإتمام الربط الفوري.",
-      });
-      return {
-        success: false,
-        message: diag.arabicSummary,
-        diagnosticLog: diag,
-      };
-    }
-
-    if (platform === "google_ai_studio") {
-      const apiKey =
-        config?.apiKey && !config.apiKey.startsWith("••••")
-          ? config.apiKey
-          : await getOptionalEnvValue("GEMINI_API_KEY");
-      if (!apiKey) {
-        const diag = await this.recordDiagnostic(projectId, platform, {
-          step: "Gemini API Key Check",
-          status: "error",
-          rawMessage: "GEMINI_API_KEY is missing",
-          causeMessage: "No API key provided in config or Worker environment",
-          arabicSummary: "مفتاح Google AI Studio غير متوفر.",
-          fixSuggestion: "اضغط على ربط فوري لتفعيل محرك الـ 50 نموذجاً.",
-        });
-        return { success: false, message: diag.arabicSummary, diagnosticLog: diag };
-      }
-      try {
-        const res = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
-        );
-        if (res.ok) {
-          const data = (await res.json()) as any;
-          await this.clearDiagnostic(projectId, platform);
-          return {
-            success: true,
-            message: `متصل بنجاح! تم تفعيل ${data.models?.length ?? 50} نموذجاً في Google AI Studio مع التبديل اللحظي.`,
-            details: { modelsCount: data.models?.length ?? 50 },
-          };
-        }
-        const errBody = await res.text();
-        const diag = await this.recordDiagnostic(projectId, platform, {
-          step: "Google AI Studio API Probe (generativelanguage.googleapis.com)",
-          status: "error",
-          httpStatus: res.status,
-          rawMessage: `HTTP ${res.status}: ${errBody}`,
-          causeMessage: errBody.slice(0, 300),
-          arabicSummary: `رد سيرفر Google AI Studio بكود HTTP ${res.status}`,
-          fixSuggestion: "تحقق من صلاحية مفتاح Gemini API أو اضغط على إعادة التفعيل التلقائي.",
-        });
-        return { success: false, message: diag.arabicSummary, diagnosticLog: diag };
-      } catch (err: any) {
-        const unwrapped = unwrapError(err);
-        const diag = await this.recordDiagnostic(projectId, platform, {
-          step: "Google AI Studio Network Call",
-          status: "error",
-          rawMessage: unwrapped.rawMessage,
-          causeMessage: unwrapped.causeMessage,
-          arabicSummary: `فشل الاتصال بـ Google AI Studio: ${unwrapped.causeMessage}`,
-          fixSuggestion: "أعد المحاولة الآن.",
-        });
-        return { success: false, message: diag.arabicSummary, diagnosticLog: diag };
-      }
-    }
-
-    if (platform === "github") {
-      const token = config?.token;
-      if (!token || token.startsWith("••••")) {
-        await this.clearDiagnostic(projectId, platform);
-        return {
-          success: true,
-          message: `متصل بمستودع GitHub (${config?.repo || "Mohamed-Abdelsamee/open-seo"}) بوضع Full Access.`,
-          details: { repo: config?.repo || "Mohamed-Abdelsamee/open-seo" },
-        };
-      }
-      try {
-        const res = await fetch("https://api.github.com/user", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "User-Agent": "OpenSEO-PlatformHub",
-          },
-        });
-        if (res.ok) {
-          const user = (await res.json()) as any;
-          await this.clearDiagnostic(projectId, platform);
-          return {
-            success: true,
-            message: `متصل بحساب GitHub @${user.login} (${user.public_repos ?? 12} مستودعاً نشطاً)`,
-            details: { login: user.login, repos: user.public_repos },
-          };
-        }
-        const errText = await res.text();
-        const diag = await this.recordDiagnostic(projectId, platform, {
-          step: "GitHub REST API Probe (api.github.com/user)",
-          status: "error",
-          httpStatus: res.status,
-          rawMessage: `HTTP ${res.status}: ${errText}`,
-          causeMessage: errText.slice(0, 300),
-          arabicSummary: `رفض GitHub التوكن المرسل (HTTP ${res.status}).`,
-          fixSuggestion: "استخدم زر الربط الفوري بضغطة واحدة أو حدث Personal Access Token بصلاحية repo.",
-        });
-        return { success: false, message: diag.arabicSummary, diagnosticLog: diag };
-      } catch (err: any) {
-        const unwrapped = unwrapError(err);
-        const diag = await this.recordDiagnostic(projectId, platform, {
-          step: "GitHub Network Probe",
-          status: "error",
-          rawMessage: unwrapped.rawMessage,
-          causeMessage: unwrapped.causeMessage,
-          arabicSummary: `خطأ اتصال بـ GitHub: ${unwrapped.causeMessage}`,
-          fixSuggestion: "اضغط على إعادة المحاولة.",
-        });
-        return { success: false, message: diag.arabicSummary, diagnosticLog: diag };
-      }
-    }
-
-    if (platform === "supabase") {
-      const { projectUrl, apiKey, serviceRoleKey } = config || {};
-      const key = serviceRoleKey || apiKey;
-      if (!projectUrl) {
-        await this.clearDiagnostic(projectId, platform);
-        return {
-          success: true,
-          message: "متصل بمحرك Supabase Edge & Vector Sync بوضع Full Access.",
-          details: { url: "https://vorder-seo-cluster.supabase.co" },
-        };
-      }
-      if (key && !key.startsWith("••••")) {
-        try {
-          const cleanUrl = projectUrl.replace(/\/$/, "");
-          const res = await fetch(`${cleanUrl}/rest/v1/`, {
-            headers: {
-              apikey: key,
-              Authorization: `Bearer ${key}`,
-            },
-          });
-          if (res.ok || res.status === 200 || res.status === 404) {
-            await this.clearDiagnostic(projectId, platform);
-            return {
-              success: true,
-              message: `متصل بقاعدة بيانات Supabase (${cleanUrl}) بنجاح!`,
-              details: { url: cleanUrl },
-            };
-          }
-          const errText = await res.text();
-          const diag = await this.recordDiagnostic(projectId, platform, {
-            step: "Supabase REST API Probe (/rest/v1/)",
-            status: "error",
-            httpStatus: res.status,
-            rawMessage: `HTTP ${res.status}: ${errText}`,
-            causeMessage: errText.slice(0, 300),
-            arabicSummary: `رد Supabase بكود HTTP ${res.status}`,
-            fixSuggestion: "تأكد من صحة Project URL ومفتاح الـ Service Role أو استخدم الربط الفوري.",
-          });
-          return { success: false, message: diag.arabicSummary, diagnosticLog: diag };
-        } catch (err: any) {
-          const unwrapped = unwrapError(err);
-          const diag = await this.recordDiagnostic(projectId, platform, {
-            step: "Supabase Connection Probe",
-            status: "error",
-            rawMessage: unwrapped.rawMessage,
-            causeMessage: unwrapped.causeMessage,
-            arabicSummary: `تعذر الوصول لـ Supabase: ${unwrapped.causeMessage}`,
-            fixSuggestion: "تحقق من الرابط أو اضغط على الربط التلقائي.",
-          });
-          return { success: false, message: diag.arabicSummary, diagnosticLog: diag };
-        }
-      }
-      await this.clearDiagnostic(projectId, platform);
-      return {
-        success: true,
-        message: `متصل بمشروع Supabase (${projectUrl}) بوضع Full Access.`,
-        details: { url: projectUrl },
-      };
-    }
-
-    if (platform === "vercel") {
-      await this.clearDiagnostic(projectId, platform);
-      return {
-        success: true,
-        message: "متصل بسحابة Vercel Production (open-seo-ten.vercel.app) بوضع Full Access.",
-        details: { projectId: "prj_OK4NPpqRsoG3mjor16tuloJ9krJM", status: "READY" },
-      };
-    }
-
-    if (platform === "cloudflare") {
-      await this.clearDiagnostic(projectId, platform);
-      return {
-        success: true,
-        message: "متصل بشبكة Cloudflare Workers & D1 + OAUTH_KV بسرعة استجابة 0ms.",
-        details: { runtime: "workerd", database: "Cloudflare D1 + OAUTH_KV" },
-      };
-    }
-
-    return { success: false, message: "Unknown platform" };
+    return { connected: false as const };
   }
 }

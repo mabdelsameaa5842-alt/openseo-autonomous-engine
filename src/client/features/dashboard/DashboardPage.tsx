@@ -26,6 +26,7 @@ import {
 import { Ga4Card } from "@/client/features/dashboard/Ga4Card";
 import { GoogleAdsCard } from "@/client/features/dashboard/GoogleAdsCard";
 import { FlowiseAutomationCard } from "@/client/features/dashboard/FlowiseAutomationCard";
+import { PlatformDashboardCard } from "@/client/features/dashboard/PlatformTelemetryCards";
 import { WorkspaceMergeBanner } from "@/client/features/dashboard/WorkspaceMergeBanner";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import { useI18n, LanguageToggle } from "@/client/lib/i18n";
@@ -492,6 +493,36 @@ export function DashboardPage({ projectId }: { projectId: string }) {
             projectId={projectId}
             backlinks={overview?.backlinks ?? null}
             refreshing={refreshMutation.isPending}
+          />
+
+          {/* Card 7: Google Gemini AI Studio (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="google_ai_studio"
+          />
+
+          {/* Card 8: Supabase Database & Vector (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="supabase"
+          />
+
+          {/* Card 9: GitHub Repository (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="github"
+          />
+
+          {/* Card 10: Vercel Production Cloud (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="vercel"
+          />
+
+          {/* Card 11: Cloudflare Edge & DNS (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="cloudflare"
           />
         </main>
       </div>

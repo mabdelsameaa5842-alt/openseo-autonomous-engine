@@ -1,7 +1,7 @@
+import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { account } from "@/db/schema";
-import { AppError } from "@/server/lib/errors";
 import { createGoogleAdsClient } from "@/server/lib/googleAdsClient";
 import { GoogleAdsApiError, GoogleAdsTokenError } from "@/server/lib/googleAdsErrors";
 import { GOOGLE_ADS_OAUTH_PROVIDER_ID, type KeywordPlannerMetric } from "@/shared/google-ads";
@@ -14,16 +14,48 @@ async function getConnection(projectId: string): Promise<GoogleAdsConnection | n
   return GoogleAdsConnectionRepository.getByProjectId(projectId);
 }
 
-async function listGrantsForUser(userId: string) {
-  return db
-    .select({ id: account.id, accountId: account.accountId })
-    .from(account)
-    .where(
-      and(
-        eq(account.userId, userId),
-        eq(account.providerId, GOOGLE_ADS_OAUTH_PROVIDER_ID),
-      ),
-    );
+async function listGrantsForUser(userId: string): Promise<Array<{ id: string; accountId: string; email?: string | null }>> {
+  try {
+    const rows = await db
+      .select({ id: account.id, accountId: account.accountId })
+      .from(account)
+      .where(
+        and(
+          eq(account.userId, userId),
+          eq(account.providerId, GOOGLE_ADS_OAUTH_PROVIDER_ID),
+        ),
+      );
+    if (rows.length > 0) return rows;
+  } catch (err) {
+    console.warn("[GoogleAdsService.listGrantsForUser] D1 query warning:", err);
+  }
+
+  try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (kv) {
+      const raw =
+        (await kv.get("oauth_grant:google-ads")) ||
+        (await kv.get(`oauth_grant:${GOOGLE_ADS_OAUTH_PROVIDER_ID}`));
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          accountId?: string;
+          email?: string;
+          accessToken?: string;
+        };
+        if (parsed && parsed.accessToken) {
+          return [
+            {
+              id: `kv-${parsed.accountId || "google-ads"}`,
+              accountId: parsed.accountId || "google-ads",
+              email: parsed.email || null,
+            },
+          ];
+        }
+      }
+    }
+  } catch {}
+
+  return [];
 }
 
 async function userHasGrant(userId: string): Promise<boolean> {
@@ -41,25 +73,7 @@ function requiresReconnect(error: unknown): boolean {
 async function listCustomersForUser(userId: string) {
   const grants = await listGrantsForUser(userId);
   if (grants.length === 0) {
-    // Return sample/mock customer account so user can inspect features even before OAuth
-    return [
-      {
-        accountId: "sample",
-        email: "user@example.com",
-        requiresReconnect: false,
-        customers: [
-          {
-            resourceName: "customers/sample",
-            id: "123-456-7890",
-            customerId: "123-456-7890",
-            descriptiveName: "Google Ads Account (123-456-7890)",
-            currencyCode: "SAR",
-            timeZone: "Asia/Riyadh",
-            isSelected: true,
-          },
-        ],
-      },
-    ];
+    return [];
   }
 
   const results = await Promise.all(
@@ -69,8 +83,8 @@ async function listCustomersForUser(userId: string) {
         googleAdsAccountId: grant.accountId,
       });
       try {
-        const customers = await client.listAccessibleCustomers();
-        const email = await client.getUserInfoEmail();
+        const email = (await client.getUserInfoEmail()) || grant.email || null;
+        const customers = await client.listAccessibleCustomers(email);
         return {
           accountId: grant.accountId,
           email,
@@ -84,7 +98,7 @@ async function listCustomersForUser(userId: string) {
       } catch (error) {
         return {
           accountId: grant.accountId,
-          email: null,
+          email: grant.email || null,
           requiresReconnect: requiresReconnect(error),
           customers: [],
         };
@@ -103,20 +117,24 @@ async function setCustomer(input: {
   customerId: string;
   customerDescriptiveName?: string;
 }): Promise<GoogleAdsConnection> {
+  const grants = await listGrantsForUser(input.connectedByUserId);
+  const matchedGrant = grants.find((g) => g.accountId === input.accountId) || grants[0];
+
   const client = createGoogleAdsClient({
     userId: input.connectedByUserId,
     googleAdsAccountId: input.accountId,
   });
 
-  const email = await client.getUserInfoEmail();
+  const email = (await client.getUserInfoEmail()) || matchedGrant?.email || null;
 
   return GoogleAdsConnectionRepository.upsert({
     projectId: input.projectId,
     organizationId: input.organizationId,
     customerId: input.customerId,
-    customerDescriptiveName: input.customerDescriptiveName || `Google Ads (${input.customerId})`,
-    currencyCode: "USD",
-    timeZone: "UTC",
+    customerDescriptiveName:
+      input.customerDescriptiveName || `Google Ads (${input.customerId})`,
+    currencyCode: "EGP",
+    timeZone: "Africa/Cairo",
     connectedByUserId: input.connectedByUserId,
     googleAdsAccountId: input.accountId,
     connectedAccountEmail: email,
@@ -135,14 +153,7 @@ async function searchKeywordPlanner(params: {
 }): Promise<KeywordPlannerMetric[]> {
   const connection = await getConnection(params.projectId);
   if (!connection) {
-    // If not yet connected, return keyword ideas estimated via Keyword Planner algorithms
-    const client = createGoogleAdsClient({ userId: "system" });
-    return client.generateKeywordIdeas({
-      customerId: "default",
-      keywords: params.keywords,
-      locationCode: params.locationCode,
-      languageCode: params.languageCode,
-    });
+    throw new Error("Please connect your Google Ads account first to query Keyword Planner.");
   }
 
   const client = createGoogleAdsClient({

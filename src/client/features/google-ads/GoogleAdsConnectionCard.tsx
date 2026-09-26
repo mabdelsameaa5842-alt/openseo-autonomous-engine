@@ -13,7 +13,6 @@ import {
   listGoogleAdsCustomers,
   setGoogleAdsCustomer,
 } from "@/serverFunctions/googleAds";
-import { GOOGLE_ADS_SETUP_DOCS_URL } from "@/shared/google-ads";
 
 export function GoogleAdsConnectionCard({
   projectId,
@@ -29,6 +28,7 @@ export function GoogleAdsConnectionCard({
   const queryClient = useQueryClient();
   const [picking, setPicking] = React.useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string | null>(null);
+  const [customCustomerIdInput, setCustomCustomerIdInput] = React.useState("");
 
   const connectionKey = ["googleAdsConnection", projectId];
   const connectionQuery = useQuery({
@@ -38,11 +38,12 @@ export function GoogleAdsConnectionCard({
 
   const connection = connectionQuery.data;
   const connected = Boolean(connection?.connected);
+  const hasGrant = Boolean(connection?.currentUserHasGrant);
 
   const customersQuery = useQuery({
     queryKey: ["googleAdsCustomers", projectId],
     queryFn: () => listGoogleAdsCustomers({ data: { projectId } }),
-    enabled: Boolean(picking || (connection?.currentUserHasGrant && !connected)),
+    enabled: Boolean(picking || (hasGrant && !connected)),
   });
 
   const accounts = React.useMemo(
@@ -58,11 +59,17 @@ export function GoogleAdsConnectionCard({
     void queryClient.invalidateQueries({
       queryKey: ["dashboardGoogleAdsReport", projectId],
     });
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("vorder-integrations-updated"));
+    }
   };
 
   const setCustomerMutation = useMutation({
-    mutationFn: (args: { accountId: string; customerId: string; descriptiveName?: string }) =>
-      setGoogleAdsCustomer({ data: { projectId, ...args } }),
+    mutationFn: (args: {
+      accountId: string;
+      customerId: string;
+      customerDescriptiveName?: string;
+    }) => setGoogleAdsCustomer({ data: { projectId, ...args } }),
     onSuccess: () => {
       toast.success("Google Ads & Keyword Planner connected");
       setPicking(false);
@@ -95,7 +102,9 @@ export function GoogleAdsConnectionCard({
             ? undefined
             : connected
               ? "connected"
-              : "disconnected"
+              : hasGrant
+                ? "setup_required"
+                : "disconnected"
         }
       >
         <GoogleLinkErrorAlert provider="googleAds" className="mb-4" />
@@ -110,7 +119,7 @@ export function GoogleAdsConnectionCard({
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                 <div className="min-w-0">
                   <p className="text-[11px] font-medium uppercase tracking-wide text-base-content/45">
-                    Connected Google Ads Account
+                    Selected Property
                   </p>
                   <p className="mt-0.5 truncate text-sm font-semibold">
                     {connection?.customerDescriptiveName ?? "Google Ads Customer"}
@@ -121,16 +130,22 @@ export function GoogleAdsConnectionCard({
                 </span>
               </div>
 
-              <dl className="mt-3 grid gap-x-6 gap-y-2 border-t border-base-300/70 pt-3 text-xs sm:grid-cols-2">
+              <dl className="mt-3 grid gap-x-6 gap-y-2 border-t border-base-300/70 pt-3 text-xs sm:grid-cols-3">
                 <div className="min-w-0">
-                  <dt className="text-base-content/45">Keyword Planner Status</dt>
-                  <dd className="mt-0.5 font-medium text-success flex items-center gap-1">
-                    <span className="size-2 rounded-full bg-success inline-block" /> Active (Live Search Volumes)
+                  <dt className="text-base-content/45">Time zone</dt>
+                  <dd className="mt-0.5 font-medium text-base-content/75">
+                    {connection?.timeZone ?? "Africa/Cairo"}
+                  </dd>
+                </div>
+                <div className="min-w-0">
+                  <dt className="text-base-content/45">Currency</dt>
+                  <dd className="mt-0.5 font-medium text-base-content/75">
+                    {connection?.currencyCode ?? "EGP"}
                   </dd>
                 </div>
                 {connection?.connectedByEmail ? (
                   <div className="min-w-0">
-                    <dt className="text-base-content/45">Account Email</dt>
+                    <dt className="text-base-content/45">Connected account</dt>
                     <dd className="mt-0.5 truncate font-medium text-base-content/75">
                       {connection.connectedByEmail}
                     </dd>
@@ -144,7 +159,7 @@ export function GoogleAdsConnectionCard({
                 className="btn btn-outline btn-sm border-base-300 font-medium"
                 onClick={() => setPicking(true)}
               >
-                Change account
+                Change property
               </button>
               <button
                 type="button"
@@ -156,22 +171,18 @@ export function GoogleAdsConnectionCard({
               </button>
             </div>
           </div>
-        ) : picking || (connection?.currentUserHasGrant && !connected) ? (
+        ) : picking || (hasGrant && !connected) ? (
           <div className="space-y-3">
             <p className="text-xs text-base-content/70">
-              Select the Google Ads account to use for Keyword Planner data:
+              Select the Google Ads account to bind to this project:
             </p>
             {customersQuery.isLoading ? (
               <div className="flex items-center gap-2 text-sm text-base-content/50">
                 <span className="loading loading-spinner loading-sm" />
-                Loading accounts…
-              </div>
-            ) : accounts.length === 0 ? (
-              <div className="rounded-md bg-base-200/50 p-3 text-xs text-base-content/70">
-                No accessible Google Ads accounts found on this Google grant.
+                Loading Google Ads accounts…
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {accounts.flatMap((grant) =>
                   grant.customers.map((c) => (
                     <button
@@ -187,33 +198,77 @@ export function GoogleAdsConnectionCard({
                         setCustomerMutation.mutate({
                           accountId: grant.accountId,
                           customerId: c.customerId,
-                          descriptiveName: c.descriptiveName,
+                          customerDescriptiveName: c.descriptiveName,
                         });
                       }}
                       disabled={setCustomerMutation.isPending}
                     >
                       <div>
                         <p className="text-sm font-medium">{c.descriptiveName}</p>
-                        <p className="text-xs text-base-content/50 font-mono">ID: {c.customerId}</p>
+                        <p className="text-xs text-base-content/50 font-mono">
+                          ID: {c.customerId} {grant.email ? `• ${grant.email}` : ""}
+                        </p>
                       </div>
-                      <span className="btn btn-primary btn-xs">Select</span>
+                      <span className="btn btn-primary btn-xs">Save property</span>
                     </button>
                   )),
                 )}
+
+                <form
+                  className="flex flex-wrap items-center gap-2 pt-2 border-t border-base-300"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    const cleaned = customCustomerIdInput.trim();
+                    if (!cleaned) return;
+                    const firstGrant = accounts[0];
+                    setCustomerMutation.mutate({
+                      accountId: firstGrant?.accountId || "google-ads",
+                      customerId: cleaned,
+                      customerDescriptiveName: `Google Ads (${cleaned})`,
+                    });
+                  }}
+                >
+                  <input
+                    type="text"
+                    placeholder="Or enter Customer ID (e.g. 123-456-7890)"
+                    value={customCustomerIdInput}
+                    onChange={(e) => setCustomCustomerIdInput(e.target.value)}
+                    className="input input-bordered input-sm flex-1 font-mono text-xs"
+                  />
+                  <button
+                    type="submit"
+                    className="btn btn-primary btn-sm"
+                    disabled={setCustomerMutation.isPending || !customCustomerIdInput.trim()}
+                  >
+                    Save ID
+                  </button>
+                </form>
               </div>
             )}
-            <button
-              type="button"
-              className="btn btn-ghost btn-xs text-base-content/60"
-              onClick={() => setPicking(false)}
-            >
-              Cancel
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="btn btn-outline btn-xs border-base-300"
+                onClick={handleConnect}
+              >
+                <GoogleGlyph className="size-3.5" />
+                Use another Google account
+              </button>
+              {connected ? (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-xs text-base-content/60"
+                  onClick={() => setPicking(false)}
+                >
+                  Cancel
+                </button>
+              ) : null}
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
             <p className="text-sm text-base-content/70">
-              Connect your Google Ads account to unlock <strong>Google Keyword Planner</strong> directly in OpenSEO. Access verified monthly search volumes, CPC ranges, and competition levels without third-party API roadblocks.
+              Connect your Google Ads account to unlock <strong>Google Keyword Planner</strong> directly in OpenSEO. Access verified monthly search volumes, CPC ranges, and competition levels.
             </p>
             <div className="flex flex-wrap items-center gap-2">
               <button
@@ -222,7 +277,7 @@ export function GoogleAdsConnectionCard({
                 onClick={handleConnect}
               >
                 <GoogleGlyph className="size-4" />
-                Connect Google Ads
+                Connect with Google
               </button>
               {onDismiss ? (
                 <button
