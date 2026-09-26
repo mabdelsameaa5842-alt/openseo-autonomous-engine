@@ -299,13 +299,23 @@ export function VorderMeetingChamberModal({
     "متابعة تعديل العناوين للصفحات في المراكز 4-15 لرفع الـ CTR",
     "تطبيق قواعد القائد المتعلمة على المقالات والحملات الجديدة",
   ]);
+  const [nominationsList, setNominationsList] = useState<AgentNomination[]>([]);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const fetchMeeting = async () => {
     try {
-      const res = await fetch("/api/automation/agent-meetings");
+      const [res, nomRes] = await Promise.all([
+        fetch("/api/automation/agent-meetings"),
+        fetch("/api/automation/agent-nominations").catch(() => null),
+      ]);
       if (!res.ok) throw new Error("فشل جلب تفاصيل الاجتماع");
       const json = (await res.json()) as any;
+      if (nomRes && nomRes.ok) {
+        const nomJson = (await nomRes.json()) as any;
+        if (Array.isArray(nomJson?.nominations)) {
+          setNominationsList(nomJson.nominations);
+        }
+      }
       if (json.meeting) {
         setMeetingData(json.meeting);
         if (typeof json.meeting.restSecondsRemaining === "number") {
@@ -1053,13 +1063,13 @@ export function VorderMeetingChamberModal({
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div className="p-4 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)]">
                       <span className="text-[11px] text-[var(--apple-text-secondary)] font-medium block">
-                        إجمالي المقالات المنشورة
+                        المدونة = السايت ماب = D1
                       </span>
                       <span className="text-xl sm:text-2xl font-extrabold text-[var(--apple-text-primary)] font-mono mt-1 block">
-                        {meetingData?.consolidatedReport.publishedCount || 742}
+                        {meetingData?.consolidatedReport.publishedCount || 647}
                       </span>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 block">
-                        ✓ مفهرسة عبر كريم الدسوقي
+                        ✓ مطابقة 100% (فقد البيانات: 0)
                       </span>
                     </div>
 
@@ -1080,7 +1090,7 @@ export function VorderMeetingChamberModal({
                         ظهورات Google Search Console
                       </span>
                       <span className="text-xl sm:text-2xl font-extrabold text-blue-600 dark:text-sky-400 font-mono mt-1 block">
-                        {meetingData?.consolidatedReport.gscImpressions || 148920}
+                        {meetingData?.consolidatedReport.gscImpressions || 36}
                       </span>
                       <span className="text-[10px] text-blue-600 dark:text-sky-400 font-bold mt-1 block">
                         قراءات حية من المنصات الـ 8
@@ -1089,13 +1099,13 @@ export function VorderMeetingChamberModal({
 
                     <div className="p-4 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)]">
                       <span className="text-[11px] text-[var(--apple-text-secondary)] font-medium block">
-                        نسبة تصادم المحتوى (Cannibalization)
+                        صحة الفحص التقني (Site Audit)
                       </span>
                       <span className="text-xl sm:text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 font-mono mt-1 block">
-                        0.0%
+                        100%
                       </span>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 block">
-                        حماية زياد عمران 100%
+                        0 تحذيرات (تم تحويل 30 رابط -v2 بـ 301)
                       </span>
                     </div>
                   </div>
@@ -1164,30 +1174,38 @@ export function VorderMeetingChamberModal({
                     <div className="flex items-center gap-2">
                       <Award className="size-4 text-amber-500 shrink-0" />
                       <span className="font-bold text-amber-800 dark:text-amber-300">
-                        نظام الترشيح الأسبوعي للوكلاء الأذكياء (بقيادة طارق العبدلي):
+                        نظام ترشيح الوكلاء الفرعيين المتخصصين بناءً على أبحاث الخبراء في فترة الاستراحة (بقيادة طارق العبدلي):
                       </span>
                     </div>
                   </div>
 
-                  {meetingData?.latestNomination ? (
+                  {(nominationsList.length > 0
+                    ? nominationsList
+                    : meetingData?.latestNomination
+                      ? [meetingData.latestNomination]
+                      : []
+                  ).map((nom) => (
                     <VorderAgentNominationCard
-                      nomination={meetingData.latestNomination}
+                      key={nom.id}
+                      nomination={nom}
                       onStatusChange={(updated) => {
+                        setNominationsList((prev) =>
+                          prev.map((item) => (item.id === updated.id ? updated : item))
+                        );
                         setMeetingData((prev) => {
                           if (!prev) return prev;
                           return {
                             ...prev,
-                            latestNomination: updated,
+                            latestNomination:
+                              prev.latestNomination?.id === updated.id
+                                ? updated
+                                : prev.latestNomination,
                           };
                         });
-                        toast.success("تم تحديث حالة ترشيح الوكيل بنجاح!");
+                        toast.success(`تم تحديث حالة ترشيح الوكيل «${updated.agentName}» بنجاح!`);
                       }}
                     />
-                  ) : (
-                    <div className="p-8 text-center text-xs text-[var(--apple-text-secondary)]">
-                      لا توجد ترشيحات معلقة حالياً.
-                    </div>
-                  )}
+                  ))}
                 </div>
               )}
             </>

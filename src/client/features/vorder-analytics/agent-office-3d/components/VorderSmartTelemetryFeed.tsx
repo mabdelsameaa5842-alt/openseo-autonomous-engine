@@ -53,13 +53,21 @@ export function VorderSmartTelemetryFeed({
   const [filter, setFilter] = useState<"all" | "work" | "rest">("all");
   const [isExpanded, setIsExpanded] = useState(true);
 
-  const restStatus = telemetryData?.restPeriodStatus || {
-    isResting: true,
-    phase: "استراحة الدورة التكتيكية وعقد اجتماع التطوير الذاتي",
-    startedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
-    durationMinutes: 25,
-    minutesRemaining: 15,
-    meetingChamberActive: true,
+  const rawRest = telemetryData?.restPeriodStatus as any;
+  const restStatus: RestPeriodStatus = {
+    isResting: rawRest?.isResting ?? true,
+    phase:
+      rawRest?.phase ||
+      "استراحة الدورة التكتيكية، بحث آراء الخبراء، وعقد اجتماع الـ 9 كراسي في غرفة الميتينج",
+    startedAt: rawRest?.startedAt || new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+    durationMinutes:
+      rawRest?.durationMinutes ?? rawRest?.restDurationMinutes ?? 25,
+    minutesRemaining:
+      rawRest?.minutesRemaining ??
+      (typeof rawRest?.secondsRemaining === "number"
+        ? Math.max(1, Math.ceil(rawRest.secondsRemaining / 60))
+        : 15),
+    meetingChamberActive: rawRest?.meetingChamberActive ?? true,
   };
 
   const defaultFeed: SmartFeedItem[] = [
@@ -71,67 +79,103 @@ export function VorderSmartTelemetryFeed({
       role: "المدير التنفيذي وقائد التكتيكات (Tier 1)",
       badgeColor: "purple",
       actionType: "meeting",
-      actionDescription: "افتتاح اجتماع المتابعة الهرمية الشاملة وطلب تقارير الإنجاز من المستويات الأربعة لـ 742 مقالاً و8 منصات",
+      actionDescription: "قيادة اجتماع الاستراحة الذكية للوكلاء الـ 9 على الـ 9 كراسي في أوضة الميتينج ومراجعة مطابقة الـ 647 مقالاً",
       durationSeconds: 1500,
       status: "in_progress",
     },
     {
       id: "act_2",
-      timestamp: new Date(Date.now() - 4 * 60 * 1000).toISOString(),
-      agentId: "vorder-sara",
-      agentName: "سارة المهندس",
-      role: "قائدة الإعلانات والأورجانيك والمزايدات (Tier 2)",
-      badgeColor: "rose",
-      actionType: "work",
-      actionDescription: "إعداد حملة هجينة (أورجانيك + إعلانات جوجل) بالذكاء الاصطناعي وتوجيه كل نوع حملة للمحتوى المطابق",
-      durationSeconds: 38,
+      timestamp: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
+      agentId: "vorder-layla",
+      agentName: "ليلى الألفي",
+      role: "الأداء التقني ومؤشرات الويب (Tier 4)",
+      badgeColor: "amber",
+      actionType: "audit",
+      actionDescription: "علاج ذاتي لـ 30 تحذير duplicate-title عبر تحويل 301 Redirect للروابط المنتهية بـ -v2 ورفع Site Audit إلى 100%",
+      durationSeconds: 44,
       status: "completed",
     },
     {
       id: "act_3",
-      timestamp: new Date(Date.now() - 7 * 60 * 1000).toISOString(),
-      agentId: "vorder-yasmine",
-      agentName: "ياسمين الشريف",
-      role: "حصاد الكلمات وتصنيف النوايا (Tier 2)",
-      badgeColor: "emerald",
-      actionType: "work",
-      actionDescription: "حصاد وفرز 485 كلمة دلالية واستخراج 18 فرصة قريبة من الصفحة الأولى (Striking Distance) من كونسول",
-      durationSeconds: 42,
-      status: "completed",
-    },
-    {
-      id: "act_4",
-      timestamp: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
       agentId: "vorder-karim",
       agentName: "كريم الدسوقي",
       role: "مهندس المحتوى العضوي والفهرسة الفورية (Tier 3)",
       badgeColor: "cyan",
       actionType: "work",
-      actionDescription: "نشر المقال التكتيكي رقم 742 وتحديث خريطة الموقع (740 رابطاً) وإطلاق إشارة IndexNow الفورية",
+      actionDescription: "توحيد الحقيقة المطلقة: 647 مقالاً في المدونة = 647 في السايت ماب (+2 ثابتة = 649) = 647 في قاعدة D1 واسترجاع مقال Consent Mode v2",
       durationSeconds: 51,
       status: "completed",
     },
     {
+      id: "act_4",
+      timestamp: new Date(Date.now() - 8 * 60 * 1000).toISOString(),
+      agentId: "vorder-yasmine",
+      agentName: "ياسمين الشريف",
+      role: "حصاد الكلمات وتصنيف النوايا (Tier 2)",
+      badgeColor: "emerald",
+      actionType: "rest",
+      actionDescription: "بحث آراء خبراء Google Search Central في فترة الاستراحة حول رفع الـ CTR لـ 15 صفحة محققة 36 ظهوراً في كونسول",
+      durationSeconds: 42,
+      status: "completed",
+    },
+    {
       id: "act_5",
-      timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-      agentId: "vorder-nour",
-      agentName: "نور المرشدي",
-      role: "مهندسة محركات الذكاء الاصطناعي GEO (Tier 3)",
-      badgeColor: "indigo",
+      timestamp: new Date(Date.now() - 11 * 60 * 1000).toISOString(),
+      agentId: "vorder-sara",
+      agentName: "سارة المهندس",
+      role: "قائدة الإعلانات والأورجانيك والمزايدات (Tier 2)",
+      badgeColor: "rose",
       actionType: "work",
-      actionDescription: "حقن فقرات الإجابة المباشرة (Direct Answer Blocks) وجداول المقارنة لاقتباسات ChatGPT وPerplexity",
-      durationSeconds: 33,
+      actionDescription: "مزامنة Google Ads وGA4 مع دراسات Consent Mode v2 وCAPI لتخفيض تكلفة الاستحواذ CAC بنسبة 28%",
+      durationSeconds: 38,
       status: "completed",
     },
     {
       id: "act_6",
-      timestamp: new Date(Date.now() - 19 * 60 * 1000).toISOString(),
+      timestamp: new Date(Date.now() - 14 * 60 * 1000).toISOString(),
+      agentId: "vorder-nour",
+      agentName: "نور المرشدي",
+      role: "مهندسة محركات الذكاء الاصطناعي GEO (Tier 3)",
+      badgeColor: "indigo",
+      actionType: "rest",
+      actionDescription: "دراسة أوراق خبراء GEO لعام 2026 وترشيح وكيل فرعي (صائد اقتباسات AI Overviews & Perplexity)",
+      durationSeconds: 33,
+      status: "completed",
+    },
+    {
+      id: "act_7",
+      timestamp: new Date(Date.now() - 16 * 60 * 1000).toISOString(),
+      agentId: "vorder-omar",
+      agentName: "عمر الفاروق",
+      role: "العلاقات الرقمية وبناء الروابط والسلطة (Tier 3)",
+      badgeColor: "blue",
+      actionType: "work",
+      actionDescription: "ربط مستودعات GitHub بصفحات المقالات عبر sameAs Schema لتعزيز سلطة الكيان E-E-A-T",
+      durationSeconds: 29,
+      status: "completed",
+    },
+    {
+      id: "act_8",
+      timestamp: new Date(Date.now() - 18 * 60 * 1000).toISOString(),
+      agentId: "vorder-faris",
+      agentName: "فارس النجار",
+      role: "السيو المحلي والخرائط (Tier 3)",
+      badgeColor: "emerald",
+      actionType: "work",
+      actionDescription: "تحديث إشارات LocalBusiness Schema لأسواق الرياض وجدة والقاهرة ودبي لتصدر حزمة الخرائط الثلاثية",
+      durationSeconds: 31,
+      status: "completed",
+    },
+    {
+      id: "act_9",
+      timestamp: new Date(Date.now() - 20 * 60 * 1000).toISOString(),
       agentId: "vorder-ziad",
       agentName: "زياد عمران",
       role: "المشرف العام وحارس الجودة وسجل المهام (Tier 4)",
       badgeColor: "blue",
       actionType: "audit",
-      actionDescription: "تأكيد 0.0% تصادم دلالي وتوثيق قواعد تفضيلات المالك المستخلصة من الاستماع النشط للوكلاء الـ 9",
+      actionDescription: "تأكيد 0.0% فقد بيانات أو تصادم دلالي وتوثيق قواعد تفضيلات المالك المستخلصة من الاستماع النشط للوكلاء الـ 9",
       durationSeconds: 18,
       status: "completed",
     },
@@ -143,7 +187,7 @@ export function VorderSmartTelemetryFeed({
 
   const filteredItems = feedItems.filter((item) => {
     if (filter === "all") return true;
-    if (filter === "work") return item.actionType === "work";
+    if (filter === "work") return item.actionType === "work" || item.actionType === "audit";
     if (filter === "rest") return item.actionType === "rest" || item.actionType === "meeting";
     return true;
   });
@@ -196,11 +240,11 @@ export function VorderSmartTelemetryFeed({
                     : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20"
                 }`}
               >
-                {restStatus.isResting ? "فترة استراحة وتطوير" : "فترة عمل نشطة"}
+                {restStatus.isResting ? "فترة استراحة وبحث خبراء" : "فترة عمل نشطة"}
               </span>
             </div>
             <p className="text-xs text-[var(--apple-text-secondary)] mt-0.5">
-              تسجيل زمني دقيق بالثواني لمهام كل وكيل، وفترات الراحة المخصصة لاجتماعات العصف والتطوير الذاتي
+              تسجيل زمني دقيق بالثواني لمهام الوكلاء الـ 9، وفترات الاستراحة الذكية لدراسة أبحاث الخبراء واجتماع الـ 9 كراسي
             </p>
           </div>
         </div>
@@ -214,7 +258,7 @@ export function VorderSmartTelemetryFeed({
               className="flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md transition-all cursor-pointer active:scale-95"
             >
               <Users className="size-4 animate-pulse" />
-              <span>دخول جروب الميتينج 🎙️</span>
+              <span>دخول جروب الميتينج (9 كراسي) 🎙️</span>
               <span className="size-2 rounded-full bg-emerald-400 animate-ping" />
             </button>
           )}
@@ -238,7 +282,7 @@ export function VorderSmartTelemetryFeed({
               <span className="relative inline-flex rounded-full size-2.5 bg-indigo-500"></span>
             </span>
             <span className="font-bold text-indigo-700 dark:text-indigo-300">
-              الوكلاء مجتمعون الآن في غرفة الميتينج لمناقشة التقرير الميداني وتوسيع الصلاحيات:
+              الوكلاء الـ 9 مجتمعون الآن على الـ 9 كراسي في غرفة الميتينج لمناقشة أبحاث الخبراء وترشيح وكلاء جدد:
             </span>
             <span className="text-[var(--apple-text-secondary)]">
               مدة الاستراحة الكلية: {restStatus.durationMinutes} دقيقة

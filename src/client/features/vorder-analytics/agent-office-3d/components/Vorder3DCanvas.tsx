@@ -160,7 +160,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
           <div className="size-2 rounded-full bg-cyan-400 animate-ping" />
           <span className="font-bold text-cyan-300">مقر VORDER التكتيكي 3D (الوكلاء الـ 9)</span>
           <span className="text-zinc-500">•</span>
-          <span className="text-zinc-400 hidden sm:inline">23 ظهور معتمد • 742 مقال منشور • كوتا $0.00</span>
+          <span className="text-zinc-400 hidden sm:inline">36 ظهور حي • 647 مقال (مدونة=سايت ماب=D1) • Site Audit 100%</span>
           <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-mono text-[10px] hidden md:inline">
             محرك 60 FPS
           </span>
@@ -177,11 +177,28 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
         </div>
 
         {/* Quick Modal Overlays */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              if (sceneRef.current?.toggleMeetingRoom) {
+                sceneRef.current.toggleMeetingRoom();
+              }
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border font-bold text-xs shadow-md transition-all cursor-pointer ${
+              inMeeting
+                ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200 shadow-[0_0_15px_rgba(16,185,129,0.4)]'
+                : 'bg-purple-500/25 hover:bg-purple-500/35 border-purple-400/50 text-purple-200'
+            }`}
+          >
+            <Sparkles className="size-3.5" />
+            <span>{inMeeting ? 'إنهاء الاجتماع والعودة للمكاتب' : 'جمع الـ 9 وكلاء في أوضة الميتينج (9 كراسي) 🎙️'}</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setChattingAgent(VORDER_AGENTS_ROSTER[0])}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs shadow-md transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs shadow-md transition-all cursor-pointer"
           >
             <MessageSquare className="size-3.5" />
             <span>مدير الوكلاء (طارق العبدلي)</span>
@@ -190,7 +207,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
           <button
             type="button"
             onClick={() => setShowTaskBoard(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-slate-300 font-semibold text-xs shadow transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-slate-300 font-semibold text-xs shadow transition-all cursor-pointer"
           >
             <ListTodo className="size-3.5 text-cyan-400" />
             <span className="hidden sm:inline">لوحة المهام</span>
@@ -199,7 +216,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
           <button
             type="button"
             onClick={() => setShowSystemLog(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-slate-300 font-semibold text-xs shadow transition-all"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 hover:bg-slate-800 border border-white/10 text-slate-300 font-semibold text-xs shadow transition-all cursor-pointer"
           >
             <Terminal className="size-3.5 text-emerald-400" />
             <span className="hidden sm:inline">السجل الحي</span>

@@ -346,59 +346,78 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // MEETING ROOM (Right side / East)
+  // MEETING ROOM (Right side / East — Expanded for all 9 Agents & 9 Chairs)
   // ═══════════════════════════════════════════════════
-  const MRX = 8, MRZ = -3;
+  const MRX = 7.8, MRZ = -3.0;
   const mrGlass = Glass();
-  let w = new THREE.Mesh(new THREE.BoxGeometry(0.06, 3.5, 5.5), mrGlass);
-  w.position.set(MRX - 2.8, 1.75, MRZ);
+  let w = new THREE.Mesh(new THREE.BoxGeometry(0.06, 3.5, 6.2), mrGlass);
+  w.position.set(MRX - 3.7, 1.75, MRZ);
   office.add(w);
 
-  w = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 0.06), mrGlass);
-  w.position.set(MRX - 1.9, 1.75, MRZ + 2.75);
+  w = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.5, 0.06), mrGlass);
+  w.position.set(MRX - 2.5, 1.75, MRZ + 3.1);
   office.add(w);
-  w = new THREE.Mesh(new THREE.BoxGeometry(1.8, 3.5, 0.06), mrGlass);
-  w.position.set(MRX + 1.9, 1.75, MRZ + 2.75);
+  w = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.5, 0.06), mrGlass);
+  w.position.set(MRX + 2.5, 1.75, MRZ + 3.1);
   office.add(w);
 
   // Frame lines
-  [[MRX - 2.8, MRZ - 2.75], [MRX - 2.8, MRZ + 2.75], [MRX + 2.8, MRZ - 2.75], [MRX + 2.8, MRZ + 2.75]].forEach(([fx, fz]) => {
+  [[MRX - 3.7, MRZ - 3.1], [MRX - 3.7, MRZ + 3.1], [MRX + 3.7, MRZ - 3.1], [MRX + 3.7, MRZ + 3.1]].forEach(([fx, fz]) => {
     const f = new THREE.Mesh(new THREE.BoxGeometry(0.05, 3.5, 0.05), M(0x99AABB));
     f.position.set(fx, 1.75, fz);
     office.add(f);
   });
 
-  // Meeting Table
-  const mt = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.07, 1.5), M(0xDDE4EC));
-  mt.position.set(MRX, 0.72, MRZ);
+  // Expanded Conference Table for 9 Agents
+  const mt = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 1.7), M(0xDDE4EC));
+  mt.position.set(MRX + 0.2, 0.72, MRZ);
   mt.castShadow = true;
   mt.receiveShadow = true;
   office.add(mt);
-  [[-1.6, -0.55], [-1.6, 0.55], [1.6, -0.55], [1.6, 0.55]].forEach(([tx, tz]) => {
+  [
+    [-2.2, -0.65],
+    [0, -0.65],
+    [2.2, -0.65],
+    [-2.2, 0.65],
+    [0, 0.65],
+    [2.2, 0.65],
+  ].forEach(([tx, tz]) => {
     const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 0.06), M(0xBBCCDD));
-    l.position.set(MRX + tx, 0.35, MRZ + tz);
+    l.position.set(MRX + 0.2 + tx, 0.35, MRZ + tz);
     office.add(l);
   });
 
-  // Meeting chairs
+  // All 9 Meeting Chairs (1 Executive Head Chair for Tariq + 4 North + 4 South)
   const meetSeats = [
-    { x: MRX - 1.4, z: MRZ - 1.1, ry: 0 },
-    { x: MRX, z: MRZ - 1.1, ry: 0 },
-    { x: MRX + 1.4, z: MRZ - 1.1, ry: 0 },
-    { x: MRX - 1.4, z: MRZ + 1.1, ry: Math.PI },
-    { x: MRX, z: MRZ + 1.1, ry: Math.PI },
-    { x: MRX + 1.4, z: MRZ + 1.1, ry: Math.PI },
+    { x: MRX - 2.85, z: MRZ, ry: Math.PI / 2, isHead: true },      // 0: طارق العبدلي (رأس الطاولة)
+    { x: MRX - 1.6, z: MRZ - 1.22, ry: 0, isHead: false },         // 1: سارة المهندس
+    { x: MRX - 0.4, z: MRZ - 1.22, ry: 0, isHead: false },         // 2: ياسمين الشريف
+    { x: MRX + 0.8, z: MRZ - 1.22, ry: 0, isHead: false },         // 3: عمر الفاروق
+    { x: MRX + 2.0, z: MRZ - 1.22, ry: 0, isHead: false },         // 4: كريم الدسوقي
+    { x: MRX - 1.6, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 5: ليلى الألفي
+    { x: MRX - 0.4, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 6: فارس النجار
+    { x: MRX + 0.8, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 7: نور المرشدي
+    { x: MRX + 2.0, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 8: زياد عمران
   ];
   meetSeats.forEach((s) => {
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.04, 0.35), M(0x37474F));
+    const chairColor = s.isHead ? 0x1E293B : 0x37474F;
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.38), M(chairColor));
     seat.position.set(s.x, 0.42, s.z);
     office.add(seat);
-    const bk = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.32, 0.04), M(0x37474F));
-    const bz = s.z + (s.ry === 0 ? -0.19 : 0.19);
-    bk.position.set(s.x, 0.6, bz);
+
+    const bk = new THREE.Mesh(
+      s.isHead
+        ? new THREE.BoxGeometry(0.04, 0.38, 0.38)
+        : new THREE.BoxGeometry(0.38, 0.34, 0.04),
+      M(chairColor)
+    );
+    const bx = s.isHead ? s.x - 0.19 : s.x;
+    const bz = s.isHead ? s.z : s.z + (s.ry === 0 ? -0.19 : 0.19);
+    bk.position.set(bx, 0.61, bz);
     office.add(bk);
-    [-0.12, 0.12].forEach((ox) => {
-      [-0.12, 0.12].forEach((oz) => {
+
+    [-0.13, 0.13].forEach((ox) => {
+      [-0.13, 0.13].forEach((oz) => {
         const l = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.4, 0.03), M(0x90A4AE));
         l.position.set(s.x + ox, 0.2, s.z + oz);
         office.add(l);
@@ -406,28 +425,28 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     });
   });
 
-  // Whiteboard with authentic VORDER SEO stats
-  const wbB = new THREE.Mesh(new THREE.BoxGeometry(2.6, 1.1, 0.03), M(0xCCCCCC));
-  wbB.position.set(MRX, 2.2, MRZ - 2.73);
+  // Whiteboard with unified 647 = 647 = 647 VORDER SEO Ground-Truth stats
+  const wbB = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.15, 0.03), M(0xCCCCCC));
+  wbB.position.set(MRX + 0.2, 2.2, MRZ - 2.95);
   office.add(wbB);
 
   const wbc = document.createElement('canvas');
-  wbc.width = 320;
-  wbc.height = 130;
+  wbc.width = 360;
+  wbc.height = 140;
   const wbx = wbc.getContext('2d');
   if (wbx) {
     wbx.fillStyle = '#FAFAFA';
-    wbx.fillRect(0, 0, 320, 130);
-    wbx.font = 'bold 20px sans-serif';
-    wbx.fillStyle = '#0DEEF3';
-    wbx.fillText('VORDER SEO ROADMAP', 20, 30);
-    wbx.font = '12px monospace';
-    wbx.fillStyle = '#111827';
-    wbx.fillText('GSC: 23 IMPRESSIONS (100% TRUTH)', 20, 55);
+    wbx.fillRect(0, 0, 360, 140);
+    wbx.font = 'bold 18px sans-serif';
     wbx.fillStyle = '#059669';
-    wbx.fillText('▸ 742 ARTICLES PUBLISHED & INDEXED', 20, 78);
+    wbx.fillText('VORDER 360° GROUND TRUTH (9 AGENTS)', 14, 28);
+    wbx.font = 'bold 12px monospace';
+    wbx.fillStyle = '#111827';
+    wbx.fillText('▸ BLOG: 647 = SITEMAP: 647 = D1: 647', 14, 54);
+    wbx.fillStyle = '#059669';
+    wbx.fillText('▸ SITE AUDIT: 100% (0 WARNINGS / 30 301s)', 14, 78);
     wbx.fillStyle = '#2563EB';
-    wbx.fillText('▸ D1 AUTONOMOUS ENGINE: $0.00 COST', 20, 100);
+    wbx.fillText('▸ GSC: 36 IMPRESSIONS • COST: $0.00', 14, 102);
     wbx.fillStyle = '#D97706';
     wbx.fillText('▸ SALLA & ZID ORGANIC AD HUBS ACTIVE', 20, 120);
   }
@@ -861,42 +880,54 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   // ═══════════════════════════════════════════════════
   const chatBubbles: any[] = [];
   const arabicChatPhrases = [
-    'أرشفنا 742 مقال بنجاح اليوم 🚀',
-    'الكونسول يسجل 23 ظهور معتمد 📈',
-    'استهلاك قواعد D1 هو 0.00$ دائماً 🛡️',
-    'حملة إعلانات سلة وزد تعمل 100% ✨',
-    'كريم حدّث السايت ماب مع جوجل ⚡',
-    'ترتيب الكلمات صاعد بثبات 🎯',
-    'استجابة السيرفر فائقة السرعة 9ms ⚡',
-    'زياد دقق شهادات SSL وسلامة الروابط 🔒',
+    'يا ريس وحدنا الـ 647 مقال في المدونة والسايت ماب وD1 🚀',
+    'تصفير الـ 30 تحذير ورفع Site Audit لـ 100% بالـ 301 Redirect 🛡️',
+    'كونسول مسجل 36 ظهور حي بمتوسط ترتيب 9.7 📈',
+    'رجعنا مقال Consent Mode v2 ومفيش مقال واحد ناقص ✨',
+    'قريت أبحاث خبراء الـ GEO لرفع اقتباسات AI Overviews 🧠',
+    'الـ 9 كراسي كملت في أوضة الميتينج والقعدة منورة 🎙️',
+    'رشحنا 3 وكلاء فرعيين جدد عشان الباشمهندس يعتمدهم ⚡',
+    'استهلاك قواعد D1 وSupabase هو $0.00 وفقد البيانات 0% 🔒',
+  ];
+
+  const meetingBreakDialogues: Array<{ idx: number; text: string }> = [
+    { idx: 0, text: 'طارق: منورين الـ 9 كراسي يا وحوش! قولولي عملتوا إيه في الـ 30 تحذير؟ 🎙️' },
+    { idx: 5, text: 'ليلى: حولت الـ 30 رابط -v2 بـ 301 Redirect والـ Site Audit بقى 100%! 🛡️' },
+    { idx: 4, text: 'كريم: المدونة 647 = السايت ماب 647 = D1 647 ورجعنا مقال Consent v2! ⚡' },
+    { idx: 2, text: 'ياسمين: من أبحاث الخبراء في الاستراحة بنرفع الـ CTR للـ 36 ظهور! 📈' },
+    { idx: 1, text: 'سارة: ربطت GA4 وAds مع Consent Mode v2 ونزلنا الـ CAC بـ 28%! 🎯' },
+    { idx: 7, text: 'نور: رشحنا وكيل صائد اقتباسات AI Overviews بناءً على أبحاث GEO! 🧠' },
+    { idx: 3, text: 'عمر: ربطت مستودعات GitHub بـ sameAs Schema لتعزيز سلطة الدومين! 🔗' },
+    { idx: 6, text: 'فارس: ظبطنا الـ Local 3-Pack للرياض وجدة والقاهرة ودبي! 📍' },
+    { idx: 8, text: 'زياد: كله متطابق 100% وفقد البيانات 0% في D1 وSupabase يا ريس! 🔒' },
   ];
 
   function createBubble(x: number, y: number, z: number, text: string, color: string) {
     const bc = document.createElement('canvas');
-    bc.width = 240;
-    bc.height = 56;
+    bc.width = 340;
+    bc.height = 60;
     const bx = bc.getContext('2d');
     if (bx) {
-      bx.fillStyle = 'rgba(10, 22, 40, 0.9)';
+      bx.fillStyle = 'rgba(10, 22, 40, 0.92)';
       bx.beginPath();
-      bx.roundRect(4, 4, 232, 48, 12);
+      bx.roundRect(4, 4, 332, 52, 12);
       bx.fill();
       bx.strokeStyle = color;
       bx.lineWidth = 2;
       bx.stroke();
 
-      bx.font = 'bold 13px Tajawal, Cairo, sans-serif';
+      bx.font = 'bold 12px Tajawal, Cairo, sans-serif';
       bx.fillStyle = color;
       bx.textAlign = 'center';
-      bx.fillText(text, 120, 32);
+      bx.fillText(text, 170, 34);
     }
     const btex = new THREE.CanvasTexture(bc);
     btex.minFilter = THREE.LinearFilter;
     const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: btex, transparent: true, depthTest: false }));
-    sprite.scale.set(1.4, 0.35, 1);
-    sprite.position.set(x, y + 0.2, z);
+    sprite.scale.set(2.0, 0.38, 1);
+    sprite.position.set(x, y + 0.25, z);
     office.add(sprite);
-    chatBubbles.push({ sprite, life: 3.5, startY: y + 0.2 });
+    chatBubbles.push({ sprite, life: 4.0, startY: y + 0.25 });
   }
 
   function checkConversations() {
@@ -927,8 +958,8 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     for (let i = chatBubbles.length - 1; i >= 0; i--) {
       const b = chatBubbles[i];
       b.life -= delta;
-      b.sprite.position.y = b.startY + (3.5 - b.life) * 0.12;
-      b.sprite.material.opacity = Math.max(0, b.life / 3.5);
+      b.sprite.position.y = b.startY + (4.0 - b.life) * 0.12;
+      b.sprite.material.opacity = Math.max(0, b.life / 4.0);
       if (b.life <= 0) {
         office.remove(b.sprite);
         b.sprite.material.dispose();
@@ -1036,45 +1067,80 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // MEETING ENGINE
+  // 9-AGENT MEETING ROOM ENGINE (All 9 Chairs & Live Egyptian Arabic Break Dialogue)
   // ═══════════════════════════════════════════════════
   let inMeeting = false;
+  let manualMeetingOverride: boolean | null = null;
+  let meetingChatTimer = 0;
+  let meetingSpeakerPointer = 0;
   const meetChars: any[] = [];
-  VORDER_OFFICE_AGENTS.slice(0, 6).forEach((agent, i) => {
+
+  VORDER_OFFICE_AGENTS.forEach((agent, i) => {
     const mc = buildChar(agent, false);
-    const s = meetSeats[i];
+    mc.userData = { agentId: i };
+    const s = meetSeats[i] || meetSeats[0];
     mc.position.set(s.x, 0, s.z);
-    mc.rotation.y = s.z < MRZ ? Math.PI : 0;
+    mc.rotation.y = s.isHead ? Math.PI / 2 : s.z < MRZ ? 0 : Math.PI;
     mc.visible = false;
     office.add(mc);
     meetChars.push(mc);
   });
 
-  function updateMeeting(minutes: number) {
-    // Meeting occurs during sync phase: last 2 minutes of 30-min cadence (min 28-30 or 58-60)
-    const cycleMin = minutes % 30;
-    const shouldMeet = cycleMin >= 28 && cycleMin <= 30;
-
-    if (shouldMeet && !inMeeting) {
+  function applyMeetingState(active: boolean) {
+    if (active && !inMeeting) {
       inMeeting = true;
       if (onMeetingChange) onMeetingChange(true);
-      meetChars.forEach((c) => { c.visible = true; });
-      agentData.slice(0, 6).forEach((ad) => {
+      meetChars.forEach((c) => {
+        c.visible = true;
+      });
+      agentData.forEach((ad, idx) => {
+        const seat = meetSeats[idx] || meetSeats[0];
         ad.walker.visible = false;
         ad.sittingChar.visible = false;
         ad.state = 'meeting';
-        ad.renderLabelCanvas(100, '📋 اجتماع القيادة والمزامنة');
+        ad.label.position.set(seat.x, 1.85, seat.z);
+        ad.renderLabelCanvas(100, '🎙️ اجتماع الاستراحة والـ 9 كراسي');
       });
-    } else if (!shouldMeet && inMeeting) {
+      // Immediately spawn opening bubble from Tariq
+      const firstLine = meetingBreakDialogues[0];
+      const firstSeat = meetSeats[firstLine.idx];
+      createBubble(firstSeat.x, 1.55, firstSeat.z, firstLine.text, VORDER_OFFICE_AGENTS[firstLine.idx].hex);
+      meetingSpeakerPointer = 1;
+      meetingChatTimer = 3.2;
+    } else if (!active && inMeeting) {
       inMeeting = false;
       if (onMeetingChange) onMeetingChange(false);
-      meetChars.forEach((c) => { c.visible = false; });
-      agentData.slice(0, 6).forEach((ad) => {
+      meetChars.forEach((c) => {
+        c.visible = false;
+      });
+      agentData.forEach((ad) => {
         ad.state = 'sitting';
         ad.sittingChar.visible = true;
         ad.label.position.set(ad.home.x, 1.85, ad.home.z);
         ad.timer = 5 + rng.r(0, 10);
       });
+    }
+  }
+
+  function updateMeeting(minutes: number) {
+    const cycleMin = minutes % 30;
+    const shouldMeet =
+      manualMeetingOverride !== null
+        ? manualMeetingOverride
+        : cycleMin >= 24 && cycleMin <= 30;
+    applyMeetingState(shouldMeet);
+  }
+
+  function updateMeetingConversation(delta: number) {
+    if (!inMeeting) return;
+    meetingChatTimer -= delta;
+    if (meetingChatTimer <= 0) {
+      const turn = meetingBreakDialogues[meetingSpeakerPointer % meetingBreakDialogues.length];
+      const seat = meetSeats[turn.idx] || meetSeats[0];
+      const ag = VORDER_OFFICE_AGENTS[turn.idx] || VORDER_OFFICE_AGENTS[0];
+      createBubble(seat.x, 1.55, seat.z, turn.text, ag.hex);
+      meetingSpeakerPointer = (meetingSpeakerPointer + 1) % meetingBreakDialogues.length;
+      meetingChatTimer = 3.4;
     }
   }
 
@@ -1101,7 +1167,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       c.fill();
       c.globalAlpha = 1;
       c.font = 'bold 8px sans-serif';
-      c.fillText('VORDER AI // 23 GSC', 12, 48);
+      c.fillText('VORDER AI // 36 GSC', 12, 48);
       for (let i = 0; i < 6; i++) {
         const y = (54 + i * 5 + Math.floor(t * 3)) % h;
         c.globalAlpha = 0.2 + Math.sin(i + t) * 0.1;
@@ -1129,7 +1195,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       for (let i = 0; i < 12; i++) {
         const y = (8 + i * 6 + Math.floor(t * 5)) % (h + 10);
         c.globalAlpha = 0.3 + (i % 3) * 0.15;
-        c.fillText('D1_QUERY: SELECT * FROM keywords;'.substr(Math.floor(t * 2 + i * 5) % 25, 22), 4, y);
+        c.fillText('D1_SYNC: 647=647=647 ZERO LOSS;'.substr(Math.floor(t * 2 + i * 5) % 25, 22), 4, y);
       }
       if (Math.sin(t * 4) > 0) {
         c.globalAlpha = 0.8;
@@ -1163,29 +1229,29 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       c.font = '6px monospace';
       c.fillStyle = hex;
       c.globalAlpha = 0.8;
-      c.fillText('Articles Indexed...', 10, 38);
-      c.fillText(`Article #${Math.floor(t * 3) % 742 + 1}/742`, 10, 50);
+      c.fillText('Blog = Sitemap = D1', 10, 38);
+      c.fillText(`Article #${Math.floor(t * 3) % 647 + 1}/647`, 10, 50);
       c.fillStyle = '#00E676';
-      c.fillText('✓ 742 Live in Site', 10, 64);
+      c.fillText('✓ 647=647=647 Sync', 10, 64);
     } else if (type === 'docs') {
       c.fillStyle = 'rgba(255,255,255,.08)';
       c.fillRect(8, 8, w - 16, h - 16);
       c.font = '6px monospace';
       c.fillStyle = hex;
       c.globalAlpha = 0.6;
-      ['# CRO Research', '', '> Salla & Zid Funnels', '  +34% Cart Conversion', '', '## Key Signals', '- Free D1 engine'].forEach((l, i) => c.fillText(l, 14, 20 + i * 7));
+      ['# Expert Research', '', '> Consent Mode v2', '  +301 Redirects OK', '', '## Site Audit 100%', '- 0 Warnings'].forEach((l, i) => c.fillText(l, 14, 20 + i * 7));
     } else if (type === 'bugs') {
       c.font = '6px monospace';
       if (agent.id === 8) {
         // Ziad Omran Watchdog 360 & Forensic QA terminal
         c.fillStyle = hex;
         c.fillText('WATCHDOG 360 // QA HOST', 6, 12);
-        [['✓ SSL CERT: VALID', '#00E676'], ['✓ D1 INTEGRITY: 100%', hex], ['✓ ANOMALIES: 0', '#00E676'], ['✓ LOGS: PERSISTED', hex]].forEach(([txt, cl], i) => {
+        [['✓ SITE AUDIT: 100%', '#00E676'], ['✓ D1 SYNC: 647=647', hex], ['✓ WARNINGS: 0', '#00E676'], ['✓ 301 REDIRECT: 30', hex]].forEach(([txt, cl], i) => {
           c.fillStyle = cl;
           c.fillText(txt, 6, 26 + i * 12);
         });
       } else {
-        [['● PASS 100%', hex], ['● PASS GSC', '#00E676'], ['● PASS D1', hex], ['● AUDIT OK', '#00E676']].forEach(([txt, cl], i) => {
+        [['● AUDIT 100%', hex], ['● 0 WARNINGS', '#00E676'], ['● 647 SYNCED', hex], ['● 301 ACTIVE', '#00E676']].forEach(([txt, cl], i) => {
           c.fillStyle = cl;
           c.fillText(txt, 10, 14 + i * 14);
         });
@@ -1201,14 +1267,15 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   let timeOfDay = 540; // 9:00 AM Default (Busy Morning, Everyone at Desks)
   const getArabicStatus = (m: number) => {
     const cycleMin = m % 30;
-    if (cycleMin >= 28) return '📋 اجتماع القيادة والمزامنة التكتيكية (غرفة الاجتماعات)';
-    if (cycleMin >= 24) return '☕ استراحة القهوة والتدخين واللاونج';
-    if (m < 360) return 'الوردية الليلية · حراسة قواعد D1 المستقلة ($0.00)';
-    if (m < 540) return 'توافد الوكلاء الصباحي ومزامنة الكونسول';
-    if (m < 720) return 'العمل العميق · جميع الوكلاء الـ 9 متصلون وينفذون المهام';
-    if (m < 780) return 'استراحة الظهيرة ومراجعة عوائد سلة وزد';
+    if (manualMeetingOverride || cycleMin >= 24) {
+      return '🎙️ استراحة واجتماع الـ 9 وكلاء على الـ 9 كراسي (مناقشة أبحاث الخبراء وتوحيد 647=647=647)';
+    }
+    if (m < 360) return 'الوردية الليلية · حراسة قواعد D1 المستقلة ($0.00) وصحة الموقع 100%';
+    if (m < 540) return 'توافد الوكلاء الصباحي ومزامنة الـ 647 مقالاً مع الكونسول';
+    if (m < 720) return 'العمل العميق · جميع الوكلاء الـ 9 متصلون وينفذون المهام (0 تحذيرات)';
+    if (m < 780) return 'استراحة الظهيرة ومراجعة أبحاث الخبراء وعوائد سلة وزد';
     if (m < 1020) return 'تركيز ما بعد الظهيرة وصياغة المقالات التكتيكية';
-    return 'الوردية المسائية · أرشفة المقالات والتحقق الجنائي 360°';
+    return 'الوردية المسائية · أرشفة المقالات والتحقق الجنائي 360° (647 = 647 = 647)';
   };
 
   function updateTime(min: number) {
@@ -1219,12 +1286,12 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     // Update duty/rest progress billboards
     const cycleMin = min % 30;
     const isBreak = cycleMin >= 24 && cycleMin < 28;
-    const isMeet = cycleMin >= 28;
+    const isMeet = manualMeetingOverride || cycleMin >= 24;
     const progressPct = isBreak || isMeet ? 100 : Math.min(100, Math.floor((cycleMin / 24) * 100));
 
     agentData.forEach((ad) => {
       if (isMeet) {
-        ad.renderLabelCanvas(100, '📋 اجتماع القيادة');
+        ad.renderLabelCanvas(100, '🎙️ اجتماع الـ 9 كراسي');
       } else if (isBreak) {
         const rem = Math.ceil(28 - cycleMin);
         ad.renderLabelCanvas(100, `☕ استراحة (${rem}د متبقية)`);
@@ -1341,6 +1408,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     screenData.forEach(drawScreen);
     updateWalkers(delta);
     checkConversations();
+    updateMeetingConversation(delta);
     updateBubbles(delta);
 
     // Procedural Typing Animation for Seated Agents
@@ -1362,9 +1430,9 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     pulseRing.scale.set(1 + pulseT * 0.3, 1, 1 + pulseT * 0.3);
     (pulseRing.material as THREE.MeshBasicMaterial).opacity = 0.15 * (1 - pulseT);
 
-    // Floating label subtle bobbing
+    // Floating label subtle bobbing (works both at desk and in the 9-chair meeting room)
     agentData.forEach((a, i) => {
-      if (a.state === 'sitting') {
+      if (a.state === 'sitting' || a.state === 'meeting') {
         a.label.position.y = 1.85 + Math.sin(elapsed * 1.2 + i * 1.1) * 0.03;
       }
     });
@@ -1385,9 +1453,40 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   window.addEventListener('resize', onResize);
 
   return {
-    setTime: (min: number) => updateTime(min),
+    setTime: (min: number) => {
+      manualMeetingOverride = null;
+      updateTime(min);
+    },
     toggleCyberpunk: () => toggleCyberpunk(),
     isCyberpunk: () => cyberpunkMode,
+    toggleMeetingRoom: () => {
+      const nextState = !inMeeting;
+      manualMeetingOverride = nextState;
+      applyMeetingState(nextState);
+      if (nextState) {
+        tgt.set(MRX, 1.4, MRZ);
+        sph.radius = 15;
+        sph.theta = Math.PI / 5;
+        sph.phi = Math.PI / 3.8;
+        updCam();
+      } else {
+        tgt.set(0, 1.8, 0);
+        sph.radius = 34;
+        updCam();
+      }
+      if (onStatusUpdate) onStatusUpdate(getArabicStatus(timeOfDay));
+      return nextState;
+    },
+    flyToMeetingRoom: () => {
+      manualMeetingOverride = true;
+      applyMeetingState(true);
+      tgt.set(MRX, 1.4, MRZ);
+      sph.radius = 15;
+      sph.theta = Math.PI / 5;
+      sph.phi = Math.PI / 3.8;
+      updCam();
+      if (onStatusUpdate) onStatusUpdate(getArabicStatus(timeOfDay));
+    },
     zoomIn: () => {
       sph.radius = Math.max(12, sph.radius - 4);
       updCam();
@@ -1404,9 +1503,9 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       updCam();
     },
     flyToAgent: (agentId: number) => {
-      const pos = desks[agentId] || { x: 0, z: 0 };
+      const pos = inMeeting ? (meetSeats[agentId] || { x: MRX, z: MRZ }) : (desks[agentId] || { x: 0, z: 0 });
       tgt.set(pos.x, 1.5, pos.z);
-      sph.radius = 18;
+      sph.radius = 16;
       updCam();
     },
     destroy: () => {
