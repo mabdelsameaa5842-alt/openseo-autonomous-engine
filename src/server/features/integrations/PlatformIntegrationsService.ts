@@ -99,7 +99,12 @@ export class PlatformIntegrationsService {
         const raw = await kv.get(key);
         if (raw) {
           const parsed = JSON.parse(raw) as StoredVerifiedRecord;
-          if (parsed && parsed.verifiedByLiveApi === true) {
+          if (
+            parsed &&
+            parsed.verifiedByLiveApi === true &&
+            parsed.credentials?.token !== "sbp_oauth_session_verified" &&
+            parsed.selectedResourceId !== "vorder-seo-prod"
+          ) {
             inMemoryVerifiedStore.set(key, parsed);
             return parsed;
           }
@@ -111,7 +116,12 @@ export class PlatformIntegrationsService {
 
     // 2. Check in-memory store
     const mem = inMemoryVerifiedStore.get(key);
-    if (mem && mem.verifiedByLiveApi === true) {
+    if (
+      mem &&
+      mem.verifiedByLiveApi === true &&
+      mem.credentials?.token !== "sbp_oauth_session_verified" &&
+      mem.selectedResourceId !== "vorder-seo-prod"
+    ) {
       return mem;
     }
 
@@ -132,7 +142,11 @@ export class PlatformIntegrationsService {
       if (row && row.credentialsEncrypted) {
         const parsedCreds = JSON.parse(row.credentialsEncrypted);
         const parsedMeta = row.metadata ? JSON.parse(row.metadata) : {};
-        if (parsedCreds?.verifiedByLiveApi === true) {
+        if (
+          parsedCreds?.verifiedByLiveApi === true &&
+          parsedCreds?.credentials?.token !== "sbp_oauth_session_verified" &&
+          parsedMeta?.selectedResourceId !== "vorder-seo-prod"
+        ) {
           const restored: StoredVerifiedRecord = {
             id: row.id,
             projectId,
@@ -432,15 +446,9 @@ export class PlatformIntegrationsService {
     }
 
     if (platform === "github") {
-      let token = (input.token || input.apiKey || "").trim();
-      if (!token && input.useEnvSignIn) {
-        token =
-          (typeof env !== "undefined" && (env as any).GITHUB_TOKEN) ||
-          (typeof process !== "undefined" && process.env?.GITHUB_TOKEN) ||
-          ["ghp", "_LQQAJsedImSjI3RjrhvhWWotioVaFa2MMu3L"].join("");
-      }
+      const token = (input.token || input.apiKey || "").trim();
       if (!token) {
-        throw new Error("يرجى تسجيل الدخول بحساب GitHub أو إدخال Personal Access Token صالح.");
+        throw new Error("يرجى إدخال GitHub Personal Access Token (ghp_...) صالح للتحقق من حسابك ومستودعاتك.");
       }
 
       const res = await fetch("https://api.github.com/user", {
@@ -488,7 +496,7 @@ export class PlatformIntegrationsService {
         status: "setup_required",
         credentials: { token },
         accountName: user.name ? `${user.name} (@${user.login})` : `@${user.login}`,
-        connectedByEmail: email || `m.abdelsameaa5842@gmail.com (@${user.login})`,
+        connectedByEmail: email || `@${user.login}`,
         selectedResourceId: null,
         selectedResourceName: null,
         selectedResourceMeta: null,
@@ -500,15 +508,9 @@ export class PlatformIntegrationsService {
     }
 
     if (platform === "vercel") {
-      let token = (input.token || input.apiKey || "").trim();
-      if (!token && input.useEnvSignIn) {
-        token =
-          (typeof env !== "undefined" && (env as any).VERCEL_TOKEN) ||
-          (typeof process !== "undefined" && process.env?.VERCEL_TOKEN) ||
-          ["vca", "_5gpecJmMZskRoBdbhR99pFZHzvXiV5fSGBXiY9NgQdfuwEd5Kj0vgsO3"].join("");
-      }
+      const token = (input.token || input.apiKey || "").trim();
       if (!token) {
-        throw new Error("يرجى تسجيل الدخول بحساب Vercel أو إدخال Access Token صالح.");
+        throw new Error("يرجى إدخال Vercel Access Token (vcp_... أو vca_...) صالح للتحقق من حسابك ومشاريعك.");
       }
 
       const res = await fetch("https://api.vercel.com/v2/user", {
@@ -555,29 +557,6 @@ export class PlatformIntegrationsService {
       const token = (input.token || "").trim();
       const projectUrl = (input.projectUrl || "").trim().replace(/\/$/, "");
       const apiKey = (input.apiKey || input.serviceRoleKey || "").trim();
-
-      if (input.useEnvSignIn && !token && !projectUrl) {
-        const record: StoredVerifiedRecord = {
-          id: crypto.randomUUID(),
-          projectId,
-          platform,
-          verifiedByLiveApi: true,
-          status: "setup_required",
-          credentials: {
-            token: "sbp_oauth_session_verified",
-            projectUrl: "https://vorder-seo-db.supabase.co",
-          },
-          accountName: "Supabase Cloud (m.abdelsameaa5842@gmail.com)",
-          connectedByEmail: "m.abdelsameaa5842@gmail.com",
-          selectedResourceId: null,
-          selectedResourceName: null,
-          selectedResourceMeta: null,
-          connectedAt: now,
-          updatedAt: now,
-        };
-        await this.writeVerifiedRecord(record);
-        return this.getConnectionState(projectId, platform);
-      }
 
       // Mode A: Supabase Management Personal Access Token (sbp_...)
       if (token && (!projectUrl || token.startsWith("sbp_"))) {
@@ -656,10 +635,7 @@ export class PlatformIntegrationsService {
 
     if (platform === "cloudflare") {
       let token = (input.token || input.apiKey || "").trim();
-      const refreshToken = (
-        input.refreshToken ||
-        "cfort_IITAwX8AUpnWpblaC5Fhki_eH-L9pJqToU6DCAUKIWo.Vdq9aUIz_2sfyMZhxNyFo9tN60baRMHZhjtAifrBpgs"
-      ).trim();
+      const refreshToken = (input.refreshToken || "").trim();
 
       if (!token) {
         throw new Error("يرجى إدخال Cloudflare API / OAuth Token صالح.");
@@ -960,29 +936,6 @@ export class PlatformIntegrationsService {
 
     if (platform === "supabase") {
       const { token, projectUrl, apiKey } = record.credentials;
-      if (token === "sbp_oauth_session_verified") {
-        const resources: PlatformResourceOption[] = [
-          {
-            id: "vorder-seo-prod",
-            name: "Vorder SEO Cloud Database (PostgreSQL 16 + PostgREST)",
-            subtitle: "Region: eu-central-1 • Status: ACTIVE_HEALTHY • 18 Tables",
-            meta: {
-              projectRef: "vorder-seo-prod",
-              projectName: "Vorder SEO Cloud Database",
-              projectUrl: "https://vorder-seo-db.supabase.co",
-              region: "eu-central-1",
-              tablesCount: 18,
-              status: "ACTIVE_HEALTHY",
-            },
-            isSelected: record.selectedResourceId === "vorder-seo-prod",
-          },
-        ];
-        return {
-          accountName: record.accountName,
-          connectedByEmail: record.connectedByEmail,
-          resources,
-        };
-      }
 
       if (token && (!projectUrl || token.startsWith("sbp_"))) {
         const res = await fetch("https://api.supabase.com/v1/projects", {

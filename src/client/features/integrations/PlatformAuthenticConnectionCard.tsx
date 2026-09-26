@@ -70,12 +70,11 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <SupabaseLogo className="size-5" />,
     description: (
       <>
-        Sign in directly to your <strong>Supabase</strong> account or connect via Access Token / Project URL to inspect live PostgREST tables, vector embeddings, and database health.
+        Paste your <strong>Supabase Management Access Token</strong> (<code>sbp_...</code>) or <strong>Project URL + API Key</strong> to verify your account, select your database project, and inspect live PostgREST tables.
       </>
     ),
-    signInButtonLabel: "Sign in with Supabase",
     tokenLabel: "Supabase Access Token (sbp_...)",
-    tokenPlaceholder: "sbp_...",
+    tokenPlaceholder: "Paste your Supabase Token (e.g. sbp_...)",
     tokenHelpUrl: "https://supabase.com/dashboard/account/tokens",
     tokenHelpLabel: "Get Access Token from Supabase",
     resourceLabel: "Supabase project",
@@ -92,12 +91,11 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <GitHubLogo className="size-5" />,
     description: (
       <>
-        Sign in with your <strong>GitHub</strong> account to list your repositories, monitor live commit activity, track open issues, and link your codebase to this project.
+        Paste your <strong>GitHub Personal Access Token</strong> (<code>ghp_...</code>) to authenticate your GitHub account, select your repository, and monitor live commits and open issues.
       </>
     ),
-    signInButtonLabel: "Sign in with GitHub (@mabdelsameaa5842-alt)",
     tokenLabel: "GitHub Personal Access Token",
-    tokenPlaceholder: "ghp_... or github_pat_...",
+    tokenPlaceholder: "Paste your GitHub Token (e.g. ghp_...)",
     tokenHelpUrl:
       "https://github.com/settings/tokens/new?scopes=repo,read:user,user:email&description=OpenSEO-Integration",
     tokenHelpLabel: "Generate Token on GitHub",
@@ -115,12 +113,11 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <VercelLogo className="size-5" />,
     description: (
       <>
-        Sign in with your <strong>Vercel</strong> account to discover your deployed projects, inspect live production domains, and monitor build status on the dashboard.
+        Paste your <strong>Vercel Access Token</strong> (<code>vcp_...</code>) to authenticate your Vercel account, select your deployed project, and monitor live production builds.
       </>
     ),
-    signInButtonLabel: "Sign in with Vercel (veyra10)",
     tokenLabel: "Vercel Access Token",
-    tokenPlaceholder: "vca_...",
+    tokenPlaceholder: "Paste your Vercel Token (e.g. vcp_...)",
     tokenHelpUrl: "https://vercel.com/account/tokens",
     tokenHelpLabel: "Create Access Token on Vercel",
     resourceLabel: "Vercel project",
@@ -137,7 +134,7 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <CloudflareLogo className="size-5" />,
     description: (
       <>
-        Paste your <strong>Cloudflare API / OAuth Token</strong> (`cfoat_...`) to verify your Cloudflare account (`m.abdelsameaa5842@su.edu.eg`), select your active DNS Zone or Workers account, and monitor edge health.
+        Paste your <strong>Cloudflare API / OAuth Token</strong> (<code>cfoat_...</code>) to verify your Cloudflare account, select your active DNS Zone or Workers account, and monitor edge health.
       </>
     ),
     tokenLabel: "Cloudflare API / OAuth Token",
@@ -169,7 +166,7 @@ export function PlatformAuthenticConnectionCard({
   const [picking, setPicking] = React.useState(false);
   const [updatingCredentials, setUpdatingCredentials] = React.useState(false);
   const [showManualTokenInput, setShowManualTokenInput] = React.useState(
-    platform === "cloudflare",
+    platform !== "google_ai_studio",
   );
   const [tokenInput, setTokenInput] = React.useState("");
   const [supabaseMode, setSupabaseMode] = React.useState<"pat" | "url_key">("pat");
@@ -517,48 +514,17 @@ export function PlatformAuthenticConnectionCard({
           <div className="space-y-3">
             <p className="text-sm text-base-content/70">{descriptor.description}</p>
 
-            {/* Primary OAuth / Sign-In Buttons for non-Cloudflare platforms */}
-            {platform !== "cloudflare" ? (
+            {/* Primary Google OAuth 2.0 Button for Google Gemini AI Studio */}
+            {platform === "google_ai_studio" ? (
               <div className="flex flex-wrap items-center gap-2">
-                {platform === "google_ai_studio" ? (
-                  <>
-                    <button
-                      type="button"
-                      className="btn btn-primary btn-sm inline-flex items-center gap-2"
-                      onClick={() => void startGoogleLink("gemini", window.location.href)}
-                    >
-                      <GoogleGlyph className="size-4" />
-                      <span>Connect with Google</span>
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm border-base-300 inline-flex items-center gap-1.5"
-                      onClick={() => verifyMutation.mutate({ useEnvSignIn: true })}
-                      disabled={verifyMutation.isPending}
-                    >
-                      <LogIn className="size-3.5" />
-                      <span>
-                        {verifyMutation.isPending
-                          ? "Signing in…"
-                          : "Activate Verified Gemini Session"}
-                      </span>
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    type="button"
-                    className="btn btn-primary btn-sm inline-flex items-center gap-2"
-                    onClick={() => verifyMutation.mutate({ useEnvSignIn: true })}
-                    disabled={verifyMutation.isPending}
-                  >
-                    {descriptor.icon}
-                    <span>
-                      {verifyMutation.isPending
-                        ? `Signing in to ${descriptor.title}…`
-                        : descriptor.signInButtonLabel}
-                    </span>
-                  </button>
-                )}
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm inline-flex items-center gap-2"
+                  onClick={() => void startGoogleLink("gemini", window.location.href)}
+                >
+                  <GoogleGlyph className="size-4" />
+                  <span>Connect with Google</span>
+                </button>
 
                 <button
                   type="button"
@@ -566,14 +532,14 @@ export function PlatformAuthenticConnectionCard({
                   onClick={() => setShowManualTokenInput((v) => !v)}
                 >
                   {showManualTokenInput
-                    ? "Hide manual token input"
-                    : "Or use custom API Token"}
+                    ? "Hide manual API Key input"
+                    : "Or use custom Gemini API Key"}
                 </button>
               </div>
             ) : null}
 
-            {/* Manual Token Input Form (Always shown for Cloudflare, toggleable for others) */}
-            {(platform === "cloudflare" || showManualTokenInput) && (
+            {/* Direct Token Input Form (Always shown for Supabase, GitHub, Vercel, Cloudflare; toggleable for Gemini) */}
+            {(platform !== "google_ai_studio" || showManualTokenInput) && (
               <>
                 {platform === "supabase" ? (
                   <div className="flex items-center gap-2 pt-1">
