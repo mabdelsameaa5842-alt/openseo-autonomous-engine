@@ -1,8 +1,10 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertCircle, ExternalLink, KeyRound } from "lucide-react";
+import { AlertCircle, ExternalLink, KeyRound, LogIn } from "lucide-react";
+import { GoogleGlyph } from "@/client/features/gsc/GoogleGlyph";
 import { IntegrationConnectionCard } from "@/client/features/integrations/IntegrationConnectionCard";
+import { startGoogleLink } from "@/client/features/integrations/startGoogleLink";
 import {
   SupabaseLogo,
   GitHubLogo,
@@ -25,6 +27,7 @@ interface PlatformCardDescriptor {
   title: string;
   icon: React.ReactNode;
   description: React.ReactNode;
+  signInButtonLabel?: string;
   tokenLabel: string;
   tokenPlaceholder: string;
   tokenHelpUrl: string;
@@ -45,11 +48,12 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <GeminiAiStudioLogo className="size-5" />,
     description: (
       <>
-        Connect your <strong>Google AI Studio</strong> API key to verify available Gemini models directly from Google servers and bind your default model for autonomous SEO content and analysis.
+        Sign in with your <strong>Google Account</strong> (OAuth 2.0) or connect your <strong>Google AI Studio</strong> credential to power the 9 autonomous Egyptian Arabic SEO agents with live Gemini models.
       </>
     ),
-    tokenLabel: "Gemini API Key",
-    tokenPlaceholder: "AIzaSy...",
+    signInButtonLabel: "Connect with Google",
+    tokenLabel: "Gemini API Key / Token",
+    tokenPlaceholder: "AIzaSy... or AQ...",
     tokenHelpUrl: "https://aistudio.google.com/apikey",
     tokenHelpLabel: "Get API Key from Google AI Studio",
     resourceLabel: "Gemini model",
@@ -66,9 +70,10 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <SupabaseLogo className="size-5" />,
     description: (
       <>
-        Connect your <strong>Supabase</strong> account via Personal Access Token or Project URL + API Key to inspect live PostgREST tables, vector embeddings, and database health.
+        Sign in directly to your <strong>Supabase</strong> account or connect via Access Token / Project URL to inspect live PostgREST tables, vector embeddings, and database health.
       </>
     ),
+    signInButtonLabel: "Sign in with Supabase",
     tokenLabel: "Supabase Access Token (sbp_...)",
     tokenPlaceholder: "sbp_...",
     tokenHelpUrl: "https://supabase.com/dashboard/account/tokens",
@@ -87,14 +92,15 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <GitHubLogo className="size-5" />,
     description: (
       <>
-        Connect your <strong>GitHub</strong> account to list your repositories, monitor live commit activity, track open issues, and link your codebase to this project.
+        Sign in with your <strong>GitHub</strong> account to list your repositories, monitor live commit activity, track open issues, and link your codebase to this project.
       </>
     ),
+    signInButtonLabel: "Sign in with GitHub (@mabdelsameaa5842-alt)",
     tokenLabel: "GitHub Personal Access Token",
     tokenPlaceholder: "ghp_... or github_pat_...",
     tokenHelpUrl:
       "https://github.com/settings/tokens/new?scopes=repo,read:user,user:email&description=OpenSEO-Integration",
-    tokenHelpLabel: "Generate Token on GitHub (1-Click Scopes)",
+    tokenHelpLabel: "Generate Token on GitHub",
     resourceLabel: "GitHub repository",
     metaCol1Label: "Default branch",
     metaCol1Key: "defaultBranch",
@@ -109,11 +115,12 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <VercelLogo className="size-5" />,
     description: (
       <>
-        Connect your <strong>Vercel</strong> account to discover your deployed projects, inspect live production domains, and monitor build status on the dashboard.
+        Sign in with your <strong>Vercel</strong> account to discover your deployed projects, inspect live production domains, and monitor build status on the dashboard.
       </>
     ),
+    signInButtonLabel: "Sign in with Vercel (veyra10)",
     tokenLabel: "Vercel Access Token",
-    tokenPlaceholder: "Enter your Vercel Access Token...",
+    tokenPlaceholder: "vca_...",
     tokenHelpUrl: "https://vercel.com/account/tokens",
     tokenHelpLabel: "Create Access Token on Vercel",
     resourceLabel: "Vercel project",
@@ -130,11 +137,11 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     icon: <CloudflareLogo className="size-5" />,
     description: (
       <>
-        Connect your <strong>Cloudflare</strong> API Token to verify your Cloudflare account, select your active DNS Zone or Workers account, and monitor edge health.
+        Paste your <strong>Cloudflare API / OAuth Token</strong> (`cfoat_...`) to verify your Cloudflare account (`m.abdelsameaa5842@su.edu.eg`), select your active DNS Zone or Workers account, and monitor edge health.
       </>
     ),
-    tokenLabel: "Cloudflare API Token",
-    tokenPlaceholder: "Enter your Cloudflare API Token...",
+    tokenLabel: "Cloudflare API / OAuth Token",
+    tokenPlaceholder: "Paste your Cloudflare Token (e.g. cfoat_...)",
     tokenHelpUrl: "https://dash.cloudflare.com/profile/api-tokens",
     tokenHelpLabel: "Create API Token on Cloudflare",
     resourceLabel: "Cloudflare zone or account",
@@ -161,6 +168,9 @@ export function PlatformAuthenticConnectionCard({
 
   const [picking, setPicking] = React.useState(false);
   const [updatingCredentials, setUpdatingCredentials] = React.useState(false);
+  const [showManualTokenInput, setShowManualTokenInput] = React.useState(
+    platform === "cloudflare",
+  );
   const [tokenInput, setTokenInput] = React.useState("");
   const [supabaseMode, setSupabaseMode] = React.useState<"pat" | "url_key">("pat");
   const [supabaseUrlInput, setSupabaseUrlInput] = React.useState("");
@@ -217,8 +227,19 @@ export function PlatformAuthenticConnectionCard({
   };
 
   const verifyMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { useEnvSignIn?: boolean }) => {
       setVerifyError(null);
+      if (opts?.useEnvSignIn) {
+        return await verifyPlatformCredentials({
+          data: {
+            projectId,
+            platform,
+            credentials: {
+              useEnvSignIn: true,
+            },
+          },
+        });
+      }
       if (platform === "supabase" && supabaseMode === "url_key") {
         return await verifyPlatformCredentials({
           data: {
@@ -244,7 +265,7 @@ export function PlatformAuthenticConnectionCard({
     },
     onSuccess: (state) => {
       toast.success(
-        `Verified ${descriptor.title} account (${state.connectedByEmail || state.accountName}). Now select a ${descriptor.resourceLabel}.`,
+        `Signed in to ${descriptor.title} (${state.connectedByEmail || state.accountName}). Now select a ${descriptor.resourceLabel}.`,
       );
       setTokenInput("");
       setSupabaseKeyInput("");
@@ -329,7 +350,6 @@ export function PlatformAuthenticConnectionCard({
           </div>
         ) : connected && !picking && !updatingCredentials ? (
           <div className="space-y-3">
-            {/* Connected Property Box matching GoogleAnalyticsConnectionCard */}
             <div className="rounded-lg border border-base-300 bg-base-200/30 px-4 py-3.5">
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                 <div className="min-w-0">
@@ -390,7 +410,6 @@ export function PlatformAuthenticConnectionCard({
             </div>
           </div>
         ) : shouldLoadResources ? (
-          /* Setup Required / Resource Picker View matching SitePicker & Ga4PropertyPicker */
           <div className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-base-content/70">
               <span>
@@ -494,112 +513,173 @@ export function PlatformAuthenticConnectionCard({
             )}
           </div>
         ) : (
-          /* Disconnected / Authenticate Form View */
+          /* Disconnected / Authenticate View */
           <div className="space-y-3">
             <p className="text-sm text-base-content/70">{descriptor.description}</p>
 
-            {platform === "supabase" ? (
-              <div className="flex items-center gap-2 pt-1">
+            {/* Primary OAuth / Sign-In Buttons for non-Cloudflare platforms */}
+            {platform !== "cloudflare" ? (
+              <div className="flex flex-wrap items-center gap-2">
+                {platform === "google_ai_studio" ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm inline-flex items-center gap-2"
+                      onClick={() => void startGoogleLink("gemini", window.location.href)}
+                    >
+                      <GoogleGlyph className="size-4" />
+                      <span>Connect with Google</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm border-base-300 inline-flex items-center gap-1.5"
+                      onClick={() => verifyMutation.mutate({ useEnvSignIn: true })}
+                      disabled={verifyMutation.isPending}
+                    >
+                      <LogIn className="size-3.5" />
+                      <span>
+                        {verifyMutation.isPending
+                          ? "Signing in…"
+                          : "Activate Verified Gemini Session"}
+                      </span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm inline-flex items-center gap-2"
+                    onClick={() => verifyMutation.mutate({ useEnvSignIn: true })}
+                    disabled={verifyMutation.isPending}
+                  >
+                    {descriptor.icon}
+                    <span>
+                      {verifyMutation.isPending
+                        ? `Signing in to ${descriptor.title}…`
+                        : descriptor.signInButtonLabel}
+                    </span>
+                  </button>
+                )}
+
                 <button
                   type="button"
-                  onClick={() => setSupabaseMode("pat")}
-                  className={`btn btn-xs ${
-                    supabaseMode === "pat" ? "btn-primary" : "btn-outline border-base-300"
-                  }`}
+                  className="btn btn-ghost btn-xs text-base-content/60"
+                  onClick={() => setShowManualTokenInput((v) => !v)}
                 >
-                  Management Access Token (Lists all projects)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSupabaseMode("url_key")}
-                  className={`btn btn-xs ${
-                    supabaseMode === "url_key" ? "btn-primary" : "btn-outline border-base-300"
-                  }`}
-                >
-                  Direct Project URL + API Key
+                  {showManualTokenInput
+                    ? "Hide manual token input"
+                    : "Or use custom API Token"}
                 </button>
               </div>
             ) : null}
 
-            <form
-              className="space-y-3"
-              onSubmit={(e) => {
-                e.preventDefault();
-                verifyMutation.mutate();
-              }}
-            >
-              {platform === "supabase" && supabaseMode === "url_key" ? (
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <input
-                    type="url"
-                    required
-                    placeholder="https://your-project-ref.supabase.co"
-                    value={supabaseUrlInput}
-                    onChange={(e) => setSupabaseUrlInput(e.target.value)}
-                    className="input input-bordered input-sm w-full font-mono text-xs"
-                  />
-                  <input
-                    type="password"
-                    required
-                    placeholder="Supabase anon or service_role API key"
-                    value={supabaseKeyInput}
-                    onChange={(e) => setSupabaseKeyInput(e.target.value)}
-                    className="input input-bordered input-sm w-full font-mono text-xs"
-                  />
-                </div>
-              ) : (
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="relative flex-1 min-w-[240px]">
-                    <input
-                      type="password"
-                      required
-                      placeholder={descriptor.tokenPlaceholder}
-                      value={tokenInput}
-                      onChange={(e) => setTokenInput(e.target.value)}
-                      className="input input-bordered input-sm w-full font-mono text-xs"
-                    />
+            {/* Manual Token Input Form (Always shown for Cloudflare, toggleable for others) */}
+            {(platform === "cloudflare" || showManualTokenInput) && (
+              <>
+                {platform === "supabase" ? (
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSupabaseMode("pat")}
+                      className={`btn btn-xs ${
+                        supabaseMode === "pat" ? "btn-primary" : "btn-outline border-base-300"
+                      }`}
+                    >
+                      Management Access Token (Lists all projects)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSupabaseMode("url_key")}
+                      className={`btn btn-xs ${
+                        supabaseMode === "url_key" ? "btn-primary" : "btn-outline border-base-300"
+                      }`}
+                    >
+                      Direct Project URL + API Key
+                    </button>
                   </div>
-                </div>
-              )}
-
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="submit"
-                  className="btn btn-primary btn-sm inline-flex items-center gap-2"
-                  disabled={
-                    verifyMutation.isPending ||
-                    (platform === "supabase" && supabaseMode === "url_key"
-                      ? !supabaseUrlInput.trim() || !supabaseKeyInput.trim()
-                      : !tokenInput.trim())
-                  }
-                >
-                  <KeyRound className="size-3.5" />
-                  {verifyMutation.isPending
-                    ? `Verifying with ${descriptor.title}…`
-                    : `Connect ${descriptor.title}`}
-                </button>
-
-                <a
-                  href={descriptor.tokenHelpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn btn-outline btn-sm border-base-300 inline-flex items-center gap-1.5 text-xs font-medium"
-                >
-                  <span>{descriptor.tokenHelpLabel}</span>
-                  <ExternalLink className="size-3.5" />
-                </a>
-
-                {updatingCredentials ? (
-                  <button
-                    type="button"
-                    className="btn btn-ghost btn-sm text-base-content/60"
-                    onClick={() => setUpdatingCredentials(false)}
-                  >
-                    Cancel
-                  </button>
                 ) : null}
-              </div>
-            </form>
+
+                <form
+                  className="space-y-3 pt-1"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    verifyMutation.mutate({});
+                  }}
+                >
+                  {platform === "supabase" && supabaseMode === "url_key" ? (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <input
+                        type="url"
+                        required
+                        placeholder="https://your-project-ref.supabase.co"
+                        value={supabaseUrlInput}
+                        onChange={(e) => setSupabaseUrlInput(e.target.value)}
+                        className="input input-bordered input-sm w-full font-mono text-xs"
+                      />
+                      <input
+                        type="password"
+                        required
+                        placeholder="Supabase anon or service_role API key"
+                        value={supabaseKeyInput}
+                        onChange={(e) => setSupabaseKeyInput(e.target.value)}
+                        className="input input-bordered input-sm w-full font-mono text-xs"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="relative flex-1 min-w-[240px]">
+                        <input
+                          type="text"
+                          required
+                          dir="ltr"
+                          placeholder={descriptor.tokenPlaceholder}
+                          value={tokenInput}
+                          onChange={(e) => setTokenInput(e.target.value)}
+                          className="input input-bordered input-sm w-full font-mono text-xs"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="submit"
+                      className="btn btn-primary btn-sm inline-flex items-center gap-2"
+                      disabled={
+                        verifyMutation.isPending ||
+                        (platform === "supabase" && supabaseMode === "url_key"
+                          ? !supabaseUrlInput.trim() || !supabaseKeyInput.trim()
+                          : !tokenInput.trim())
+                      }
+                    >
+                      <KeyRound className="size-3.5" />
+                      {verifyMutation.isPending
+                        ? `Verifying with ${descriptor.title}…`
+                        : `Connect ${descriptor.title}`}
+                    </button>
+
+                    <a
+                      href={descriptor.tokenHelpUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="btn btn-outline btn-sm border-base-300 inline-flex items-center gap-1.5 text-xs font-medium"
+                    >
+                      <span>{descriptor.tokenHelpLabel}</span>
+                      <ExternalLink className="size-3.5" />
+                    </a>
+
+                    {updatingCredentials ? (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm text-base-content/60"
+                        onClick={() => setUpdatingCredentials(false)}
+                      >
+                        Cancel
+                      </button>
+                    ) : null}
+                  </div>
+                </form>
+              </>
+            )}
           </div>
         )}
       </IntegrationConnectionCard>

@@ -1,13 +1,25 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
+import {
+  createSelfHostedGoogleAuthorizationUrl,
+  GOOGLE_AI_STUDIO_INTEGRATION,
+} from "@/server/features/google/selfHostedOAuth";
 import {
   PlatformIntegrationsService,
   type ManagedPlatformType,
   type PlatformType,
 } from "@/server/features/integrations/PlatformIntegrationsService";
-import { requireProjectContext } from "@/serverFunctions/middleware";
+import { getPublicOrigin } from "@/server/mcp/public-origin";
+import {
+  requireAuthenticatedContext,
+  requireProjectContext,
+} from "@/serverFunctions/middleware";
 
 const projectScopedSchema = z.object({ projectId: z.string().min(1) });
+const startSelfHostedLinkSchema = z.object({
+  callbackURL: z.string().min(1),
+});
 
 const managedPlatformEnum = z.enum([
   "supabase",
@@ -39,6 +51,9 @@ const verifyCredentialsSchema = projectScopedSchema.extend({
     apiKey: z.string().optional(),
     projectUrl: z.string().optional(),
     serviceRoleKey: z.string().optional(),
+    accountId: z.string().optional(),
+    refreshToken: z.string().optional(),
+    useEnvSignIn: z.boolean().optional(),
   }),
 });
 
@@ -52,6 +67,21 @@ const setResourceSchema = projectScopedSchema.extend({
 const disconnectSchema = projectScopedSchema.extend({
   platform: platformEnum,
 });
+
+export const startSelfHostedGeminiLink = createServerFn({ method: "POST" })
+  .middleware(requireAuthenticatedContext)
+  .validator(startSelfHostedLinkSchema)
+  .handler(async ({ data, context }) => ({
+    url: await createSelfHostedGoogleAuthorizationUrl({
+      integration: GOOGLE_AI_STUDIO_INTEGRATION,
+      user: {
+        userId: context.userId,
+        userEmail: context.userEmail,
+      },
+      callbackURL: data.callbackURL,
+      publicOrigin: getPublicOrigin(getRequest()),
+    }),
+  }));
 
 export const getPlatformIntegrations = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)

@@ -19,6 +19,11 @@ const setCustomerSchema = projectScopedSchema.extend({
   accountId: z.string().min(1),
   customerId: z.string().min(1),
   customerDescriptiveName: z.string().optional(),
+  developerToken: z.string().optional(),
+});
+const saveDeveloperTokenSchema = projectScopedSchema.extend({
+  developerToken: z.string().min(4),
+  customerId: z.string().optional(),
 });
 const startSelfHostedLinkSchema = z.object({
   callbackURL: z.string().min(1),
@@ -33,12 +38,13 @@ export const getGoogleAdsConnection = createServerFn({ method: "POST" })
   .middleware(requireProjectContext)
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
-    const [connection, currentUserHasGrant, hosted, adsConfigured] =
+    const [connection, currentUserHasGrant, hosted, adsConfigured, devTokenStatus] =
       await Promise.all([
         GoogleAdsService.getConnection(context.projectId),
         GoogleAdsService.userHasGrant(context.userId),
         isHostedServerAuthMode(),
         hasSelfHostedGoogleOAuthConfig(),
+        GoogleAdsService.getDeveloperTokenStatus(context.projectId),
       ]);
     return {
       connected: Boolean(connection),
@@ -50,7 +56,23 @@ export const getGoogleAdsConnection = createServerFn({ method: "POST" })
       timeZone: connection?.timeZone ?? null,
       connectedByEmail: connection?.connectedAccountEmail ?? null,
       connectedAt: connection?.createdAt ?? null,
+      developerTokenConfigured: devTokenStatus.configured,
+      maskedDeveloperToken: devTokenStatus.maskedToken,
     };
+  });
+
+export const saveGoogleAdsDeveloperToken = createServerFn({ method: "POST" })
+  .middleware(requireProjectContext)
+  .validator(saveDeveloperTokenSchema)
+  .handler(async ({ data, context }) => {
+    const res = await GoogleAdsService.saveDeveloperToken({
+      projectId: context.projectId,
+      organizationId: context.organizationId,
+      connectedByUserId: context.userId,
+      developerToken: data.developerToken,
+      customerId: data.customerId,
+    });
+    return res;
   });
 
 export const listGoogleAdsCustomers = createServerFn({ method: "POST" })
@@ -59,7 +81,7 @@ export const listGoogleAdsCustomers = createServerFn({ method: "POST" })
   .handler(async ({ context }) => {
     const [connection, accounts] = await Promise.all([
       GoogleAdsService.getConnection(context.projectId),
-      GoogleAdsService.listCustomersForUser(context.userId),
+      GoogleAdsService.listCustomersForUser(context.userId, context.projectId),
     ]);
 
     return {
@@ -86,6 +108,7 @@ export const setGoogleAdsCustomer = createServerFn({ method: "POST" })
       customerId: data.customerId,
       customerDescriptiveName: data.customerDescriptiveName,
       connectedByUserId: context.userId,
+      developerToken: data.developerToken,
     });
 
     return {

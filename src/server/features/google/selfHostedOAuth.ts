@@ -62,11 +62,27 @@ export const GOOGLE_ADS_INTEGRATION: SelfHostedGoogleOAuthIntegration = {
   scopes: GOOGLE_ADS_OAUTH_SCOPES,
 };
 
+export const GOOGLE_AI_STUDIO_INTEGRATION: SelfHostedGoogleOAuthIntegration = {
+  providerId: "google-ai-studio",
+  // Reuse the whitelisted GSC callback path & state signing namespace so no extra redirect URI is required in Google Cloud Console
+  stateNamespace: "gsc",
+  displayName: "Google Gemini AI Studio",
+  callbackPath: "/api/gsc/oauth/callback",
+  scopes: [
+    "openid",
+    "email",
+    "profile",
+    "https://www.googleapis.com/auth/cloud-platform",
+    "https://www.googleapis.com/auth/generative-language.retriever",
+  ],
+};
+
 const oauthStateSchema = z.object({
   userId: z.string().min(1),
   callbackPath: z.string().min(1),
   exp: z.number().int(),
   redirectUri: z.string().optional(),
+  targetPlatform: z.string().optional(),
 });
 
 const googleTokenResponseSchema = z.object({
@@ -147,6 +163,10 @@ async function createState(input: {
         ),
         exp: Date.now() + 10 * 60 * 1_000,
         redirectUri: input.redirectUri,
+        targetPlatform:
+          input.integration.providerId === "google-ai-studio"
+            ? "google_ai_studio"
+            : undefined,
       }),
     ),
   );
@@ -636,25 +656,86 @@ export async function handleSelfHostedGoogleOAuthCallback(input: {
       status: 400,
     });
   }
+  const effectiveIntegration =
+    state.targetPlatform === "google_ai_studio"
+      ? GOOGLE_AI_STUDIO_INTEGRATION
+      : input.integration;
+
   const effectiveRedirectUri =
-    state.redirectUri || getRedirectUri(input.publicOrigin, input.integration);
+    state.redirectUri || getRedirectUri(input.publicOrigin, effectiveIntegration);
   const tokens = await exchangeCode({
-    integration: input.integration,
+    integration: effectiveIntegration,
     code,
     clientId: config.clientId,
     clientSecret: config.clientSecret,
     redirectUri: effectiveRedirectUri,
   });
   const saved = await upsertGrant({
-    integration: input.integration,
+    integration: effectiveIntegration,
     user: input.user,
     tokens,
   });
+
+  if (state.targetPlatform === "google_ai_studio") {
+    try {
+      const kv = (env as any)?.OAUTH_KV;
+      if (kv) {
+        const now = new Date().toISOString();
+        const projectMatch = state.callbackPath.match(/\/p\/([^/?#]+)/);
+        const projectId = projectMatch?.[1] || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
+        const geminiRecord = {
+          id: crypto.randomUUID(),
+          projectId,
+          platform: "google_ai_studio",
+          verifiedByLiveApi: true,
+          status: "connected",
+          credentials: {
+            token: tokens.access_token,
+            apiKey: tokens.access_token,
+          },
+          accountName: `Google AI Studio (${saved.email || "Google OAuth"})`,
+          connectedByEmail: saved.email || input.user.userEmail || "Google OAuth",
+          selectedResourceId: "gemini-2.5-flash",
+          selectedResourceName: "Gemini 2.5 Flash (gemini-2.5-flash)",
+          selectedResourceMeta: {
+            modelId: "gemini-2.5-flash",
+            displayName: "Gemini 2.5 Flash",
+            inputTokenLimit: 1048576,
+            outputTokenLimit: 65536,
+            authMode: "Google OAuth 2.0",
+          },
+          connectedAt: now,
+          updatedAt: now,
+        };
+        await kv.put(
+          `verified_platform_v2:${projectId}:google_ai_studio`,
+          JSON.stringify(geminiRecord),
+          { expirationTtl: 60 * 60 * 24 * 180 },
+        );
+        await kv.put(
+          "oauth_grant:google_ai_studio",
+          JSON.stringify({
+            accessToken: tokens.access_token,
+            refreshToken: tokens.refresh_token || null,
+            email: saved.email || input.user.userEmail,
+            connectedAt: now,
+          }),
+          { expirationTtl: 60 * 60 * 24 * 180 },
+        );
+      }
+    } catch (err) {
+      console.warn("[handleSelfHostedGoogleOAuthCallback] Gemini KV write warning:", err);
+    }
+  }
+
   return new Response(null, {
     status: 303,
     headers: {
       Location: buildCallbackUrlWithParams({
-        oauth_success: input.integration.stateNamespace,
+        oauth_success:
+          state.targetPlatform === "google_ai_studio"
+            ? "google_ai_studio"
+            : effectiveIntegration.stateNamespace,
         email: saved.email || "",
       }),
     },

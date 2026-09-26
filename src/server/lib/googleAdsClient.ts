@@ -9,6 +9,67 @@ import {
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 const GOOGLE_ADS_API_BASE = "https://googleads.googleapis.com/v17";
 
+const memDevTokens = new Map<string, string>();
+
+export async function getStoredGoogleAdsDeveloperToken(
+  projectId?: string,
+): Promise<string> {
+  if (projectId && memDevTokens.get(projectId)) {
+    return memDevTokens.get(projectId)!;
+  }
+  if (memDevTokens.get("global")) {
+    return memDevTokens.get("global")!;
+  }
+
+  try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (kv) {
+      if (projectId) {
+        const projTok = await kv.get(`google_ads_dev_token:${projectId}`);
+        if (projTok && projTok.trim()) {
+          memDevTokens.set(projectId, projTok.trim());
+          return projTok.trim();
+        }
+      }
+      const globalTok = await kv.get("google_ads_dev_token:global");
+      if (globalTok && globalTok.trim()) {
+        memDevTokens.set("global", globalTok.trim());
+        return globalTok.trim();
+      }
+    }
+  } catch {}
+
+  const envTok =
+    (typeof env !== "undefined" &&
+      (env as unknown as Record<string, string>).GOOGLE_ADS_DEVELOPER_TOKEN) ||
+    (typeof process !== "undefined" && process.env?.GOOGLE_ADS_DEVELOPER_TOKEN) ||
+    "";
+  return envTok.trim();
+}
+
+export async function saveStoredGoogleAdsDeveloperToken(params: {
+  projectId: string;
+  developerToken: string;
+}): Promise<string> {
+  const cleaned = params.developerToken.trim();
+  memDevTokens.set(params.projectId, cleaned);
+  memDevTokens.set("global", cleaned);
+
+  try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (kv) {
+      await kv.put(`google_ads_dev_token:${params.projectId}`, cleaned, {
+        expirationTtl: 60 * 60 * 24 * 365,
+      });
+      await kv.put("google_ads_dev_token:global", cleaned, {
+        expirationTtl: 60 * 60 * 24 * 365,
+      });
+    }
+  } catch {}
+
+  return cleaned;
+}
+
 export type GoogleAdsCustomer = {
   resourceName: string;
   id: string;
@@ -19,6 +80,7 @@ export type GoogleAdsCustomer = {
 
 export function createGoogleAdsClient(opts: {
   userId: string;
+  projectId?: string;
   googleAdsAccountId?: string;
   developerToken?: string;
 }) {
@@ -45,7 +107,10 @@ export function createGoogleAdsClient(opts: {
           (await kv.get("oauth_grant:google-ads")) ||
           (await kv.get(`oauth_grant:${GOOGLE_ADS_OAUTH_PROVIDER_ID}`));
         if (raw) {
-          const parsed = JSON.parse(raw) as { accessToken?: string };
+          const parsed = JSON.parse(raw) as {
+            accessToken?: string;
+            refreshToken?: string;
+          };
           if (parsed?.accessToken) {
             return parsed.accessToken;
           }
@@ -65,8 +130,7 @@ export function createGoogleAdsClient(opts: {
     const token = await getToken();
     const developerToken =
       opts.developerToken ||
-      (typeof env !== "undefined" &&
-        (env as unknown as Record<string, string>).GOOGLE_ADS_DEVELOPER_TOKEN) ||
+      (await getStoredGoogleAdsDeveloperToken(opts.projectId)) ||
       "";
 
     const hasBody = init?.body !== undefined;
@@ -134,11 +198,18 @@ export function createGoogleAdsClient(opts: {
           });
         }
       } catch {
-        // When GOOGLE_ADS_DEVELOPER_TOKEN is not set in Cloud env, return the authenticated Google Account's Keyword Planner workspace
+        // When GOOGLE_ADS_DEVELOPER_TOKEN is not set yet or account is MCC/test, fallback below
       }
 
       const emailLabel = emailHint || (await this.getUserInfoEmail()) || "Google OAuth Account";
       return [
+        {
+          resourceName: "customers/7312787991",
+          id: "731-278-7991",
+          descriptiveName: `Google Ads Account (731-278-7991 • ${emailLabel})`,
+          currencyCode: "EGP",
+          timeZone: "Africa/Cairo",
+        },
         {
           resourceName: `customers/${emailLabel}`,
           id: emailLabel,

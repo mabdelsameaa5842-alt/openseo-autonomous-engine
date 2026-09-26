@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { KeyRound, ShieldCheck, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { GoogleGlyph } from "@/client/features/gsc/GoogleGlyph";
 import { GoogleLinkErrorAlert } from "@/client/features/integrations/GoogleLinkErrorAlert";
@@ -11,6 +12,7 @@ import {
   disconnectGoogleAds,
   getGoogleAdsConnection,
   listGoogleAdsCustomers,
+  saveGoogleAdsDeveloperToken,
   setGoogleAdsCustomer,
 } from "@/serverFunctions/googleAds";
 
@@ -29,6 +31,8 @@ export function GoogleAdsConnectionCard({
   const [picking, setPicking] = React.useState(false);
   const [selectedCustomerId, setSelectedCustomerId] = React.useState<string | null>(null);
   const [customCustomerIdInput, setCustomCustomerIdInput] = React.useState("");
+  const [developerTokenInput, setDeveloperTokenInput] = React.useState("");
+  const [showDevTokenEditor, setShowDevTokenEditor] = React.useState(false);
 
   const connectionKey = ["googleAdsConnection", projectId];
   const connectionQuery = useQuery({
@@ -39,6 +43,7 @@ export function GoogleAdsConnectionCard({
   const connection = connectionQuery.data;
   const connected = Boolean(connection?.connected);
   const hasGrant = Boolean(connection?.currentUserHasGrant);
+  const devTokenConfigured = Boolean(connection?.developerTokenConfigured);
 
   const customersQuery = useQuery({
     queryKey: ["googleAdsCustomers", projectId],
@@ -53,11 +58,15 @@ export function GoogleAdsConnectionCard({
 
   const invalidateConnectionState = () => {
     void queryClient.invalidateQueries({ queryKey: connectionKey });
+    void queryClient.invalidateQueries({ queryKey: ["googleAdsCustomers", projectId] });
     void queryClient.invalidateQueries({
       queryKey: ["dashboardActivation", projectId],
     });
     void queryClient.invalidateQueries({
       queryKey: ["dashboardGoogleAdsReport", projectId],
+    });
+    void queryClient.invalidateQueries({
+      queryKey: ["allPlatformConnections", projectId],
     });
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("vorder-integrations-updated"));
@@ -69,10 +78,29 @@ export function GoogleAdsConnectionCard({
       accountId: string;
       customerId: string;
       customerDescriptiveName?: string;
+      developerToken?: string;
     }) => setGoogleAdsCustomer({ data: { projectId, ...args } }),
     onSuccess: () => {
-      toast.success("Google Ads & Keyword Planner connected");
+      toast.success("Google Ads & Keyword Planner connected with Full Access");
       setPicking(false);
+      invalidateConnectionState();
+    },
+    onError: (error) => toast.error(getStandardErrorMessage(error)),
+  });
+
+  const saveDevTokenMutation = useMutation({
+    mutationFn: (args: { developerToken: string; customerId?: string }) =>
+      saveGoogleAdsDeveloperToken({
+        data: {
+          projectId,
+          developerToken: args.developerToken,
+          customerId: args.customerId,
+        },
+      }),
+    onSuccess: () => {
+      toast.success("تم حفظ مفتاح Google Ads Developer Token وتفعيل كامل الصلاحيات بنجاح!");
+      setDeveloperTokenInput("");
+      setShowDevTokenEditor(false);
       invalidateConnectionState();
     },
     onError: (error) => toast.error(getStandardErrorMessage(error)),
@@ -90,6 +118,97 @@ export function GoogleAdsConnectionCard({
   });
 
   const handleConnect = () => void startGoogleLink("googleAds", window.location.href);
+
+  const renderDeveloperTokenBox = () => (
+    <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/[0.04] p-3.5 space-y-2.5">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <KeyRound className="size-4 text-amber-500" />
+          <span className="text-xs font-bold text-base-content">
+            مفتاح مطور جوجل أدز (Google Ads Developer Token — Full API Access)
+          </span>
+        </div>
+        {devTokenConfigured ? (
+          <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+            <CheckCircle2 className="size-3" />
+            Active ({connection?.maskedDeveloperToken || "Configured"})
+          </span>
+        ) : (
+          <span className="rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">
+            مطلوب لتفعيل كامل صلاحيات Keyword Planner
+          </span>
+        )}
+      </div>
+
+      {(!devTokenConfigured || showDevTokenEditor) ? (
+        <form
+          className="space-y-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const tok = developerTokenInput.trim();
+            if (!tok) return;
+            saveDevTokenMutation.mutate({
+              developerToken: tok,
+              customerId: customCustomerIdInput.trim() || connection?.customerId || "731-278-7991",
+            });
+          }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <input
+              type="text"
+              dir="ltr"
+              placeholder="Developer Token (e.g. EEROhkAvnYzdFv6kFkGlRQ)"
+              value={developerTokenInput}
+              onChange={(e) => setDeveloperTokenInput(e.target.value)}
+              className="input input-bordered input-sm w-full font-mono text-xs"
+            />
+            <input
+              type="text"
+              dir="ltr"
+              placeholder="Customer ID (e.g. 731-278-7991)"
+              value={customCustomerIdInput || connection?.customerId || ""}
+              onChange={(e) => setCustomCustomerIdInput(e.target.value)}
+              className="input input-bordered input-sm w-full font-mono text-xs"
+            />
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="submit"
+              className="btn btn-primary btn-xs"
+              disabled={saveDevTokenMutation.isPending || !developerTokenInput.trim()}
+            >
+              {saveDevTokenMutation.isPending
+                ? "جاري الحفظ..."
+                : "حفظ Developer Token وتفعيل الصلاحيات الكاملة"}
+            </button>
+            {showDevTokenEditor && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-xs"
+                onClick={() => setShowDevTokenEditor(false)}
+              >
+                إلغاء
+              </button>
+            )}
+          </div>
+        </form>
+      ) : (
+        <div className="flex items-center justify-between text-xs text-base-content/65">
+          <span className="flex items-center gap-1.5">
+            <ShieldCheck className="size-3.5 text-emerald-500" />
+            متصل بصلاحيات Google Ads API v17 &amp; Keyword Planner الكاملة
+          </span>
+          <button
+            type="button"
+            className="btn btn-ghost btn-xs text-amber-600 dark:text-amber-400"
+            onClick={() => setShowDevTokenEditor(true)}
+          >
+            تحديث Developer Token
+          </button>
+        </div>
+      )}
+    </div>
+  );
 
   return (
     <>
@@ -153,6 +272,9 @@ export function GoogleAdsConnectionCard({
                 ) : null}
               </dl>
             </div>
+
+            {renderDeveloperTokenBox()}
+
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
@@ -160,6 +282,14 @@ export function GoogleAdsConnectionCard({
                 onClick={() => setPicking(true)}
               >
                 Change property
+              </button>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm border-base-300 font-medium inline-flex items-center gap-1.5"
+                onClick={handleConnect}
+              >
+                <GoogleGlyph className="size-3.5" />
+                Re-authenticate Google OAuth
               </button>
               <button
                 type="button"
@@ -199,6 +329,7 @@ export function GoogleAdsConnectionCard({
                           accountId: grant.accountId,
                           customerId: c.customerId,
                           customerDescriptiveName: c.descriptiveName,
+                          developerToken: developerTokenInput.trim() || undefined,
                         });
                       }}
                       disabled={setCustomerMutation.isPending}
@@ -225,12 +356,13 @@ export function GoogleAdsConnectionCard({
                       accountId: firstGrant?.accountId || "google-ads",
                       customerId: cleaned,
                       customerDescriptiveName: `Google Ads (${cleaned})`,
+                      developerToken: developerTokenInput.trim() || undefined,
                     });
                   }}
                 >
                   <input
                     type="text"
-                    placeholder="Or enter Customer ID (e.g. 123-456-7890)"
+                    placeholder="Or enter Customer ID (e.g. 731-278-7991)"
                     value={customCustomerIdInput}
                     onChange={(e) => setCustomCustomerIdInput(e.target.value)}
                     className="input input-bordered input-sm flex-1 font-mono text-xs"
@@ -245,6 +377,9 @@ export function GoogleAdsConnectionCard({
                 </form>
               </div>
             )}
+
+            {renderDeveloperTokenBox()}
+
             <div className="flex items-center gap-2">
               <button
                 type="button"
@@ -270,6 +405,9 @@ export function GoogleAdsConnectionCard({
             <p className="text-sm text-base-content/70">
               Connect your Google Ads account to unlock <strong>Google Keyword Planner</strong> directly in OpenSEO. Access verified monthly search volumes, CPC ranges, and competition levels.
             </p>
+
+            {renderDeveloperTokenBox()}
+
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"

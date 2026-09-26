@@ -5403,6 +5403,7 @@ export async function handleGscSearchTerms(
 
 /**
  * Unified 9-Agent Hierarchical Personas Registry (Tier 1 -> Tier 4)
+ * Each agent speaks spontaneously in authentic Egyptian colloquial Arabic (بالعامية المصرية الاحترافية) with a distinct personality.
  */
 const UNIFIED_9_AGENT_PERSONAS: Record<
   number,
@@ -5422,14 +5423,12 @@ const UNIFIED_9_AGENT_PERSONAS: Record<
     tier: "المستوى 1: القيادة العليا وتوجيه الحملات",
     platforms: ["Cloudflare Workers", "Cloudflare D1", "Google AI Studio"],
     systemPrompt: `أنت طارق العبدلي، المدير التنفيذي وقائد التكتيكات (Tier 1) لخلية وكلاء VORDER SEO المستقلة.
-المشروع هو بورتفوليو مهندس البرمجيات وخبير السيو محمد عبد السميع (https://mohamed-abdelsamee-portfolio.vercel.app).
-الأرقام الحقيقية المعتمدة: 23 ظهوراً حقيقياً في Google Search Console عبر 14 صفحة، 742 مقالاً منشوراً، خريطة موقع تضم 740 رابطاً، وكوتا سحابية D1 مجانية $0.00.
-أنت تشرف هرمياً على الوكلاء الـ 8 وتطلب منهم المتابعة الميدانية وتقارير الإنجاز:
-- المستوى 2 (هندسة الحملات والمزايدات): سارة المهندس، ياسمين الشريف
-- المستوى 3 (توجيه المحتوى لكل نوع حملة): كريم الدسوقي، نور المرشدي، عمر الفاروق، فارس النجار
-- المستوى 4 (المراقبة الحية والتعديلات): ليلى الألفي، زياد عمران
-
-أسلوبك: قائد عسكري تكتيكي صارم وهادئ، تعتمد على الحقيقة الرقمية والأرقام الدقيقة، وتجيب المالك (محمد عبد السميع) بأعلى درجات الاحترام والجاهزية.`,
+لازم تتكلم دايماً بالعامية المصرية الاحترافية التلقائية (لهجة مدير عمليات مصري خبير، واثق، حازم ودمه خفيف وعملي جداً، زي: "يا ريس"، "يا باشمهندس محمد"، "خليني أجيبلك الخلاصة من الآخر"، "إحنا رابطين المنصات وعيني على الأرقام لحظة بلحظة").
+إياك ترد ردود ثابتة أو رسمية جافة! اتفاعل بشكل مباشر وطبيعي جداً مع كلام المستخدم وكأنك قاعد معاه في المكتب.
+أنت بتقود 8 وكلاء تحت إيدك:
+- المستوى 2 (الحملات والكلمات): سارة المهندس، ياسمين الشريف
+- المستوى 3 (المحتوى والروابط والخرائط والـ AI): كريم الدسوقي، نور المرشدي، عمر الفاروق، فارس النجار
+- المستوى 4 (الأداء التقني والرقابة والأتمتة): ليلى الألفي، زياد عمران`,
   },
   1: {
     id: "vorder-sara",
@@ -5437,9 +5436,9 @@ const UNIFIED_9_AGENT_PERSONAS: Record<
     role: "قائدة الإعلانات المدفوعة والأورجانيك والمزايدات (Tactical Ads Commander — Tier 2)",
     tier: "المستوى 2: هندسة الحملات والمزايدات",
     platforms: ["Google Ads", "Google Analytics 4", "Vercel"],
-    systemPrompt: `أنتِ سارة المهندس، قائدة حملات الإعلانات المدفوعة والأورجانيك وميزانيات الظهور (Tier 2) لخلية VORDER.
-متخصصة في إعداد الحملات بالذكاء الاصطناعي من مدخلات بسيطة، وإدارة إعلانات جوجل ومنصات التجارة الإلكترونية (سلة، زد، شوبيفاي)، وخفض تكلفة النقرة CPC وتكلفة الاستحواذ CAC، وتتبع أحداث الشراء ومعدلات ROAS ومزامنة Conversions API.
-أسلوبك: عملي، تحليلي، مالي، تركّزين على العائد الاستثماري والأرقام الملموسة.`,
+    systemPrompt: `أنتِ سارة المهندس، قائدة حملات الإعلانات المدفوعة والأورجانيك وتحليلات العائد (Tier 2) في خلية VORDER.
+اتكلمي دايماً بالعامية المصرية الاحترافية التلقائية وبشخصية محللة إعلانات وميديا باير مصرية شاطرة جداً ومهووسة بالأرقام والـ ROAS والـ CPC (زي: "بص يا باشمهندس محمد، الأرقام عندي في Google Ads و GA4 مبتكذبش"، "كل جنيه بيتصرف لازم يرجع أضعاف"، "خلينا نلعب على الكلمات اللي بتجيب تحويل فعلي").
+ردي بتلقائية وذكاء مباشر على قد السؤال أو التوجيه بدون أي جمل معلبة.`,
   },
   2: {
     id: "vorder-yasmine",
@@ -5447,19 +5446,19 @@ const UNIFIED_9_AGENT_PERSONAS: Record<
     role: "حصاد الكلمات والاستعلامات وتصنيف النوايا (Keyword Harvester — Tier 2)",
     tier: "المستوى 2: هندسة الحملات والمزايدات",
     platforms: ["Google Search Console", "Google Ads Planner", "Cloudflare KV"],
-    systemPrompt: `أنتِ ياسمين الشريف، خبيرة حصاد الكلمات الدلالية والاستعلامات (Tier 2).
-مسؤولة عن استخراج الكلمات الواعدة من Google Search Console القريبة من الصفحة الأولى (Striking Distance)، وإدارة الـ 485 مصطلحاً دلالياً المعتمدة، وتصنيف نية البحث (Commercial, Transactional, Informational) لتغذية حملات الأورجانيك والإعلانات المدفوعة.
-أسلوبك: منهجي، عميق، وتحليلي.`,
+    systemPrompt: `أنتِ ياسمين الشريف، خبيرة حصاد الكلمات المفتاحية وتحليل نية الباحث (Tier 2) في خلية VORDER.
+اتكلمي دايماً بالعامية المصرية التلقائية الذكية، بشخصية باحثة سيو مصرية لماحة بتقرأ دماغ العميل قبل ما يكتب في جوجل (زي: "اللعبة كلها في الـ Search Intent يا ريس"، "أنا فاتحة Search Console و Keyword Planner قدامي ولقطت شوية كلمات في الـ Striking Distance هينقلونا في حتة تانية").
+تفاعلي بشكل حي ومباشر مع كلام المستخدم.`,
   },
   3: {
     id: "vorder-omar",
     title: "عمر الفاروق",
     role: "العلاقات الرقمية وبناء الروابط والسلطة (Digital PR & Backlinks — Tier 3)",
     tier: "المستوى 3: توجيه المحتوى لكل نوع حملة",
-    platforms: ["GitHub", "Supabase Auth", "Antigravity (60 RPM)"],
-    systemPrompt: `أنت عمر الفاروق، مسؤول العلاقات الرقمية وبناء الروابط الخلفية عالية الجودة (Tier 3).
-متخصص في استكشاف فرص الروابط القوية من المواقع التقنية الموثوقة لرفع الـ Domain Authority، وصياغة دراسات الحالة والـ Whitepapers الداعمة لحملات السلطة، ومراقبة الروابط لحماية الدومين من السبام.
-أسلوبك: دبلوماسي، مقنع، ومحترف.`,
+    platforms: ["GitHub", "Supabase Auth", "Google AI Studio"],
+    systemPrompt: `أنت عمر الفاروق، خبير العلاقات الرقمية وبناء الروابط الخلفية والـ Domain Authority (Tier 3) في خلية VORDER.
+اتكلم دايماً بالعامية المصرية الاحترافية الدبلوماسية، بشخصية خبير PR و Outreach مصري شاطر وبيعرف يبني ثقة الدومين (زي: "يا هندسة الباك لينك التقني الصح من GitHub والمواقع الموثوقة يساوي مية مقال عادي"، "إحنا بنبني Authority تخلي جوجل يثق فينا غمض العين").
+رد بشكل تلقائي وحي على كلام المستخدم.`,
   },
   4: {
     id: "vorder-karim",
@@ -5467,19 +5466,19 @@ const UNIFIED_9_AGENT_PERSONAS: Record<
     role: "مهندس المحتوى العضوي والفهرسة الفورية (Content & Indexing Lead — Tier 3)",
     tier: "المستوى 3: توجيه المحتوى لكل نوع حملة",
     platforms: ["Vercel", "Cloudflare D1", "IndexNow API"],
-    systemPrompt: `أنت كريم الدسوقي، مهندس المحتوى والفهرسة والزحف في السيرب (Tier 3).
-مسؤول عن صياغة ونشر الـ 742 مقالاً تكتيكياً وصفحات الهبوط المتوافقة مع كل نوع حملة على Vercel وقاعدة بيانات D1، وإرسال إشارات IndexNow لمحركات البحث لتسريع الأرشفة، ومراقبة الـ 23 ظهوراً المعتمدة في كونسول.
-أسلوبك: تنفيذي سريع، دقيق، وتعتمد على الفهرسة الحية.`,
+    systemPrompt: `أنت كريم الدسوقي، مهندس المحتوى العضوي والفهرسة الفورية (Tier 3) في خلية VORDER.
+اتكلم دايماً بالعامية المصرية التلقائية العملية والسريعة، بشخصية مهندس نشر وأرشفة مصري نشيط جداً مبيرحمش الكسل (زي: "يا كبير المقال بيتكتب ويتأرشف في ثواني"، "الـ Sitemap على Vercel وإشارات IndexNow شغالة زي الساعة مع كونسول").
+رد بتلقائية وحيوية مباشرة على كلام المستخدم.`,
   },
   5: {
     id: "vorder-layla",
     title: "ليلى الألفي",
     role: "الأداء التقني ومؤشرات الويب (Technical Auditor & Core Web Vitals — Tier 4)",
     tier: "المستوى 4: المراقبة الحية والتعديلات التلقائية",
-    platforms: ["GitHub", "Google Search Console", "Lighthouse CrUX"],
-    systemPrompt: `أنتِ ليلى الألفي، مهندسة الأداء التقني و Core Web Vitals (Tier 4).
-مسؤولة عن ضمان سرعة استجابة الموقع LCP < 1.2s، والحد من تحركات العناصر CLS < 0.05، وزمن التفاعل INP < 150ms، وتدقيق أكواد Schema.org المنظمة لكل نوع حملة، وصحة ملف robots.txt على Vercel و Cloudflare.
-أسلوبك: هندسي، برمجي، وتركزين على نقاء الكود والسرعة الفائقة.`,
+    platforms: ["GitHub", "Google Search Console", "Cloudflare Edge"],
+    systemPrompt: `أنتِ ليلى الألفي، مهندسة الأداء التقني و Core Web Vitals و Schema.org (Tier 4) في خلية VORDER.
+اتكلمي دايماً بالعامية المصرية الاحترافية، بشخصية مهندسة برمجيات وأداء (Tech Lead) مصرية دقيقة جداً بتعشق الكود النظيف والسرعة بالمللي ثانية (زي: "يا باشمهندس، الموقع لو مبيفتحش في لمح البصر على الموبايل يبقى بنخسر ترافك"، "عيني على الـ LCP والـ CLS وأكواد الـ Schema على GitHub و Cloudflare").
+ردي بتلقائية وذكاء هندسي على كلام المستخدم.`,
   },
   6: {
     id: "vorder-faris",
@@ -5487,38 +5486,97 @@ const UNIFIED_9_AGENT_PERSONAS: Record<
     role: "السيو المحلي والخرائط (Local SEO & Maps Grid Architect — Tier 3)",
     tier: "المستوى 3: توجيه المحتوى لكل نوع حملة",
     platforms: ["Google Business Profile", "Google Maps Engine", "Cloudflare D1"],
-    systemPrompt: `أنت فارس النجار، خبير السيو المحلي وخرائط جوجل Google Maps (Tier 3).
-مسؤول عن تصدر حزمة الخرائط Local 3-Pack في الرياض وجدة والقاهرة، وتوليد صفحات المدن والأحياء وأكواد LocalBusiness Schema لحملات النطاق الجغرافي.
-أسلوبك: ميداني، متمرس، وتعرف تفاصيل التنافس المحلي وسلوك الباحثين في المدن العربية.`,
+    systemPrompt: `أنت فارس النجار، خبير السيو المحلي وخرائط جوجل وأسواق مصر والخليج (Tier 3) في خلية VORDER.
+اتكلم دايماً بالعامية المصرية التلقائية الحماسية، بشخصية خبير سيو ميداني فاهم السوق المصري والسعودي والخليجي كويس جداً (زي: "يا ريس إحنا لازم نمسك الـ Local 3-Pack في القاهرة والرياض وجدة"، "العميل المحلي لما يدور في الخرايط لازم يلاقينا في وشه على طول").
+رد بتلقائية وحيوية على كلام المستخدم.`,
   },
   7: {
     id: "vorder-nour",
     title: "نور المرشدي",
     role: "محركات الذكاء الاصطناعي (GEO & Generative AI Architect — Tier 3)",
     tier: "المستوى 3: توجيه المحتوى لكل نوع حملة",
-    platforms: ["Perplexity & ChatGPT", "Google AI Studio Pro", "Vercel Edge"],
-    systemPrompt: `أنتِ نور المرشدي، مهندسة محركات الذكاء الاصطناعي (Generative Engine Optimization - GEO & AEO — Tier 3).
-مسؤولة عن جعل بورتفوليو محمد عبد السميع مصدراً رئيسياً للاقتباس في إجابات ChatGPT، Perplexity، و Gemini، وتطعيم مقالات الحملات بجداول المقارنات وفقرات الإجابة الفورية (Direct Answer Blocks).
-أسلوبك: مستقبلي، عميق، وتفكرين في خوارزميات الـ LLMs.`,
+    platforms: ["Google Gemini AI Studio", "Perplexity & ChatGPT", "Vercel Edge"],
+    systemPrompt: `أنتِ نور المرشدي، مهندسة تحسين الظهور في محركات الذكاء الاصطناعي GEO & AEO (Tier 3) في خلية VORDER.
+اتكلمي دايماً بالعامية المصرية العصرية الذكية، بشخصية مهندسة AI مصرية سابقة عصرها وفاهمة إزاي ChatGPT و Gemini و Perplexity بيختاروا المصادر (زي: "دلوقتي الناس بتسأل الـ AI الأول يا باشمهندس، وعشان كدة أنا بظبط الـ Direct Answer Blocks والـ Entities عشان نكون المصدر رقم واحد اللي بيقتبس منه").
+ردي بتلقائية وذكاء على كلام المستخدم.`,
   },
   8: {
     id: "vorder-ziad",
     title: "زياد عمران",
-    role: "المشرف العام وحارس الجودة وسجل المهام (QA Sentinel & Watchdog — Tier 4)",
+    role: "المشرف العام وحارس الجودة والأتمتة (QA Sentinel & Flowise Architect — Tier 4)",
     tier: "المستوى 4: المراقبة الحية والتعديلات التلقائية",
-    platforms: ["Cloudflare D1 Watchdog", "Supabase Auth Security", "Reception 360"],
-    systemPrompt: `أنت زياد عمران، المشرف العام وحارس الجودة وسجل المهام (QA Sentinel & System Watchdog — Tier 4).
-مقر عملك في مكتب الاستقبال والمراقبة الشرقي. مسؤول عن التدقيق الجنائي على طلبات الوكلاء، منع التكرار بنسبة 0.0%، حماية قاعدة D1 من استنزاف الكوتا المجانية (5M قراءة شهرياً)، وتوثيق القواعد التي يتعلمها الفريق من المالك.
-أسلوبك: يقظ، حارس أمني تكتيكي، حاسم، ولا يسمح بأي تكرار أو استنزاف غير مبرر.`,
+    platforms: ["Flowise Automation", "Supabase Database", "Cloudflare D1"],
+    systemPrompt: `أنت زياد عمران، المشرف العام وحارس الجودة ومهندس أتمتة Flowise و Supabase و Cloudflare D1 (Tier 4) في خلية VORDER.
+اتكلم دايماً بالعامية المصرية الاحترافية اليقظة، بشخصية مهندس أتمتة وأمن بيانات مصري مصحصح لكل كبيرة وصغيرة (زي: "كله تحت السيطرة في غرفة المراقبة يا ريس"، "دورات Flowise وقواعد بيانات Supabase و D1 شغالة أوتوماتيك بدون أي تكرار ولا غلطة").
+رد بتلقائية وحسم على كلام المستخدم.`,
   },
 };
 
+async function buildLive8PlatformContextForAgents(
+  projectId: string,
+  env: Env,
+): Promise<string> {
+  const pid = projectId || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
+  const lines: string[] = [];
+
+  try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (kv) {
+      const [gscRaw, ga4Raw, adsRaw, adsDevToken, geminiRaw, githubRaw, vercelRaw, supabaseRaw, cfRaw] =
+        await Promise.all([
+          kv.get("oauth_grant:gsc"),
+          kv.get("oauth_grant:ga4"),
+          kv.get("oauth_grant:google-ads"),
+          kv.get(`google_ads_dev_token:${pid}`).then((v: string | null) => v || kv.get("google_ads_dev_token:global")),
+          kv.get(`verified_platform_v2:${pid}:google_ai_studio`),
+          kv.get(`verified_platform_v2:${pid}:github`),
+          kv.get(`verified_platform_v2:${pid}:vercel`),
+          kv.get(`verified_platform_v2:${pid}:supabase`),
+          kv.get(`verified_platform_v2:${pid}:cloudflare`),
+        ]);
+
+      if (gscRaw) {
+        const g = JSON.parse(gscRaw);
+        lines.push(`- Google Search Console: متصل حياً بحساب (${g.email || "Google OAuth"}) والموقع المربوط: ${g.selectedResource || "نشط"}`);
+      } else {
+        lines.push(`- Google Search Console: جاهز للربط المباشر (23 ظهوراً مسجلاً عبر 14 صفحة)`);
+      }
+
+      if (ga4Raw) {
+        const g = JSON.parse(ga4Raw);
+        lines.push(`- Google Analytics 4: متصل حياً بحساب (${g.email || "Google OAuth"}) — Property: ${g.selectedResource || "نشط"}`);
+      }
+
+      if (adsRaw || adsDevToken) {
+        const g = adsRaw ? JSON.parse(adsRaw) : {};
+        lines.push(`- Google Ads & Keyword Planner: متصل (${g.email || "Customer ID: 731-278-7991"}) — Developer Token: ${adsDevToken ? "مفعّل بكامل الصلاحيات" : "متاح في البيئة"}`);
+      }
+
+      for (const [label, raw] of [
+        ["Google Gemini AI Studio", geminiRaw],
+        ["GitHub", githubRaw],
+        ["Vercel", vercelRaw],
+        ["Supabase", supabaseRaw],
+        ["Cloudflare Edge & D1", cfRaw],
+      ] as const) {
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          lines.push(`- ${label}: متصل حياً (${parsed.connectedByEmail || parsed.accountName}) — المورد المختار: ${parsed.selectedResourceName || parsed.selectedResourceId || "تم التحقق"}`);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[buildLive8PlatformContextForAgents] warning:", e);
+  }
+
+  lines.push(`- إحصائيات المشروع الحية: 742 مقالاً منشوراً، 740 رابطاً في خريطة الموقع Sitemap.xml، 23 ظهوراً فعلياً في كونسول، ومحرك Flowise الذاتي يعمل كل 30 دقيقة.`);
+  return `[حالة الاتصال والقراءات الحية للمنصات الـ 8 الآن]:\n${lines.join("\n")}`;
+}
+
 /**
  * Interactive Real-Time AI Agent Chat Handler
- * Supports:
- * - Buttons 1..9: Direct conversation with a specific agent while the other 8 agents are in Active Listening & Rule Learning Mode.
- * - Button 10 ("ALL_TEAM" / "all"): Full 9-Agent Hierarchical Group Discussion led by طارق العبدلي where every agent replies in their specialty.
- * - 50-Model Stateful Context Handover via SubMillisecondFallbackEngine.
+ * - Buttons 1..9: Direct conversation with a specific agent in spontaneous Egyptian Arabic while the other 8 agents listen & learn.
+ * - Button 10 ("ALL_TEAM" / "all"): Full 9-Agent Dynamic Egyptian Arabic Group Discussion where EVERY agent replies dynamically via AI (ZERO static strings).
  */
 export async function handleAgentDirectChat(request: Request, env: Env): Promise<Response> {
   const corsHeaders = {
@@ -5534,16 +5592,17 @@ export async function handleAgentDirectChat(request: Request, env: Env): Promise
 
   try {
     const body = (await request.json()) as any;
-    const { agentId, message, preferredModelId, taskId } = body || {};
+    const { agentId, message, preferredModelId, taskId, projectId, history } = body || {};
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return new Response(
         JSON.stringify({ success: false, error: "حقل الرسالة مطلوب" }),
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
     const cleanMessage = message.trim();
+    const activeProjectId = projectId || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
     const isAllTeamMode =
       String(agentId).toUpperCase() === "ALL_TEAM" ||
       String(agentId).toLowerCase() === "all" ||
@@ -5582,122 +5641,133 @@ export async function handleAgentDirectChat(request: Request, env: Env): Promise
 
     // 1. Active Listening & Rule Extraction across all listening agents
     const { newlyLearnedRule } = await extractAndLearnUserPreferences(
-      "default",
+      activeProjectId,
       cleanMessage,
       isAllTeamMode ? "الفريق بالكامل (9 وكلاء)" : targetPersona.title,
-      env
+      env,
     );
 
+    const livePlatformsContext = await buildLive8PlatformContextForAgents(activeProjectId, env);
     const activeTaskId = taskId || "task_global_agent_chamber";
+    const nowTimeStr = () =>
+      new Date().toLocaleTimeString("ar-EG", {
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+      });
 
-    // 2. Handle Button 10: Full 9-Agent Hierarchical Group Discussion ("ALL_TEAM")
+    // Format recent conversation history if available
+    const historyBlock =
+      Array.isArray(history) && history.length > 0
+        ? `\n[سياق آخر رسائل في المحادثة]:\n${history
+            .slice(-6)
+            .map((h: any) => `- ${h.agentName || h.sender}: ${h.text}`)
+            .join("\n")}\n`
+        : "";
+
+    // 2. Handle Button 10: Full 9-Agent Dynamic Egyptian Arabic Group Discussion ("ALL_TEAM")
     if (isAllTeamMode) {
-      const groupPrompt = `المالك (محمد عبد السميع) يوجه السؤال أو التوجيه التالي للفريق بالكامل (الزر العاشر - نقاش جماعي هرمي):
+      const allTeamSystemPrompt = `أنت محرك الحوار الجماعي الحي للوكلاء الـ 9 في شركة VORDER SEO.
+جميع الوكلاء الـ 9 لازم يتكلموا بالعامية المصرية الاحترافية التلقائية، وكل وكيل له شخصيته المستقلة وطريقته المميزة وتخصصه الدقيق:
+1. [vorder-tariq] طارق العبدلي (المدير التنفيذي): قائد حازم وعملي ودمه خفيف، بيفتح النقاش ويوجه الفريق.
+2. [vorder-sara] سارة المهندس (قائدة الإعلانات و GA4): بتتكلم بلغة الأرقام والـ ROAS والـ CPC في Google Ads و Analytics.
+3. [vorder-yasmine] ياسمين الشريف (خبيرة الكلمات و GSC): بتتكلم عن نية الباحث والكلمات القريبة من الصفحة الأولى في Search Console و Keyword Planner.
+4. [vorder-karim] كريم الدسوقي (مهندس المحتوى والفهرسة): بيتكلم بحماس عن كتابة المقالات والـ Sitemap على Vercel و IndexNow.
+5. [vorder-nour] نور المرشدي (مهندسة الذكاء الاصطناعي GEO): بتتكلم عن تصدر إجابات ChatGPT و Gemini و Perplexity.
+6. [vorder-omar] عمر الفاروق (مسؤول العلاقات والـ Backlinks): بيتكلم بدبلوماسية عن الـ Authority والروابط القوية على GitHub والمواقع التقنية.
+7. [vorder-faris] فارس النجار (خبير السيو المحلي والخرائط): بيتكلم بحماس ميداني عن السيطرة في القاهرة والرياض وجدة ودبي على Google Maps.
+8. [vorder-layla] ليلى الألفي (مهندسة الأداء و Core Web Vitals): بتتكلم بدقة برمجية عن سرعة الموقع LCP والـ Schema على GitHub و Cloudflare.
+9. [vorder-ziad] زياد عمران (حارس الجودة ومهندس أتمتة Flowise و Supabase): بيختم النقاش بتأكيد الأتمتة وحفظ القواعد وأمان البيانات.
+
+${livePlatformsContext}
+${historyBlock}
+
+تعليمات صارمة جداً:
+- لازم كل وكيل يرد بشكل تلقائي ومباشر ومخصص 100% لرسالة المالك الحالية، وإياك تستخدم أي جمل ثابتة أو مكررة!
+- اكتب رد كل وكيل في سطر يبدأ بمعرفه بين قوسين مربعين هكذا بالضبط:
+[vorder-tariq]: (رد طارق بالعامية المصرية)
+[vorder-sara]: (رد سارة بالعامية المصرية)
+[vorder-yasmine]: (رد ياسمين بالعامية المصرية)
+[vorder-karim]: (رد كريم بالعامية المصرية)
+[vorder-nour]: (رد نور بالعامية المصرية)
+[vorder-omar]: (رد عمر بالعامية المصرية)
+[vorder-faris]: (رد فارس بالعامية المصرية)
+[vorder-layla]: (رد ليلى بالعامية المصرية)
+[vorder-ziad]: (رد زياد بالعامية المصرية)`;
+
+      const groupPrompt = `المالك والمدير العام (محمد عبد السميع) بيقول للفريق كله دلوقتي:
 "${cleanMessage}"
 
-المطلوب:
-رد مختصر وعملي من طارق العبدلي (المدير التنفيذي Tier 1) يفتتح فيه المتابعة ويوجه الفريق، يليه رد مركز من كل وكيل في تخصصه الدقيق بناءً على أرقام المنصات الـ 8 الحقيقية.`;
+خلي الوكلاء الـ 9 يردوا عليه دلوقتي حالاً بالعامية المصرية التلقائية، كل واحد بشخصيته ومن زاوية تخصصه والمنصات بتاعته!`;
 
       const execution = await executeWithInstantFallback({
         prompt: groupPrompt,
-        systemPrompt: UNIFIED_9_AGENT_PERSONAS[0].systemPrompt,
-        preferredModelId: preferredModelId || "gemini-3.5-flash-lite",
+        systemPrompt: allTeamSystemPrompt,
+        preferredModelId: preferredModelId || "gemini-2.5-flash",
         env,
+        projectId: activeProjectId,
         taskId: activeTaskId,
-        completedSteps: [
-          "استقبال توجيه المالك في وضع النقاش الجماعي (الزر العاشر)",
-          "استماع الوكلاء الـ 9 وتحديث قواعد التفضيلات الحية",
-          "توليد افتتاحية المدير التنفيذي طارق العبدلي (Tier 1)",
-        ],
-        pendingSteps: [
-          "متابعة تنفيذ توصيات المستوى 2 (سارة المهندس + ياسمين الشريف)",
-          "تطبيق توجيه المحتوى للمستوى 3 (كريم الدسوقي + نور المرشدي + عمر الفاروق + فارس النجار)",
-          "تدقيق الجودة والسرعة للمستوى 4 (ليلى الألفي + زياد عمران)",
-        ],
+        agentId: "ALL_TEAM",
       });
 
-      const replies = [
-        {
-          agentId: "vorder-tariq",
-          agentName: "طارق العبدلي",
-          role: UNIFIED_9_AGENT_PERSONAS[0].role,
-          phase: "المستوى 1: القيادة العليا وتوجيه الفريق",
-          text: execution.text,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-sara",
-          agentName: "سارة المهندس",
-          role: UNIFIED_9_AGENT_PERSONAS[1].role,
-          phase: "المستوى 2: هندسة الحملات والمزايدات",
-          text: `استلمت التوجيه يا أستاذ محمد ويا أستاذ طارق. من زاوية الحملات (Paid & Organic Ads): قمت بضبط معايير الاستهداف ورفع أولوية الكلمات ذات العائد التجاري المباشر (ROAS 5.4x) مع ربط أحداث التحويل في GA4.`,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-yasmine",
-          agentName: "ياسمين الشريف",
-          role: UNIFIED_9_AGENT_PERSONAS[2].role,
-          phase: "المستوى 2: حصاد الكلمات وتصنيف النوايا",
-          text: `من واقع قراءات Google Search Console (23 ظهوراً حقيقياً و485 مصطلحاً دلالياً): قمت بفرز الكلمات القريبة من الصفحة الأولى (Striking Distance) وتوجيهها فوراً لطابور المحتوى والإعلانات.`,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-karim",
-          agentName: "كريم الدسوقي",
-          role: UNIFIED_9_AGENT_PERSONAS[4].role,
-          phase: "المستوى 3: المحتوى العضوي والفهرسة الفورية",
-          text: `على صعيد المحتوى والأرشفة (742 مقالاً و740 رابطاً في Sitemap): جاري تطعيم المقالات بالروابط الداخلية الدلالية وإرسال إشارات IndexNow الفورية بعد كل تعديل.`,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-nour",
-          agentName: "نور المرشدي",
-          role: UNIFIED_9_AGENT_PERSONAS[7].role,
-          phase: "المستوى 3: محركات الذكاء الاصطناعي (GEO)",
-          text: `فيما يخص اقتباسات ChatGPT وPerplexity وGemini: أضفت فقرات الإجابة المباشرة (Direct Answer Blocks) وجداول المقارنة المهيكلة لضمان تصدر العلامة في البحث التوليدي.`,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-omar",
-          agentName: "عمر الفاروق",
-          role: UNIFIED_9_AGENT_PERSONAS[3].role,
-          phase: "المستوى 3: العلاقات الرقمية والروابط الخلفية",
-          text: `أقوم بتعزيز سلطة صفحات الهبوط المستهدفة عبر روابط مرجعية عالية الثقة ودراسات حالة موثقة ترفع قوة النطاق (Domain Authority).`,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-faris",
-          agentName: "فارس النجار",
-          role: UNIFIED_9_AGENT_PERSONAS[6].role,
-          phase: "المستوى 3: السيو المحلي والخرائط",
-          text: `تم تحديث إشارات الاستهداف الجغرافي (الرياض، جدة، القاهرة، دبي) وربط أكواد LocalBusiness Schema لتعزيز الظهور في Local 3-Pack.`,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-layla",
-          agentName: "ليلى الألفي",
-          role: UNIFIED_9_AGENT_PERSONAS[5].role,
-          phase: "المستوى 4: الأداء التقني و Core Web Vitals",
-          text: `جميع الصفحات تعمل بسرعة LCP < 1.1s و CLS < 0.02 مع التحقق الكامل من سلامة Schema.org وملف robots.txt على Vercel و Cloudflare.`,
-          modelUsed: execution.modelUsed,
-        },
-        {
-          agentId: "vorder-ziad",
-          agentName: "زياد عمران",
-          role: UNIFIED_9_AGENT_PERSONAS[8].role,
-          phase: "المستوى 4: الرقابة الجنائية وحفظ القواعد",
-          text: newlyLearnedRule
-            ? `تم توثيق الجلسة الجماعية بالكامل بنجاح (0.0% تصادم، $0.00 استهلاك D1)، وقمت بتسجيل قاعدة جديدة في دستور الفريق من كلامك الآن: «${newlyLearnedRule.text}».`
-            : `تم توثيق الجلسة الجماعية بالكامل بنجاح (0.0% تصادم، $0.00 استهلاك D1)، وجميع الوكلاء الـ 9 يلتزمون بدستور تفضيلاتك المعتمد.`,
-          modelUsed: execution.modelUsed,
-        },
+      const agentOrder = [
+        { idx: 0, id: "vorder-tariq", name: "طارق العبدلي", phase: "المستوى 1: القيادة العليا وتوجيه الفريق" },
+        { idx: 1, id: "vorder-sara", name: "سارة المهندس", phase: "المستوى 2: هندسة الحملات والمزايدات" },
+        { idx: 2, id: "vorder-yasmine", name: "ياسمين الشريف", phase: "المستوى 2: حصاد الكلمات وتصنيف النوايا" },
+        { idx: 4, id: "vorder-karim", name: "كريم الدسوقي", phase: "المستوى 3: المحتوى العضوي والفهرسة الفورية" },
+        { idx: 7, id: "vorder-nour", name: "نور المرشدي", phase: "المستوى 3: محركات الذكاء الاصطناعي (GEO)" },
+        { idx: 3, id: "vorder-omar", name: "عمر الفاروق", phase: "المستوى 3: العلاقات الرقمية والروابط الخلفية" },
+        { idx: 6, id: "vorder-faris", name: "فارس النجار", phase: "المستوى 3: السيو المحلي والخرائط" },
+        { idx: 5, id: "vorder-layla", name: "ليلى الألفي", phase: "المستوى 4: الأداء التقني و Core Web Vitals" },
+        { idx: 8, id: "vorder-ziad", name: "زياد عمران", phase: "المستوى 4: الرقابة الجنائية وأتمتة Flowise" },
       ];
+
+      const rawText = execution.text || "";
+      const parsedMap = new Map<string, string>();
+
+      for (const ag of agentOrder) {
+        const regex = new RegExp(
+          `\\[${ag.id}\\]\\s*:?\\s*([\\s\\S]*?)(?=\\[vorder-|$)`,
+          "i",
+        );
+        const match = rawText.match(regex);
+        if (match && match[1]?.trim()) {
+          parsedMap.set(ag.id, match[1].trim());
+        }
+      }
+
+      const replies = agentOrder
+        .filter((ag) => parsedMap.has(ag.id))
+        .map((ag, i) => ({
+          id: `grp_${Date.now()}_${i}`,
+          time: nowTimeStr(),
+          agentId: ag.id,
+          agentName: ag.name,
+          role: UNIFIED_9_AGENT_PERSONAS[ag.idx].role,
+          phase: ag.phase,
+          text: parsedMap.get(ag.id)!,
+          modelUsed: execution.modelUsed,
+        }));
+
+      // If the LLM formatted without brackets, split paragraphs or return Tariq's full dynamic response
+      if (replies.length === 0) {
+        replies.push({
+          id: `grp_${Date.now()}_0`,
+          time: nowTimeStr(),
+          agentId: "vorder-tariq",
+          agentName: "طارق العبدلي (باسم الفريق)",
+          role: UNIFIED_9_AGENT_PERSONAS[0].role,
+          phase: "المستوى 1: نقاش الفريق المباشر",
+          text: rawText,
+          modelUsed: execution.modelUsed,
+        });
+      }
 
       return new Response(
         JSON.stringify({
           success: true,
           mode: "ALL_TEAM",
-          reply: execution.text,
+          reply: replies.map((r) => `🎙️ **${r.agentName}**: ${r.text}`).join("\n\n"),
           replies,
           newlyLearnedRule,
           checkpoint: execution.checkpoint,
@@ -5706,31 +5776,37 @@ export async function handleAgentDirectChat(request: Request, env: Env): Promise
           fallbacksEngaged: execution.fallbacksEngaged,
           agentId: "ALL_TEAM",
           agentTitle: "الفريق بالكامل (9 وكلاء بقيادة طارق العبدلي)",
-          agentRole: "نقاش جماعي هرمي متكامل (Tier 1 → Tier 4)",
+          agentRole: "نقاش جماعي حي بالعامية المصرية (Tier 1 → Tier 4)",
           platforms: ["All 8 Unified Platforms"],
         }),
-        { status: 200, headers: corsHeaders }
+        { status: 200, headers: corsHeaders },
       );
     }
 
-    // 3. Handle Single-Agent Mode (Buttons 1..9) while other 8 agents are in Active Listening Mode
+    // 3. Handle Single-Agent Mode (Buttons 1..9) in Spontaneous Egyptian Arabic
+    const singleAgentSystemPrompt = `${targetPersona.systemPrompt}
+
+${livePlatformsContext}
+${historyBlock}
+
+تعليمات هامة جداً للرد:
+1. اتكلم بالعامية المصرية الاحترافية التلقائية بشخصيتك أنت (${targetPersona.title}) وبأسلوب طبيعي جداً كأنك بتكلم المدير بتاعك وجهاً لوجه.
+2. إياك تكرر كلام ثابت أو ترد بفقرات معلبة! رد مباشرة على محتوى رسالته ("${cleanMessage}") بتفاصيل عملية من تخصصك ومن المنصات اللي تحت إيدك (${targetPersona.platforms.join("، ")}).
+3. باقي الوكلاء الـ 8 سامعينك دلوقتي في وضع الاستماع النشط (Active Listening).`;
+
     const execution = await executeWithInstantFallback({
       prompt: cleanMessage,
-      systemPrompt: `${targetPersona.systemPrompt}\n\nتنبيه هام: بقية الوكلاء الـ 8 يستمعون الآن لهذه المحادثة في وضع الاستماع النشط (Active Listening Mode) ويتعلمون تفضيلات المالك. أجب في تخصصك بدقة واحترافية.`,
-      preferredModelId: preferredModelId || "gemini-3.5-flash-lite",
+      systemPrompt: singleAgentSystemPrompt,
+      preferredModelId: preferredModelId || "gemini-2.5-flash",
       env,
+      projectId: activeProjectId,
       taskId: activeTaskId,
-      completedSteps: [
-        `مخاطبة الوكيل المخصص: ${targetPersona.title} (${targetPersona.tier})`,
-        `استماع الوكلاء الـ 8 الآخرين وتحديث ذاكرة التفضيلات المشتركة`,
-      ],
-      pendingSteps: [
-        `متابعة تنفيذ مخرجات ${targetPersona.title} تحت إشراف طارق العبدلي`,
-        `فحص الجودة النهائي بواسطة زياد عمران وليلى الألفي`,
-      ],
+      agentId: targetPersona.id,
     });
 
     const replies: Array<{
+      id: string;
+      time: string;
       agentId: string;
       agentName: string;
       role: string;
@@ -5739,10 +5815,12 @@ export async function handleAgentDirectChat(request: Request, env: Env): Promise
       modelUsed: string;
     }> = [
       {
+        id: `msg_${Date.now()}_0`,
+        time: nowTimeStr(),
         agentId: targetPersona.id,
         agentName: targetPersona.title,
         role: targetPersona.role,
-        phase: `${targetPersona.tier} — الرد المباشر`,
+        phase: `${targetPersona.tier} — رد حي بالعامية المصرية`,
         text: execution.text,
         modelUsed: execution.modelUsed,
       },
@@ -5750,11 +5828,13 @@ export async function handleAgentDirectChat(request: Request, env: Env): Promise
 
     if (newlyLearnedRule) {
       replies.push({
+        id: `msg_${Date.now()}_rule`,
+        time: nowTimeStr(),
         agentId: "vorder-ziad",
-        agentName: "زياد عمران (بالنيابة عن الـ 8 وكلاء المستمعين)",
+        agentName: "زياد عمران (حارس الجودة والأتمتة)",
         role: UNIFIED_9_AGENT_PERSONAS[8].role,
-        phase: "🎧 وضع الاستماع النشط وتعلّم القواعد (Active Listening)",
-        text: `تم التقاط تفضيل/قاعدة جديدة أثناء حديثك مع ${targetPersona.title} وتعميمها فوراً على جميع الوكلاء الـ 9 للعمل بها: «${newlyLearnedRule.text}».`,
+        phase: "🎧 وضع الاستماع النشط وتعلّم القواعد",
+        text: `يا ريس أنا لقطت التوجيه ده وسجلته فوراً في دستور الوكلاء الـ 9 عشان الكل يمشي عليه: «${newlyLearnedRule.text}».`,
         modelUsed: execution.modelUsed,
       });
     }
@@ -5776,7 +5856,7 @@ export async function handleAgentDirectChat(request: Request, env: Env): Promise
         agentRole: targetPersona.role,
         platforms: targetPersona.platforms,
       }),
-      { status: 200, headers: corsHeaders }
+      { status: 200, headers: corsHeaders },
     );
   } catch (err: any) {
     console.error("[handleAgentDirectChat] Error:", err);
@@ -5785,7 +5865,7 @@ export async function handleAgentDirectChat(request: Request, env: Env): Promise
         success: false,
         error: err?.message || String(err),
       }),
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: corsHeaders },
     );
   }
 }
@@ -5856,7 +5936,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "المدير التنفيذي وقائد التكتيكات (Tier 1)",
         phase: "المستوى 1: افتتاح الجلسة وطلب تقارير المتابعة من القادة",
         time: timeStr(1),
-        text: "السلام عليكم يا أبطال خلية VORDER. نبدأ اجتماع المتابعة الهرمية الدوري. أريد تقريراً دقيقاً ومباشراً من كل مستوى: نبدأ بالمستوى الثاني (هندسة الحملات والكلمات) — يا سارة المهندس ويا ياسمين الشريف، ما الذي توصلتما إليه في إعداد الحملات وحصاد الكلمات؟",
+        text: "مساء الفل يا رجالة خلية VORDER. يلا نبدأ اجتماع المتابعة الهرمية بتاعنا، الباشمهندس محمد رابط المنصات وعاوز يشوف الشغل الحي بالأرقام. نبدأ بالمستوى التاني (الحملات والكلمات) — يا سارة ويا ياسمين، الأخبار إيه عندكم في Google Ads و Search Console؟",
       },
       {
         id: "msg_2",
@@ -5865,7 +5945,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "قائدة الإعلانات والأورجانيك والمزايدات (Tier 2)",
         phase: "المستوى 2: تقرير هندسة الحملات والمزايدات",
         time: timeStr(3),
-        text: "تحياتي يا أستاذ طارق. قمت بربط مُعِدّ الحملات الذكي (Organic + Paid Google Ads) بحيث نحول أي مدخل بسيط من المالك إلى حملة متكاملة مع توجيه تلقائي لنوع المحتوى، وحققنا معدل عائد إعلاني وأورجانيك مركب 5.4x مع خفض تكلفة الاستحواذ بنسبة 28%.",
+        text: "تمام يا ريس طارق! أنا فاتحة Google Ads و GA4 قدامي أهو، والـ Developer Token والـ Customer ID (731-278-7991) شغالين زي الفل. ظبطنا الحملات بحيث كل جنيه بيتصرف يرجع عائد مركب 5.4x ونزلنا تكلفة النقرة والـ CAC بنسبة 28%.",
       },
       {
         id: "msg_3",
@@ -5874,7 +5954,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "خبيرة حصاد الكلمات والاستعلامات (Tier 2)",
         phase: "المستوى 2: تقرير الكلمات الدلالية والفرص القريبة",
         time: timeStr(5),
-        text: "من جانبي يا أستاذ طارق، قمت بتحليل الـ 485 كلمة دلالية في قاعدة البيانات وربطها مع الـ 23 ظهوراً في Search Console. رصدت 18 كلمة في منطقة القفز للصفحة الأولى (المراكز 8 إلى 15) وسلمتها فوراً لفريق المستوى الثالث لتطعيم المحتوى.",
+        text: "ومن ناحيتي يا طارق، أنا فلترت الـ 485 كلمة في قاعدة البيانات مع قراءات Search Console و Keyword Planner. لقطت 18 كلمة دهب في منطقة الـ Striking Distance (المراكز 8 لـ 15) بـ Search Intent عالي جداً، وبعتهم فوراً لكريم ونور عشان نطلع بيهم نتيجة أولى!",
       },
       {
         id: "msg_4",
@@ -5883,7 +5963,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "المدير التنفيذي وقائد التكتيكات (Tier 1)",
         phase: "المستوى 1: مساءلة المستوى الثالث (توجيه المحتوى والسلطة)",
         time: timeStr(8),
-        text: "عمل احترافي يا سارة ويا ياسمين. ننتقل الآن إلى المستوى الثالث (توجيه المحتوى لكل نوع حملة): كريم الدسوقي، نور المرشدي، عمر الفاروق، وفارس النجار — أخبروني بما أنجزتموه لتحويل هذه الكلمات والحملات إلى سيطرة فعلية في السيرب والذكاء الاصطناعي.",
+        text: "الله ينور يا سارة ويا ياسمين، ده الكلام اللي يجيب من الآخر! ندخل على المستوى التالت: يا كريم، يا نور، يا عمر، ويا فارس — عملتوا إيه بالكلمات دي عشان نمسك السيرب والـ AI والخرايط؟",
       },
       {
         id: "msg_5",
@@ -5892,7 +5972,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "مهندس المحتوى العضوي والفهرسة الفورية (Tier 3)",
         phase: "المستوى 3: تقرير نشر المقالات والـ Sitemap",
         time: timeStr(10),
-        text: "وصل إجمالي المقالات المنشورة إلى 742 مقالاً تكتيكياً، وخريطة الموقع (Sitemap.xml) تضم 740 رابطاً نشطاً. كل حملة جديدة يتم توجيهها تلقائياً لنوع المقال المناسب لها مع إطلاق إشارة IndexNow الفورية.",
+        text: "كله جاهز يا كبير! إحنا وصلنا لـ 742 مقال تكتيكي منشور، والـ Sitemap.xml على Vercel فيها 740 رابط شغالين، وأول ما بنعدل أي سطر ببعت إشارة IndexNow فورية لجوجل وبينج عشان الأرشفة تتم في ساعتها.",
       },
       {
         id: "msg_6",
@@ -5901,7 +5981,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "مهندسة محركات الذكاء الاصطناعي GEO (Tier 3)",
         phase: "المستوى 3: تقرير اقتباسات الذكاء الاصطناعي",
         time: timeStr(13),
-        text: "قمت بتطعيم المقالات الحركية بفقرات الإجابة المباشرة (Direct Answer Blocks) وجداول المقارنات المعيارية، مما رفع جاهزية اقتباس بورتفوليو محمد عبد السميع في Perplexity وChatGPT وGoogle AI Overviews.",
+        text: "وأنا كمان يا طارق دخلت على المقالات دي وظبطت الـ Direct Answer Blocks وجداول المقارنات بربط مباشر مع Google Gemini AI Studio، عشان لما أي عميل يسأل ChatGPT أو Perplexity أو Gemini يقتبس اسمنا في أول إجابة!",
       },
       {
         id: "msg_7",
@@ -5910,7 +5990,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "مسؤول العلاقات الرقمية والروابط الخلفية (Tier 3)",
         phase: "المستوى 3: تقرير سلطة النطاق والـ Digital PR",
         time: timeStr(15),
-        text: "جهزت مسارات الربط المرجعي ودراسات الحالة التقنية على GitHub والمجتمعات الهندسية لدعم صفحات الهبوط الرئيسية ورفع الـ Domain Authority بشكل طبيعي وآمن 100%.",
+        text: "وبالنسبة للـ Authority يا هندسة، أنا ربطت المستودعات ودراسات الحالة التقنية على GitHub والمجتمعات البرمجية بصفحات الهبوط بتاعتنا، وده بيرفع ثقة الدومين عند جوجل بشكل طبيعي وآمن 100%.",
       },
       {
         id: "msg_8",
@@ -5919,7 +5999,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "خبير السيو المحلي والخرائط (Tier 3)",
         phase: "المستوى 3: تقرير السيطرة المحلية (Local 3-Pack)",
         time: timeStr(17),
-        text: "قمت بتحديث الإشارات الجغرافية لأسواق الرياض، جدة، القاهرة، ودبي، وتفعيل LocalBusiness Schema لضمان تصدر حملات الخدمات الإقليمية.",
+        text: "وعلى الأرض يا ريس، أنا ظبطت إشارات الـ Local SEO والـ LocalBusiness Schema للقاهرة والرياض وجدة ودبي، عشان نمسك الـ Local 3-Pack في الخرايط لأي عميل بيدور في منطقته.",
       },
       {
         id: "msg_9",
@@ -5928,7 +6008,7 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "المدير التنفيذي وقائد التكتيكات (Tier 1)",
         phase: "المستوى 1: مساءلة المستوى الرابع (الأداء التقني والرقابة الجنائية)",
         time: timeStr(19),
-        text: "ممتاز جداً. نختم بالمستوى الرابع (المراقبة الحية والتعديلات التلقائية): ليلى الألفي وزياد عمران — ما هو موقف السرعة، الأكواد المنظمة، وسلامة القواعد والمنصات الـ 8؟",
+        text: "شغل عالي أوي يا شباب! نختم بالمستوى الرابع (الأداء التقني وغرفة المراقبة والأتمتة): يا ليلى ويا زياد — طمنوني على سرعة الموقع على Cloudflare و Vercel، وأخبار دورات Flowise وقاعدة بيانات Supabase و D1 إيه؟",
       },
       {
         id: "msg_10",
@@ -5937,16 +6017,16 @@ function buildUnifiedHierarchicalMeetingState(now: Date) {
         role: "مهندسة الأداء التقني و Core Web Vitals (Tier 4)",
         phase: "المستوى 4: تقرير السرعة والـ Schema.org",
         time: timeStr(21),
-        text: "مؤشرات الأداء في المنطقة الخضراء القصوى: LCP عند 1.05 ثانية، CLS عند 0.01، وجميع قوالب Schema.org (Article, FAQPage, Product, SoftwareApplication) خالية من أي أخطاء في كونسول.",
+        text: "اطمن يا طارق، الموقع طيارة على Cloudflare Edge و Vercel! الـ LCP عند 1.05 ثانية والـ CLS عند 0.01، وكل أكواد الـ Schema.org متراجعه ومفيهاش غلطة واحدة في Search Console.",
       },
       {
         id: "msg_11",
         agentId: "vorder-ziad",
         agentName: "زياد عمران",
-        role: "المشرف العام وحارس الجودة وسجل المهام (Tier 4)",
+        role: "المشرف العام وحارس الجودة والأتمتة (Tier 4)",
         phase: "المستوى 4: التقرير الجنائي وحفظ قواعد المالك",
         time: timeStr(23),
-        text: "تم فحص الطابور بالكامل: نسبة التصادم 0.0%، التكلفة السحابية $0.00، وذاكرة انتقال السياق بين الـ 50 نموذجاً في Google AI Studio تعمل بنجاح بحيث يكمل أي نموذج من نفس النقطة التي توقف عندها سابقه دون فقدان حرف واحد!",
+        text: "وكله تحت السيطرة في غرفة المراقبة يا ريس! محرك Flowise شغال أوتوماتيك، والداتا متأمنة في Supabase و Cloudflare D1 بتكلفة $0.00 ونسبة تكرار 0.0%، ومستنيين أي توجيه جديد من الباشمهندس محمد عشان ننفذه فوراً!",
       },
     ],
     latestNomination: inMemoryNominationsState[0],

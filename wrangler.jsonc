@@ -126,11 +126,7 @@
       "migrations_dir": "drizzle",
     },
   ],
-  // R2 bucket commented out to enable deployment on 100% free Cloudflare plan without credit card requirement
-  // "r2_buckets": [
-  //   {
-  //     "bucket_name": "open-seo",
-  //     "binding": "R2",
-  //   },
-  // ],
+  "ai": {
+    "binding": "AI"
+  },
 }
