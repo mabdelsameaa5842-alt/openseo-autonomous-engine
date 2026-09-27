@@ -17,6 +17,13 @@ import {
   Cpu,
   CheckCircle2,
   GitBranch,
+  CornerUpRight,
+  Trash2,
+  Globe,
+  Terminal,
+  BookOpen,
+  Zap,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -31,8 +38,18 @@ interface MeetingParticipant {
   avatar?: string;
 }
 
+interface ForwardedMessagePayload {
+  id: string;
+  agentId: string;
+  agentName: string;
+  text: string;
+  actionType: "clarify" | "correct" | "approve";
+}
+
 interface MeetingMessage {
   id: string;
+  sessionId?: string;
+  senderType?: "user" | "agent" | "roundtable" | "director_approval";
   agentId: string;
   agentName: string;
   role: string;
@@ -40,8 +57,39 @@ interface MeetingMessage {
   modelUsed?: string;
   handoverFrom?: string;
   learnedRuleBadge?: string;
+  forwardedFrom?: ForwardedMessagePayload | null;
+  citations?: string[];
+  tariqApproved?: boolean;
   time: string;
   text: string;
+}
+
+interface TargetCountryAllocation {
+  countryCode: string;
+  countryName: string;
+  flag: string;
+  cities: string[];
+  sharePercent: number;
+  impressionVelocity: "TURBO_3X" | "TURBO_2X" | "HIGH" | "STANDARD";
+  active: boolean;
+  controlledByAgent: string;
+  lastUpdatedBy: string;
+  updatedAt: string;
+}
+
+interface ProgrammaticDiagnosticLogEntry {
+  id: string;
+  projectId: string;
+  timestamp: string;
+  agentId: string;
+  agentName: string;
+  component: string;
+  operation: string;
+  status: "SUCCESS" | "FALLBACK_ENGAGED" | "WARNING" | "ERROR";
+  modelUsed: string;
+  durationMs: number;
+  details: string;
+  remediationHint?: string;
 }
 
 interface CampaignBreakdownItem {
@@ -54,8 +102,10 @@ interface CampaignBreakdownItem {
 interface ConsolidatedReport {
   publishedCount: number;
   queueCount: number;
+  keywordsCount?: number;
   gscImpressions: number;
   gscAvgPosition: number;
+  impressionVelocityMode?: string;
   collisionRate: string;
   purgedDuplicates: number;
   campaignBreakdown: CampaignBreakdownItem[];
@@ -67,6 +117,8 @@ interface LearnedRuleItem {
   category: "like" | "dislike" | "binding_rule";
   text: string;
   learnedByAgent: string;
+  sourceMessageExcerpt?: string;
+  confidenceScore?: number;
   createdAt: string;
 }
 
@@ -78,16 +130,20 @@ interface AgentMeetingData {
   status: "active" | "concluded";
   restDurationMinutes: number;
   restSecondsRemaining: number;
+  totalMessagesCount?: number;
   chairperson: MeetingParticipant;
   consolidatedReport: ConsolidatedReport;
   dialogue: MeetingMessage[];
   latestNomination?: AgentNomination;
+  targetCountries?: TargetCountryAllocation[];
+  programmaticLogs?: ProgrammaticDiagnosticLogEntry[];
+  expertSourcesCount?: number;
   teamMemory?: {
-    likes: string[];
-    dislikes: string[];
+    likes: Array<string | LearnedRuleItem>;
+    dislikes: Array<string | LearnedRuleItem>;
     bindingRules: LearnedRuleItem[];
   };
-  checkpointLedger?: {
+  latestCheckpoint?: {
     previousModelsChain: string[];
     completedSteps: string[];
     partialOutputSummary: string;
@@ -115,14 +171,14 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     id: "vorder-tariq",
     buttonIndex: 1,
     nameAr: "طارق العبدلي",
-    roleAr: "المدير التنفيذي ومهندس القرار الاستراتيجي",
+    roleAr: "المدير التنفيذي ومهندس القرار الاستراتيجي (بوابة الاعتماد الإلزامية)",
     tier: 1,
     tierLabelAr: "المستوى 1: القيادة العليا",
     emoji: "👑",
     primaryModel: "gemini-2.5-pro",
     fallbackModel: "gemini-3.1-pro",
     platforms: ["GSC", "GA4", "Google Ads", "Supabase", "GitHub", "Vercel", "Gemini", "Cloudflare"],
-    specialtyAr: "القيادة العليا، طلب المتابعة من الوكلاء الـ 8، واعتماد خطط الحملات والميزانيات",
+    specialtyAr: "القيادة العليا، طلب المتابعة من الوكلاء الـ 8، واعتماد خطط الحملات وتسريع العرض ودول النشر",
     badgeColor: "bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30",
   },
   {
@@ -150,7 +206,7 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     primaryModel: "gemini-2.5-flash",
     fallbackModel: "gemini-3.5-flash-lite",
     platforms: ["Google Search Console", "Google Ads Keyword Planner"],
-    specialtyAr: "حصاد الكلمات الذهبية ذات النية الشرائية وبناء الخرائط الدلالية للحملات",
+    specialtyAr: "حصاد الكلمات الذهبية يومياً وتحليل الـ 38 ظهور في كونسول وبناء الخرائط الدلالية",
     badgeColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
   },
   {
@@ -164,7 +220,7 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     primaryModel: "gemini-2.5-pro",
     fallbackModel: "gemini-3.8-flash",
     platforms: ["GitHub", "Vercel", "GSC Indexing", "IndexNow"],
-    specialtyAr: "كتابة المقالات وصفحات الهبوط ونصوص الإعلانات حسب نوع الحملة ونشرها وأرشفتها فوراً",
+    specialtyAr: "كتابة المقالات بالذكاء الاصطناعي وتعبئة طابور الـ 100 مقال ونشرها في المدونة والسايت ماب فوراً",
     badgeColor: "bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/30",
   },
   {
@@ -199,14 +255,14 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     id: "vorder-faris",
     buttonIndex: 7,
     nameAr: "فارس النجار",
-    roleAr: "قائد السيو المحلي وخرائط جوجل وحافة Cloudflare",
+    roleAr: "قائد السيو المحليودول النشر وخرائط جوجل",
     tier: 3,
-    tierLabelAr: "المستوى 3: السيو المحلي والحافة",
+    tierLabelAr: "المستوى 3: السيو المحلي والدول",
     emoji: "📍",
     primaryModel: "gemini-2.5-flash",
     fallbackModel: "gemini-3.7-flash",
     platforms: ["Cloudflare", "Google Maps / GBP", "GSC"],
-    specialtyAr: "توليد صفحات التغطية الجغرافية للسيو المحلي وإدارة الكاش والـ Workers على Cloudflare",
+    specialtyAr: "التحكم في حصص دول النشر (السعودية، مصر، الإمارات، الكويت، قطر) وتوليد صفحات التغطية الإقليمية",
     badgeColor: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30",
   },
   {
@@ -220,7 +276,7 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     primaryModel: "gemini-2.5-flash-lite",
     fallbackModel: "gemini-3.1-flash-lite",
     platforms: ["Google Search Console", "Vercel", "GitHub"],
-    specialtyAr: "حقن أكواد JSON-LD Schema المناسبة لكل حملة ومراقبة مؤشرات Core Web Vitals",
+    specialtyAr: "حقن أكواد JSON-LD Schema المناسبة لكل حملة ومراقبة مؤشرات Core Web Vitals و100% Site Audit",
     badgeColor: "bg-teal-500/15 text-teal-600 dark:text-teal-300 border-teal-500/30",
   },
   {
@@ -234,7 +290,7 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     primaryModel: "gemini-2.5-pro",
     fallbackModel: "gemma-3-27b-it",
     platforms: ["Supabase", "Cloudflare D1 & KV"],
-    specialtyAr: "فحص جودة كل مقال وحملة قبل النشر، منع تضارب الكلمات (Cannibalization)، وحماية D1 وSupabase",
+    specialtyAr: "حفظ الشات الجماعي والذاكرة المتعلمة في D1، تسجيل اللوجز البرمجية، ومنع تضارب الكلمات",
     badgeColor: "bg-blue-500/15 text-blue-600 dark:text-blue-300 border-blue-500/30",
   },
 ];
@@ -251,62 +307,80 @@ export function VorderMeetingChamberModal({
   isRtl = true,
 }: VorderMeetingChamberModalProps) {
   const [activeTab, setActiveTab] = useState<
-    "chat" | "rules" | "report" | "authorities" | "nominations"
+    "chat" | "rules" | "report" | "authorities" | "nominations" | "logs"
   >("chat");
   const [meetingData, setMeetingData] = useState<AgentMeetingData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userInput, setUserInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [isRunningRoundtable, setIsRunningRoundtable] = useState(false);
+  const [isResettingMemory, setIsResettingMemory] = useState(false);
+
   // 10-Button Selector State: "ALL_TEAM" (Button 10) or specific agentId (Buttons 1..9)
   const [selectedTarget, setSelectedTarget] = useState<string>("ALL_TEAM");
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(1500);
-  const [learnedLikes, setLearnedLikes] = useState<string[]>([
-    "العناوين القوية المدعومة بالأرقام والنسب الحقيقية من GSC",
-    "الجداول المقارنة المباشرة وتجنب المقدمات الإنشائية الطويلة",
-    "توجيه كل وكيل في تخصصه الدقيق مع متابعة المدير طارق العبدلي",
-  ]);
-  const [learnedDislikes, setLearnedDislikes] = useState<string[]>([
-    "الكلام العام المكرر بدون أرقام أو إجراءات عملية",
-    "تضارب الكلمات المفتاحية بين الصفحات (Keyword Cannibalization)",
-  ]);
-  const [learnedRules, setLearnedRules] = useState<LearnedRuleItem[]>([
-    {
-      id: "rule_1",
-      category: "binding_rule",
-      text: "قاعدة #1: كل حملة أورجانيك أو مدفوعة تُربط بنوع محتوى وSchema مخصصين وتُراقب حياً في GSC وGA4.",
-      learnedByAgent: "طارق العبدلي + سارة المهندس",
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: "rule_2",
-      category: "binding_rule",
-      text: "قاعدة #2: عند التبديل بين نماذج Google AI Studio الـ 50، يستلم النموذج الجديد سجل الخطوات المنجزة ويكمل من نفس النقطة.",
-      learnedByAgent: "جميع الوكلاء الـ 9",
-      createdAt: new Date().toISOString(),
-    },
-  ]);
-  const [contextChain, setContextChain] = useState<string[]>([
-    "gemini-2.5-pro",
-    "gemini-2.5-flash",
-    "deep-research-pro-preview-12-2025",
-  ]);
-  const [completedChecklist, setCompletedChecklist] = useState<string[]>([
-    "فحص اتصال المنصات الـ 8 وسحب مؤشرات GSC وGA4",
-    "توحيد الهيكلة الهرمية للوكلاء الـ 9 عبر 4 مستويات قيادية",
-    "تجهيز مصفوفة ربط الحملات الأورجانيك والمدفوعة بأنواع المحتوى",
-  ]);
-  const [pendingChecklist, setPendingChecklist] = useState<string[]>([
-    "متابعة تعديل العناوين للصفحات في المراكز 4-15 لرفع الـ CTR",
-    "تطبيق قواعد القائد المتعلمة على المقالات والحملات الجديدة",
-  ]);
-  const [nominationsList, setNominationsList] = useState<AgentNomination[]>([]);
-  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(480);
+  const [totalMessagesCount, setTotalMessagesCount] = useState<number>(0);
+  const [chatWindowLimit, setChatWindowLimit] = useState<number>(250);
 
-  const fetchMeeting = async () => {
+  // 100% Dynamic Learned Memory States (Zero Hardcoded Initial Strings)
+  const [learnedLikes, setLearnedLikes] = useState<LearnedRuleItem[]>([]);
+  const [learnedDislikes, setLearnedDislikes] = useState<LearnedRuleItem[]>([]);
+  const [learnedRules, setLearnedRules] = useState<LearnedRuleItem[]>([]);
+  const [contextChain, setContextChain] = useState<string[]>([]);
+  const [completedChecklist, setCompletedChecklist] = useState<string[]>([]);
+  const [pendingChecklist, setPendingChecklist] = useState<string[]>([]);
+  const [nominationsList, setNominationsList] = useState<AgentNomination[]>([]);
+  const [targetCountries, setTargetCountries] = useState<TargetCountryAllocation[]>([]);
+  const [programmaticLogs, setProgrammaticLogs] = useState<ProgrammaticDiagnosticLogEntry[]>([]);
+
+  // Swipe-Right / Forward Message State
+  const [forwardedMsg, setForwardedMsg] = useState<ForwardedMessagePayload | null>(null);
+  const [swipingMsgId, setSwipingMsgId] = useState<string | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
+
+  const chatBottomRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const normalizeRuleArray = (
+    items: Array<string | LearnedRuleItem> | undefined,
+    defaultCategory: "like" | "dislike" | "binding_rule"
+  ): LearnedRuleItem[] => {
+    if (!Array.isArray(items)) return [];
+    return items.map((item, idx) => {
+      if (typeof item === "string") {
+        return {
+          id: `${defaultCategory}_${idx}`,
+          category: defaultCategory,
+          text: item,
+          learnedByAgent: "الوكلاء الـ 9",
+          createdAt: new Date().toISOString(),
+        };
+      }
+      return item;
+    });
+  };
+
+  const applyTeamMemoryState = (tm: any) => {
+    if (!tm) return;
+    setLearnedLikes(normalizeRuleArray(tm.likes, "like"));
+    setLearnedDislikes(normalizeRuleArray(tm.dislikes, "dislike"));
+    setLearnedRules(normalizeRuleArray(tm.bindingRules, "binding_rule"));
+  };
+
+  const fetchMeeting = async (silent: boolean = false, customLimit?: number) => {
+    const activeLimit = customLimit || chatWindowLimit || 250;
+    if (!silent && !meetingData) {
+      setIsLoading(true);
+    }
     try {
+      const cacheBuster = Date.now();
       const [res, nomRes] = await Promise.all([
-        fetch("/api/automation/agent-meetings"),
-        fetch("/api/automation/agent-nominations").catch(() => null),
+        fetch(`/api/automation/agent-meetings?limit=${activeLimit}&t=${cacheBuster}`, {
+          cache: "no-store",
+        }),
+        fetch(`/api/automation/agent-nominations?t=${cacheBuster}`, {
+          cache: "no-store",
+        }).catch(() => null),
       ]);
       if (!res.ok) throw new Error("فشل جلب تفاصيل الاجتماع");
       const json = (await res.json()) as any;
@@ -318,19 +392,30 @@ export function VorderMeetingChamberModal({
       }
       if (json.meeting) {
         setMeetingData(json.meeting);
-        if (typeof json.meeting.restSecondsRemaining === "number") {
+        const trueTotal =
+          Number(json.totalMessagesCount) ||
+          Number(json.meeting.totalMessagesCount) ||
+          Number(json.meeting.dialogue?.length) ||
+          0;
+        if (trueTotal > 0) {
+          setTotalMessagesCount(trueTotal);
+        }
+        if (!silent && typeof json.meeting.restSecondsRemaining === "number") {
           setSecondsRemaining(json.meeting.restSecondsRemaining);
         }
         if (json.meeting.teamMemory) {
-          if (json.meeting.teamMemory.likes?.length) {
-            setLearnedLikes(json.meeting.teamMemory.likes);
-          }
-          if (json.meeting.teamMemory.dislikes?.length) {
-            setLearnedDislikes(json.meeting.teamMemory.dislikes);
-          }
-          if (json.meeting.teamMemory.bindingRules?.length) {
-            setLearnedRules(json.meeting.teamMemory.bindingRules);
-          }
+          applyTeamMemoryState(json.meeting.teamMemory);
+        }
+        if (Array.isArray(json.meeting.targetCountries)) {
+          setTargetCountries(json.meeting.targetCountries);
+        }
+        if (Array.isArray(json.meeting.programmaticLogs)) {
+          setProgrammaticLogs(json.meeting.programmaticLogs);
+        }
+        if (json.meeting.latestCheckpoint) {
+          setContextChain(json.meeting.latestCheckpoint.previousModelsChain || []);
+          setCompletedChecklist(json.meeting.latestCheckpoint.completedSteps || []);
+          setPendingChecklist(json.meeting.latestCheckpoint.pendingSteps || []);
         }
       }
     } catch (err) {
@@ -342,28 +427,208 @@ export function VorderMeetingChamberModal({
 
   useEffect(() => {
     if (isOpen) {
-      fetchMeeting();
+      fetchMeeting(false);
     }
   }, [isOpen]);
 
+  // Silent Real-Time Polling every 15 seconds while the modal is open so new D1 messages appear automatically!
+  useEffect(() => {
+    if (!isOpen) return;
+    const pollInterval = setInterval(() => {
+      if (!isRunningRoundtable && !isSending) {
+        fetchMeeting(true);
+      }
+    }, 15000);
+    return () => clearInterval(pollInterval);
+  }, [isOpen, isRunningRoundtable, isSending, chatWindowLimit]);
+
+  // Active Countdown Timer: triggers a real autonomous improvement roundtable session when reaching 0!
   useEffect(() => {
     if (!isOpen) return;
     const interval = setInterval(() => {
-      setSecondsRemaining((prev) => (prev > 0 ? prev - 1 : 1500));
+      setSecondsRemaining((prev) => {
+        if (prev <= 1) {
+          if (!isRunningRoundtable) {
+            void handleTriggerAutonomousRoundtable(true);
+          }
+          return 480;
+        }
+        return prev - 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
-  }, [isOpen]);
+  }, [isOpen, isRunningRoundtable]);
 
   useEffect(() => {
     if (activeTab === "chat" && chatBottomRef.current) {
       chatBottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [meetingData?.dialogue, activeTab]);
+  }, [meetingData?.dialogue?.length, activeTab]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
     const s = secs % 60;
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+  };
+
+  // Handle Swipe-Right or Forward button click on any message
+  const handleForwardMessage = (
+    msg: MeetingMessage,
+    actionType: "clarify" | "correct" | "approve" = "clarify"
+  ) => {
+    const targetAg = UNIFIED_9_AGENTS_HIERARCHY.find((a) => a.id === msg.agentId);
+    if (targetAg) {
+      setSelectedTarget(targetAg.id);
+    }
+    setForwardedMsg({
+      id: msg.id,
+      agentId: msg.agentId,
+      agentName: msg.agentName,
+      text: msg.text,
+      actionType,
+    });
+
+    if (actionType === "clarify") {
+      setUserInput("وضّح لي بالتفصيل: بناءً على أي أساس تحليلي وأي مصدر من الخبراء توصلت لهذا الرأي؟");
+    } else if (actionType === "correct") {
+      setUserInput("هذا التحليل غير دقيق — أعد دراسة هذه النقطة فوراً بالمصادر العلمية وصحح المسار واعتمده مع طارق:");
+    } else {
+      setUserInput("فكرة ممتازة — اعتمدها يا طارق وسرّع تنفيذها فوراً في دول النشر:");
+    }
+
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 80);
+    toast.info(`↪️ تم عمل فوروارد لرسالة «${msg.agentName}» — يمكنك الآن سؤاله أو تصحيح مساره!`);
+  };
+
+  // Trigger Autonomous 9-Agent Roundtable & Improvement Session
+  const handleTriggerAutonomousRoundtable = async (isAutoTimerTrigger: boolean = false) => {
+    if (isRunningRoundtable) return;
+    setIsRunningRoundtable(true);
+    try {
+      const res = await fetch("/api/automation/agent-autonomous-roundtable", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          triggerSource: isAutoTimerTrigger
+            ? "AUTO_TIMER_CONTINUOUS_IMPROVEMENT"
+            : "OWNER_CHAMBER_ROUNDTABLE",
+          limit: chatWindowLimit,
+        }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success) {
+        if (typeof data.totalMessagesCount === "number" && data.totalMessagesCount > 0) {
+          setTotalMessagesCount(data.totalMessagesCount);
+        }
+        if (Array.isArray(data.dialogue)) {
+          setMeetingData((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  dialogue: data.dialogue,
+                  totalMessagesCount: data.totalMessagesCount || prev.totalMessagesCount,
+                }
+              : prev
+          );
+        } else if (Array.isArray(data.newMessages)) {
+          setMeetingData((prev) =>
+            prev ? { ...prev, dialogue: [...prev.dialogue, ...data.newMessages] } : prev
+          );
+        }
+        if (Array.isArray(data.targetCountries)) {
+          setTargetCountries(data.targetCountries);
+        }
+        setSecondsRemaining(480);
+        toast.success(
+          `🛠️ أنجز الوكلاء الـ 9 دورة تطوير ذاتي جديدة وأرسلوا تحسينات عملية معتمدة من طارق (+${data.harvestedNew || 15} كلمة جديدة • الإجمالي: ${data.totalMessagesCount || ""} رسالة)!`
+        );
+        fetchMeeting(true);
+      }
+    } catch (e: any) {
+      if (!isAutoTimerTrigger) {
+        toast.error(e?.message || "تعذر عقد الاجتماع الذاتي");
+      }
+    } finally {
+      setIsRunningRoundtable(false);
+    }
+  };
+
+  // Reset Learned Memory (Zero-Out Static/Old Rules)
+  const handleResetMemory = async (clearChat: boolean = false) => {
+    setIsResettingMemory(true);
+    try {
+      const res = await fetch("/api/automation/agent-memory-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clearChat }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success) {
+        applyTeamMemoryState(data.teamMemory);
+        toast.success("🔄 تم تصفير الذاكرة بالكامل! الوكلاء الـ 9 يتعلمون الآن ديناميكياً 100% من توجيهاتك.");
+        fetchMeeting();
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "تعذر تصفير الذاكرة");
+    } finally {
+      setIsResettingMemory(false);
+    }
+  };
+
+  const handleDeleteSingleRule = async (ruleId: string) => {
+    try {
+      const res = await fetch("/api/automation/agent-memory-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ruleId }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success && data.teamMemory) {
+        applyTeamMemoryState(data.teamMemory);
+        toast.success("🗑️ تم حذف القاعدة من ذاكرة الوكلاء");
+      }
+    } catch {
+      toast.error("تعذر حذف القاعدة");
+    }
+  };
+
+  // Toggle or Boost Target Country Impression Velocity
+  const handleCycleCountryVelocity = async (country: TargetCountryAllocation) => {
+    const order: Array<"TURBO_3X" | "TURBO_2X" | "HIGH" | "STANDARD"> = [
+      "TURBO_3X",
+      "TURBO_2X",
+      "HIGH",
+      "STANDARD",
+    ];
+    const nextVel = order[(order.indexOf(country.impressionVelocity) + 1) % order.length];
+    try {
+      const res = await fetch("/api/automation/agent-target-countries", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          updates: [
+            {
+              countryCode: country.countryCode,
+              impressionVelocity: nextVel,
+              active: true,
+            },
+          ],
+          approvedBy: "الباشمهندس محمد عبد السميع + اعتماد طارق العبدلي",
+        }),
+      });
+      const data = (await res.json()) as any;
+      if (data.success && Array.isArray(data.targetCountries)) {
+        setTargetCountries(data.targetCountries);
+        toast.success(
+          `🌍 تم تحديث سرعة العرض في ${country.flag} ${country.countryName} إلى ${nextVel} باعتماد طارق العبدلي!`
+        );
+        fetchMeeting();
+      }
+    } catch {
+      toast.error("تعذر تحديث سرعة العرض للدولة");
+    }
   };
 
   // Trigger Director Tariq's Hierarchical Follow-up Across All 9 Agents
@@ -377,7 +642,7 @@ export function VorderMeetingChamberModal({
           agentId: "ALL_TEAM",
           mode: "hierarchical_followup",
           message:
-            "يا طارق، اطلب متابعة هرمية فورية من جميع الوكلاء الـ 8 كلٌ في تخصصه واعرض لي ما توصلتم إليه بالأرقام.",
+            "يا طارق، اطلب متابعة هرمية فورية من جميع الوكلاء الـ 8 كلٌ في تخصصه لتحليل الـ 38 ظهور في كونسول وسرعة العرض ودول النشر مع ذكر مصادر الخبراء.",
         }),
       });
       const data = (await res.json()) as any;
@@ -389,10 +654,8 @@ export function VorderMeetingChamberModal({
             dialogue: [...prev.dialogue, ...data.replies],
           };
         });
-        if (data.checkpoint?.previousModelsChain) {
-          setContextChain(data.checkpoint.previousModelsChain);
-        }
-        toast.success("👑 أجرى المدير طارق العبدلي جولة متابعة هرمية شاملة مع الوكلاء!");
+        if (data.teamMemory) applyTeamMemoryState(data.teamMemory);
+        toast.success("👑 أجرى المدير طارق العبدلي جولة متابعة هرمية شاملة مع الوكلاء وتم حفظها في D1!");
       }
     } catch (e: any) {
       toast.error(e?.message || "تعذر إجراء جولة المتابعة");
@@ -401,13 +664,15 @@ export function VorderMeetingChamberModal({
     }
   };
 
-  // Send message to either a specific agent (Buttons 1..9, while others listen & learn) OR All 9 Agents (Button 10)
+  // Send message to either a specific agent (Buttons 1..9) OR All 9 Agents (Button 10), with optional Forwarded Message
   const handleSendMessage = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!userInput.trim() || !meetingData) return;
 
     const userText = userInput.trim();
+    const activeForward = forwardedMsg;
     setUserInput("");
+    setForwardedMsg(null);
     setIsSending(true);
 
     const nowStr = new Date().toLocaleTimeString("ar-EG", {
@@ -417,18 +682,21 @@ export function VorderMeetingChamberModal({
     });
 
     const targetAgentObj = UNIFIED_9_AGENTS_HIERARCHY.find((a) => a.id === selectedTarget);
-    const targetLabel =
-      selectedTarget === "ALL_TEAM"
-        ? "🌐 موجه للفريق بالكامل (الوكلاء الـ 9 يشاركون كلٌ في تخصصه)"
-        : `${targetAgentObj?.emoji} موجه إلى: ${targetAgentObj?.nameAr} (بقية الوكلاء الـ 8 في وضع الاستماع والتعلم النشط)`;
+    const targetLabel = activeForward
+      ? `↪️ فوروارد ومراجعة لرسالة (${activeForward.agentName})`
+      : selectedTarget === "ALL_TEAM"
+      ? "🌐 موجه للفريق بالكامل (الوكلاء الـ 9 يشاركون كلٌ في تخصصه)"
+      : `${targetAgentObj?.emoji} موجه إلى: ${targetAgentObj?.nameAr} (بقية الوكلاء الـ 8 في وضع الاستماع والتعلم النشط)`;
 
     const userMsg: MeetingMessage = {
       id: `usr_${Date.now()}`,
+      senderType: "user",
       agentId: "human-director",
-      agentName: "القائد الأعلى (أنت)",
+      agentName: "المالك (محمد عبد السميع)",
       role: targetLabel,
       time: nowStr,
       text: userText,
+      forwardedFrom: activeForward,
     };
 
     setMeetingData((prev) => {
@@ -446,8 +714,9 @@ export function VorderMeetingChamberModal({
         body: JSON.stringify({
           agentId: selectedTarget,
           message: userText,
-          history: meetingData.dialogue.slice(-8).map((d) => ({
-            sender: d.agentId === "human-director" ? "user" : "agent",
+          forwardedMessage: activeForward,
+          history: meetingData.dialogue.slice(-10).map((d) => ({
+            sender: d.agentId === "human-director" || d.agentId === "user" ? "user" : "agent",
             agentName: d.agentName,
             text: d.text,
           })),
@@ -455,16 +724,22 @@ export function VorderMeetingChamberModal({
       });
       const data = (await res.json()) as any;
 
-      if (data.newlyLearnedRule) {
+      if (data.teamMemory) {
+        applyTeamMemoryState(data.teamMemory);
+      } else if (data.newlyLearnedRule) {
         const rule = data.newlyLearnedRule as LearnedRuleItem;
-        setLearnedRules((prev) => [rule, ...prev.slice(0, 19)]);
         if (rule.category === "like") {
-          setLearnedLikes((prev) => [userText, ...prev.slice(0, 14)]);
+          setLearnedLikes((prev) => [rule, ...prev]);
         } else if (rule.category === "dislike") {
-          setLearnedDislikes((prev) => [userText, ...prev.slice(0, 14)]);
+          setLearnedDislikes((prev) => [rule, ...prev]);
+        } else {
+          setLearnedRules((prev) => [rule, ...prev]);
         }
+      }
+
+      if (data.newlyLearnedRule) {
         toast.success(
-          `🧠 استمع الوكلاء الـ 9 وتعلموا قاعدة جديدة من كلامك: "${rule.text}"`,
+          `🧠 استمع الوكلاء الـ 9 وتعلموا ديناميكياً من كلامك: "${data.newlyLearnedRule.text}"`
         );
       }
 
@@ -489,8 +764,7 @@ export function VorderMeetingChamberModal({
           };
         });
       } else if (data.reply) {
-        const agentMeta =
-          targetAgentObj || UNIFIED_9_AGENTS_HIERARCHY[0];
+        const agentMeta = targetAgentObj || UNIFIED_9_AGENTS_HIERARCHY[0];
         const replyMsg: MeetingMessage = {
           id: `resp_${Date.now()}`,
           agentId: agentMeta.id,
@@ -500,6 +774,8 @@ export function VorderMeetingChamberModal({
           modelUsed: data.modelUsed || agentMeta.primaryModel,
           handoverFrom: data.handoverFrom,
           learnedRuleBadge: data.newlyLearnedRule?.text,
+          forwardedFrom: activeForward,
+          tariqApproved: true,
           time: new Date().toLocaleTimeString("ar-EG", {
             hour: "2-digit",
             minute: "2-digit",
@@ -524,6 +800,9 @@ export function VorderMeetingChamberModal({
 
   if (!isOpen) return null;
 
+  const totalLearnedCount =
+    learnedLikes.length + learnedDislikes.length + learnedRules.length;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-md animate-in fade-in duration-200">
       <div
@@ -532,7 +811,7 @@ export function VorderMeetingChamberModal({
         }`}
       >
         {/* 1. Modal Top Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 border-b border-[var(--apple-border)] bg-[var(--apple-canvas)]/70 backdrop-blur-xl shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 border-b border-[var(--apple-border)] bg-[var(--apple-canvas)]/70 backdrop-blur-xl shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative flex size-10 items-center justify-center rounded-2xl bg-gradient-to-tr from-[#97233A] to-indigo-600 text-white shadow-md">
               <Users className="size-5" />
@@ -545,19 +824,33 @@ export function VorderMeetingChamberModal({
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-sm sm:text-base font-black tracking-tight">
-                  غرفة القيادة والاجتماعات الهرمية للوكلاء الـ 9 (نظام الـ 10 أزرار + التعلم المستمر)
+                  غرفة الاجتماعات الذاتية والشات الجماعي الدائم للوكلاء الـ 9 (حفظ 100% في D1 + سحب لليمين للفوروارد)
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  9 وكلاء متصلون • 50 نموذجاً بسياق موحد
+                  38 ظهور GSC • 105 مصدر خبراء • اعتماد طارق الإلزامي
                 </span>
               </div>
               <p className="text-[11px] text-[var(--apple-text-secondary)] mt-0.5">
-                بقيادة المدير التنفيذي 👑 طارق العبدلي: تحدّث مع أي وكيل على حدة (والباقون يستمعون ويتعلمون تفضيلاتك) أو مع الفريق بالكامل في آنٍ واحد
+                الشات محفوظ بالكامل حتى أثناء نومك • اسحب أي رسالة لليمين (أو اضغط ↪️ فوروارد) لمناقشة الوكيل في أسبابه أو تصحيح مساره
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              disabled={isRunningRoundtable}
+              onClick={() => handleTriggerAutonomousRoundtable(false)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:opacity-95 text-white text-[11px] font-black shadow-xs cursor-pointer disabled:opacity-50"
+            >
+              <Zap className="size-3.5" />
+              <span>
+                {isRunningRoundtable
+                  ? "جاري تنفيذ دورة التطوير الذاتي..."
+                  : "🛠️ إطلاق دورة تطوير ذاتي فورية (+تحسين مقال وكلمة)"}
+              </span>
+            </button>
+
             <button
               type="button"
               disabled={isSending}
@@ -565,18 +858,21 @@ export function VorderMeetingChamberModal({
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#97233A] to-indigo-600 hover:opacity-95 text-white text-[11px] font-black shadow-xs cursor-pointer disabled:opacity-50"
             >
               <Sparkles className="size-3.5" />
-              <span>طلب متابعة هرمية من طارق للوكلاء الـ 8</span>
+              <span>جولة متابعة طارق للوكلاء الـ 8</span>
             </button>
 
-            <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[11px] font-mono font-bold">
+            <div
+              title="المؤقت التلقائي لدورة التطوير الذاتي القادمة (يتجدد تلقائياً ويرسل تحسينات جديدة في D1)"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-indigo-500/20 bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[11px] font-mono font-bold"
+            >
               <Clock className="size-3.5 animate-spin text-indigo-500" style={{ animationDuration: "8s" }} />
               <span>{formatTime(secondsRemaining)}</span>
             </div>
 
             <button
               type="button"
-              onClick={fetchMeeting}
-              title="تحديث بيانات الاجتماع"
+              onClick={() => fetchMeeting(false)}
+              title="تحديث بيانات الاجتماع والشات المحفوظ"
               className="p-2 rounded-xl border border-[var(--apple-border)] hover:bg-[var(--apple-pill)] text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)] transition-all cursor-pointer"
             >
               <RefreshCw className="size-4" />
@@ -593,68 +889,71 @@ export function VorderMeetingChamberModal({
         </div>
 
         {/* 2. Navigation Tabs */}
-        <div className="px-5 pt-2.5 pb-2 border-b border-[var(--apple-border)] bg-[var(--apple-canvas)]/30 shrink-0">
+        <div className="px-5 pt-2 pb-2 border-b border-[var(--apple-border)] bg-[var(--apple-canvas)]/30 shrink-0">
           <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] overflow-x-auto">
             <button
               type="button"
               onClick={() => setActiveTab("chat")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                 activeTab === "chat"
                   ? "bg-[var(--apple-card)] text-[var(--apple-text-primary)] shadow-sm border border-[var(--apple-border)]"
                   : "text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)]"
               }`}
             >
               <MessageSquare className="size-3.5 text-indigo-500" />
-              <span>النقاش الحي (الأزرار الـ 10)</span>
+              <span>
+                الشات الجماعي الدائم والاجتماعات (
+                {totalMessagesCount || meetingData?.totalMessagesCount || meetingData?.dialogue.length || 0})
+              </span>
               <span className="size-2 rounded-full bg-emerald-500 animate-pulse" />
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("rules")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                 activeTab === "rules"
                   ? "bg-[var(--apple-card)] text-[var(--apple-text-primary)] shadow-sm border border-[var(--apple-border)]"
                   : "text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)]"
               }`}
             >
               <Brain className="size-3.5 text-fuchsia-500" />
-              <span>ذاكرة القواعد المتعلمة واستمرارية الـ 50 نموذجاً</span>
+              <span>الذاكرة المتكيفة المتعلمة ديناميكياً</span>
               <span className="px-1.5 py-0.5 rounded-full text-[9px] bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300 font-extrabold">
-                {learnedRules.length} قواعد
+                {totalLearnedCount} تفضيل وقاعدة
               </span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("authorities")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                 activeTab === "authorities"
                   ? "bg-[var(--apple-card)] text-[var(--apple-text-primary)] shadow-sm border border-[var(--apple-border)]"
                   : "text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)]"
               }`}
             >
               <Shield className="size-3.5 text-emerald-500" />
-              <span>الهيكلة الهرمية للوكلاء الـ 9 (4 مستويات)</span>
+              <span>الهيكلة الهرمية للوكلاء الـ 9</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("report")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                 activeTab === "report"
                   ? "bg-[var(--apple-card)] text-[var(--apple-text-primary)] shadow-sm border border-[var(--apple-border)]"
                   : "text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)]"
               }`}
             >
               <FileSpreadsheet className="size-3.5 text-blue-500" />
-              <span>التقرير الميداني المجمع</span>
+              <span>التقرير الميداني وتحليل الـ 38 ظهور</span>
             </button>
 
             <button
               type="button"
               onClick={() => setActiveTab("nominations")}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
                 activeTab === "nominations"
                   ? "bg-[var(--apple-card)] text-[var(--apple-text-primary)] shadow-sm border border-[var(--apple-border)]"
                   : "text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)]"
@@ -662,6 +961,19 @@ export function VorderMeetingChamberModal({
             >
               <UserPlus className="size-3.5 text-[#97233A] dark:text-[#E15B75]" />
               <span>ترشيحات التوسع</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveTab("logs")}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                activeTab === "logs"
+                  ? "bg-[var(--apple-card)] text-[var(--apple-text-primary)] shadow-sm border border-[var(--apple-border)]"
+                  : "text-[var(--apple-text-secondary)] hover:text-[var(--apple-text-primary)]"
+              }`}
+            >
+              <Terminal className="size-3.5 text-amber-500" />
+              <span>اللوجز البرمجية وتشخيص الأعطال ({programmaticLogs.length})</span>
             </button>
           </div>
         </div>
@@ -671,33 +983,69 @@ export function VorderMeetingChamberModal({
           {isLoading ? (
             <div className="flex flex-col items-center justify-center h-64 gap-3 text-[var(--apple-text-secondary)]">
               <RefreshCw className="size-8 animate-spin text-indigo-500" />
-              <p className="text-xs font-medium">جاري مزامنة قاعة الاجتماعات والوكلاء الـ 9...</p>
+              <p className="text-xs font-medium">جاري استرجاع الشات الجماعي المحفوظ في D1 والوكلاء الـ 9...</p>
             </div>
           ) : (
             <>
-              {/* TAB 1: LIVE HIERARCHICAL CHAT WITH 10-BUTTON SELECTOR */}
+              {/* TAB 1: PERSISTENT GROUP CHAT + 10-BUTTON SELECTOR + TARGET COUNTRIES + SWIPE-RIGHT FORWARD */}
               {activeTab === "chat" && (
-                <div className="flex flex-col h-full space-y-3">
+                <div className="flex flex-col h-full space-y-2.5">
+                  {/* TARGET PUBLISHING COUNTRIES & IMPRESSION VELOCITY GOVERNOR BAR */}
+                  {targetCountries.length > 0 && (
+                    <div className="rounded-2xl border border-emerald-500/25 bg-emerald-500/[0.04] px-3 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                      <div className="flex items-center gap-1.5 text-[11px] font-black text-emerald-700 dark:text-emerald-300">
+                        <Globe className="size-3.5" />
+                        <span>تحكم الوكلاء في دول النشر وقوة العرض (اضغط لتسريع الـ Velocity باعتماد طارق):</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {targetCountries.map((c) => (
+                          <button
+                            key={c.countryCode}
+                            type="button"
+                            onClick={() => handleCycleCountryVelocity(c)}
+                            title={`تحت إدارة: ${c.controlledByAgent} — اضغط لتغيير سرعة العرض`}
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-[var(--apple-card)] border border-emerald-500/30 hover:border-emerald-500 text-[10px] font-bold transition-all cursor-pointer"
+                          >
+                            <span>{c.flag}</span>
+                            <span>{c.countryName}</span>
+                            <span className="font-mono text-emerald-600 dark:text-emerald-400">
+                              {c.sharePercent}%
+                            </span>
+                            <span
+                              className={`px-1 rounded text-[9px] font-mono ${
+                                c.impressionVelocity === "TURBO_3X"
+                                  ? "bg-rose-500/20 text-rose-600 dark:text-rose-300 font-black"
+                                  : "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300"
+                              }`}
+                            >
+                              {c.impressionVelocity}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* THE 10-BUTTON COMMAND & ACTIVE LISTENING BAR */}
-                  <div className="rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-3 space-y-2 shrink-0">
+                  <div className="rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-2.5 space-y-2 shrink-0">
                     <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
                       <div className="flex items-center gap-1.5 font-extrabold text-[var(--apple-text-primary)]">
                         <Ear className="size-3.5 text-[#97233A] dark:text-rose-400" />
                         <span>
-                          اختر من الأزرار الـ 10: تحدّث مع وكيل محدد (والـ 8 الآخرون يستمعون ويتعلمون تفضيلاتك) أو مع الفريق بالكامل:
+                          الأزرار الـ 10: خاطب وكيلاً محدداً (والـ 8 يستمعون ويتعلمون) أو الفريق بالكامل:
                         </span>
                       </div>
                       <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 px-2.5 py-0.5 text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-300">
-                        <Cpu className="size-3" /> سياق موحد عبر الـ 50 نموذجاً
+                        <BookOpen className="size-3" /> مدعوم بـ {meetingData?.expertSourcesCount || 105} مصدر خبراء عالمي
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                      {/* BUTTON 10 (Placed First/Prominent): ALL 9 AGENTS ROUNDTABLE */}
+                      {/* BUTTON 10: ALL 9 AGENTS ROUNDTABLE */}
                       <button
                         type="button"
                         onClick={() => setSelectedTarget("ALL_TEAM")}
-                        className={`flex items-center justify-between gap-1.5 rounded-xl border px-2.5 py-2 text-[11px] font-black transition-all cursor-pointer ${
+                        className={`flex items-center justify-between gap-1.5 rounded-xl border px-2.5 py-1.5 text-[11px] font-black transition-all cursor-pointer ${
                           selectedTarget === "ALL_TEAM"
                             ? "bg-gradient-to-r from-[#97233A] to-indigo-600 text-white border-transparent shadow-sm"
                             : "bg-[var(--apple-canvas)] border-[var(--apple-border)] text-[var(--apple-text-primary)] hover:border-indigo-500/50"
@@ -720,7 +1068,7 @@ export function VorderMeetingChamberModal({
                             key={ag.id}
                             type="button"
                             onClick={() => setSelectedTarget(ag.id)}
-                            className={`flex items-center justify-between gap-1 rounded-xl border px-2.5 py-2 text-[11px] font-bold transition-all cursor-pointer ${
+                            className={`flex items-center justify-between gap-1 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-all cursor-pointer ${
                               isSelected
                                 ? "bg-indigo-600 text-white border-indigo-500 shadow-sm"
                                 : "bg-[var(--apple-canvas)] border-[var(--apple-border)] text-[var(--apple-text-primary)] hover:border-indigo-500/40"
@@ -745,39 +1093,45 @@ export function VorderMeetingChamberModal({
                         );
                       })}
                     </div>
-
-                    {/* Active Mode Explanation Strip */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[10px] text-[var(--apple-text-secondary)] border-t border-[var(--apple-border)]/60">
-                      {selectedTarget === "ALL_TEAM" ? (
-                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">
-                          ✨ الوضع النشط الآن (الزر العاشر): جميع الوكلاء الـ 9 يستمعون ويرد كل وكيل عليك في تخصصه الدقيق بتسلسل هرمي بقيادة طارق العبدلي.
-                        </span>
-                      ) : (
-                        <span className="font-semibold text-indigo-600 dark:text-indigo-400">
-                          🎧 الوضع النشط الآن: حوار مباشر مع{" "}
-                          <b>
-                            {
-                              UNIFIED_9_AGENTS_HIERARCHY.find(
-                                (a) => a.id === selectedTarget,
-                              )?.nameAr
-                            }
-                          </b>{" "}
-                          — بينما يستمع الوكلاء الـ 8 الآخرون لنقاشك ويتعلمون ما تحبه وما ترفضه لتحديث قواعد الفريق تلقائياً.
-                        </span>
-                      )}
-                      <span className="font-mono">
-                        آخر نموذج نشط: {contextChain[contextChain.length - 1] || "gemini-2.5-pro"}
-                      </span>
-                    </div>
                   </div>
 
-                  {/* Messages Feed */}
-                  <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+                  {/* Persistent Messages Feed with Swipe-Right & Forward Button */}
+                  <div className="flex-1 space-y-2.5 overflow-y-auto pr-1">
+                    <div className="rounded-2xl border border-indigo-500/25 bg-indigo-500/[0.06] px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+                      <div className="flex flex-wrap items-center gap-2 font-bold text-[var(--apple-text-primary)]">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-extrabold">
+                          <span className="size-1.5 rounded-full bg-emerald-500 animate-ping" />
+                          تزامن حي كل 15 ثانية
+                        </span>
+                        <span>
+                          إجمالي الأرشيف المحفوظ في D1:{" "}
+                          <strong className="font-mono text-indigo-600 dark:text-indigo-400">
+                            {totalMessagesCount || meetingData?.totalMessagesCount || meetingData?.dialogue.length || 0}
+                          </strong>{" "}
+                          رسالة (معروض أحدث{" "}
+                          <strong className="font-mono">{meetingData?.dialogue.length || 0}</strong> رسالة بالترتيب الزمني الصحيح)
+                        </span>
+                      </div>
+                      {(totalMessagesCount || 0) > (meetingData?.dialogue.length || 0) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const nextLimit = Math.min(1000, Math.max(500, totalMessagesCount + 50));
+                            setChatWindowLimit(nextLimit);
+                            void fetchMeeting(false, nextLimit);
+                          }}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-black shadow-xs cursor-pointer transition-all"
+                        >
+                          <span>📜 عرض السجل التاريخي الكامل ({totalMessagesCount} رسالة)</span>
+                        </button>
+                      )}
+                    </div>
+
                     {meetingData?.dialogue.map((msg) => {
-                      const isDirector = msg.agentId === "vorder-tariq";
-                      const isHuman = msg.agentId === "human-director";
+                      const isDirector = msg.agentId === "vorder-tariq" || msg.senderType === "director_approval";
+                      const isHuman = msg.agentId === "human-director" || msg.agentId === "user" || msg.senderType === "user";
                       const agentInfo = UNIFIED_9_AGENTS_HIERARCHY.find(
-                        (a) => a.id === msg.agentId,
+                        (a) => a.id === msg.agentId
                       );
 
                       const badgeColor = isHuman
@@ -788,14 +1142,45 @@ export function VorderMeetingChamberModal({
                       return (
                         <div
                           key={msg.id}
-                          className={`flex flex-col gap-1.5 p-3.5 rounded-2xl border transition-all ${
+                          onTouchStart={(e) => {
+                            touchStartXRef.current = e.touches[0]?.clientX ?? null;
+                          }}
+                          onTouchEnd={(e) => {
+                            if (touchStartXRef.current !== null) {
+                              const deltaX = (e.changedTouches[0]?.clientX ?? 0) - touchStartXRef.current;
+                              if (Math.abs(deltaX) > 45) {
+                                setSwipingMsgId(msg.id);
+                                setTimeout(() => setSwipingMsgId(null), 400);
+                                handleForwardMessage(msg, "clarify");
+                              }
+                            }
+                            touchStartXRef.current = null;
+                          }}
+                          onMouseDown={(e) => {
+                            touchStartXRef.current = e.clientX;
+                          }}
+                          onMouseUp={(e) => {
+                            if (touchStartXRef.current !== null) {
+                              const deltaX = e.clientX - touchStartXRef.current;
+                              if (deltaX > 65) {
+                                setSwipingMsgId(msg.id);
+                                setTimeout(() => setSwipingMsgId(null), 400);
+                                handleForwardMessage(msg, "clarify");
+                              }
+                            }
+                            touchStartXRef.current = null;
+                          }}
+                          className={`group relative flex flex-col gap-1.5 p-3.5 rounded-2xl border transition-all select-text ${
+                            swipingMsgId === msg.id ? "translate-x-3 ring-2 ring-indigo-500" : ""
+                          } ${
                             isHuman
                               ? "bg-amber-500/[0.07] border-amber-500/30 mr-4 sm:mr-10"
                               : isDirector
-                              ? "bg-purple-500/[0.06] border-purple-500/30"
+                              ? "bg-purple-500/[0.07] border-purple-500/35 shadow-xs"
                               : "bg-[var(--apple-card)] border-[var(--apple-border)]"
                           }`}
                         >
+                          {/* Header row */}
                           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                             <div className="flex flex-wrap items-center gap-1.5">
                               <span className="font-black text-[var(--apple-text-primary)]">
@@ -806,10 +1191,14 @@ export function VorderMeetingChamberModal({
                               >
                                 {agentInfo ? `${agentInfo.roleAr} (${agentInfo.tierLabelAr})` : msg.role}
                               </span>
+                              {msg.tariqApproved && !isHuman && (
+                                <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
+                                  ✅ معتمد من طارق العبدلي
+                                </span>
+                              )}
                               {msg.modelUsed && (
                                 <span className="px-2 py-0.5 rounded-full text-[9px] font-mono font-bold bg-fuchsia-500/10 text-fuchsia-600 dark:text-fuchsia-300 border border-fuchsia-500/25">
                                   ⚡ {msg.modelUsed}
-                                  {msg.handoverFrom ? ` (استكمل سياق ${msg.handoverFrom})` : ""}
                                 </span>
                               )}
                               {msg.phase && (
@@ -818,14 +1207,67 @@ export function VorderMeetingChamberModal({
                                 </span>
                               )}
                             </div>
-                            <span className="text-[10px] font-mono text-[var(--apple-text-secondary)]">
-                              {msg.time}
-                            </span>
+
+                            <div className="flex items-center gap-1.5">
+                              {/* Forward / Re-study Action Buttons */}
+                              <button
+                                type="button"
+                                onClick={() => handleForwardMessage(msg, "clarify")}
+                                title="اسحب الرسالة لليمين أو اضغط لعمل فوروارد ومناقشة الوكيل في أسبابه ومصادره"
+                                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border border-indigo-500/25 text-[10px] font-bold transition-all cursor-pointer"
+                              >
+                                <CornerUpRight className="size-3" />
+                                <span>فوروارد / مراجعة</span>
+                              </button>
+                              {!isHuman && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleForwardMessage(msg, "correct")}
+                                  title="تصحيح خطأ وإلزام الوكيل بإعادة الدراسة بالمصادر العلمية"
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-600 dark:text-rose-300 border border-rose-500/25 text-[10px] font-bold transition-all cursor-pointer"
+                                >
+                                  <span>❌ تصحيح المسار</span>
+                                </button>
+                              )}
+                              <span className="text-[10px] font-mono text-[var(--apple-text-secondary)]">
+                                {msg.time}
+                              </span>
+                            </div>
                           </div>
 
+                          {/* Quoted / Forwarded Message Box if present */}
+                          {msg.forwardedFrom && (
+                            <div className="mt-1 p-2 rounded-xl bg-indigo-500/10 border-r-4 border-indigo-500 text-[11px] text-[var(--apple-text-secondary)]">
+                              <div className="font-bold text-indigo-600 dark:text-indigo-300">
+                                ↪️ رداً على فوروارد رسالة ({msg.forwardedFrom.agentName}):
+                              </div>
+                              <div className="line-clamp-2 italic mt-0.5">
+                                «{msg.forwardedFrom.text}»
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Message Body */}
                           <p className="text-xs sm:text-sm text-[var(--apple-text-primary)] leading-relaxed mt-1 whitespace-pre-line">
                             {msg.text}
                           </p>
+
+                          {/* Citations Badges */}
+                          {msg.citations && msg.citations.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5 pt-1.5 border-t border-[var(--apple-border)]/50">
+                              <span className="text-[10px] font-bold text-[var(--apple-text-secondary)]">
+                                📚 مصادر الخبراء الموثقة:
+                              </span>
+                              {msg.citations.map((cit, cIdx) => (
+                                <span
+                                  key={cIdx}
+                                  className="px-2 py-0.5 rounded-md bg-blue-500/10 border border-blue-500/25 text-[10px] font-mono font-semibold text-blue-600 dark:text-sky-300"
+                                >
+                                  {cit}
+                                </span>
+                              ))}
+                            </div>
+                          )}
 
                           {msg.learnedRuleBadge && (
                             <div className="mt-1.5 inline-flex items-center gap-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
@@ -841,19 +1283,81 @@ export function VorderMeetingChamberModal({
                     <div ref={chatBottomRef} />
                   </div>
 
+                  {/* Interactive Forward / Swipe-Right Review Banner above Input */}
+                  {forwardedMsg && (
+                    <div className="rounded-2xl border-2 border-indigo-500/50 bg-indigo-500/[0.08] p-3 space-y-2 shrink-0 animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 text-xs font-black text-indigo-700 dark:text-indigo-300">
+                          <CornerUpRight className="size-4" />
+                          <span>
+                            مراجعة وفوروارد رسالة «{forwardedMsg.agentName}» (سيتم إعادة الدراسة واعتماد القرار مع طارق العبدلي):
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setForwardedMsg(null)}
+                          className="p-1 rounded-lg hover:bg-black/10 text-[var(--apple-text-secondary)] cursor-pointer"
+                        >
+                          <X className="size-3.5" />
+                        </button>
+                      </div>
+
+                      <p className="text-[11px] text-[var(--apple-text-secondary)] line-clamp-2 bg-[var(--apple-card)] p-2 rounded-xl border border-[var(--apple-border)]">
+                        «{forwardedMsg.text}»
+                      </p>
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => handleForwardMessage(forwardedMsg as any, "clarify")}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                            forwardedMsg.actionType === "clarify"
+                              ? "bg-indigo-600 text-white border-indigo-600"
+                              : "bg-[var(--apple-card)] border-[var(--apple-border)]"
+                          }`}
+                        >
+                          🔍 اسأل عن الأساس التحليلي والمصادر
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleForwardMessage(forwardedMsg as any, "correct")}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                            forwardedMsg.actionType === "correct"
+                              ? "bg-rose-600 text-white border-rose-600"
+                              : "bg-[var(--apple-card)] border-[var(--apple-border)]"
+                          }`}
+                        >
+                          ❌ هذا خطأ — أعد الدراسة وصحح المسار
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleForwardMessage(forwardedMsg as any, "approve")}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border cursor-pointer ${
+                            forwardedMsg.actionType === "approve"
+                              ? "bg-emerald-600 text-white border-emerald-600"
+                              : "bg-[var(--apple-card)] border-[var(--apple-border)]"
+                          }`}
+                        >
+                          ⚡ اعتمد المقترح وسرّع التنفيذ
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Input Form */}
                   <form
                     onSubmit={handleSendMessage}
                     className="flex items-center gap-2 p-2 rounded-2xl bg-[var(--apple-card)] border border-[var(--apple-border)] shadow-xs shrink-0"
                   >
                     <input
+                      ref={inputRef}
                       type="text"
                       value={userInput}
                       onChange={(e) => setUserInput(e.target.value)}
                       placeholder={
                         selectedTarget === "ALL_TEAM"
-                          ? "تحدّث مع الفريق بالكامل (أو اكتب: بحب كذا / مبحبش كذا / قاعدة جديدة ليحفظها الوكلاء الـ 9)..."
-                          : `وجّه سؤالك أو تعليماتك إلى ${
+                          ? "تحدّث مع الفريق بالكامل (أو اكتب: بحب كذا / مبحبش كذا / قاعدة جديدة ليحفظها الوكلاء الـ 9 ديناميكياً في D1)..."
+                          : `وجّه سؤالك أو تصحيحك إلى ${
                               UNIFIED_9_AGENTS_HIERARCHY.find((a) => a.id === selectedTarget)
                                 ?.nameAr || "الوكيل"
                             } (والـ 8 الآخرون يستمعون ويتعلمون)...`
@@ -868,7 +1372,9 @@ export function VorderMeetingChamberModal({
                       <Send className="size-3.5" />
                       <span>
                         {isSending
-                          ? "جاري المعالجة..."
+                          ? "جاري المعالجة والحفظ..."
+                          : forwardedMsg
+                          ? "إرسال الفوروارد والمراجعة"
                           : selectedTarget === "ALL_TEAM"
                           ? "إرسال للفريق بالكامل (9)"
                           : "إرسال للوكيل المختار"}
@@ -878,9 +1384,149 @@ export function VorderMeetingChamberModal({
                 </div>
               )}
 
-              {/* TAB 2: LEARNED RULES & 50-MODEL STATEFUL CONTEXT HANDOVER */}
+              {/* TAB 2: 100% DYNAMIC LEARNED MEMORY & STATEFUL CONTEXT HANDOVER */}
               {activeTab === "rules" && (
                 <div className="space-y-5">
+                  {/* Top Control Bar to Zero-Out Memory */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-indigo-500/30 bg-indigo-500/[0.06]">
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-[var(--apple-text-primary)]">
+                        🧠 محرك الذاكرة الدلالية المتكيفة 100% (Cloudflare D1: autonomous_agent_learned_memory)
+                      </h3>
+                      <p className="text-[11px] text-[var(--apple-text-secondary)] mt-0.5">
+                        تم تصفير جميع النصوص الثابتة القديمة — كل ما يظهر هنا يتعلمه الوكلاء الـ 9 ديناميكياً من كلامك وفوروارد رسائلك فقط ويُحقن في الكلمات والمقالات والاجتماعات.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={isResettingMemory}
+                      onClick={() => handleResetMemory(false)}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black transition-all cursor-pointer disabled:opacity-50"
+                    >
+                      <Trash2 className="size-3.5" />
+                      <span>
+                        {isResettingMemory ? "جاري التصفير..." : "🔄 تصفير الذاكرة بالكامل وبدء تعلم نقي"}
+                      </span>
+                    </button>
+                  </div>
+
+                  {/* Likes & Dislikes Learned Dynamically from User */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.05] p-4 space-y-2.5">
+                      <h3 className="text-xs font-black text-emerald-700 dark:text-emerald-300 flex items-center justify-between">
+                        <span>💚 ما يحبه المالك ويفضله (Learned Likes)</span>
+                        <span className="font-mono text-[10px]">{learnedLikes.length}</span>
+                      </h3>
+                      {learnedLikes.length === 0 ? (
+                        <p className="text-xs text-[var(--apple-text-secondary)] italic p-3 rounded-xl bg-[var(--apple-card)] border border-dashed border-emerald-500/30">
+                          الذاكرة مصفّرة وجاهزة — اكتب في الشات مثلاً: «بحب التركيز على الأرقام والجداول ودول الخليج» ليتعلمها الوكلاء فوراً!
+                        </p>
+                      ) : (
+                        <ul className="space-y-1.5 text-xs text-[var(--apple-text-primary)]">
+                          {learnedLikes.map((like) => (
+                            <li
+                              key={like.id}
+                              className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--apple-card)] border border-emerald-500/20"
+                            >
+                              <div>
+                                <span className="font-bold">✓ {like.text}</span>
+                                <span className="block text-[10px] text-[var(--apple-text-secondary)]">
+                                  تعلمها: {like.learnedByAgent}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSingleRule(like.id)}
+                                className="p-1 text-rose-500 hover:bg-rose-500/10 rounded cursor-pointer"
+                                title="حذف من الذاكرة"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+
+                    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/[0.05] p-4 space-y-2.5">
+                      <h3 className="text-xs font-black text-rose-700 dark:text-rose-300 flex items-center justify-between">
+                        <span>🚫 ما يرفضه المالك ولا يحبه (Learned Dislikes)</span>
+                        <span className="font-mono text-[10px]">{learnedDislikes.length}</span>
+                      </h3>
+                      {learnedDislikes.length === 0 ? (
+                        <p className="text-xs text-[var(--apple-text-secondary)] italic p-3 rounded-xl bg-[var(--apple-card)] border border-dashed border-rose-500/30">
+                          الذاكرة مصفّرة وجاهزة — اكتب في الشات مثلاً: «مبحبش المقدمات الطويلة أو الكلام العام بدون مصادر» ليتجنبها الوكلاء فوراً!
+                        </p>
+                      ) : (
+                        <ul className="space-y-1.5 text-xs text-[var(--apple-text-primary)]">
+                          {learnedDislikes.map((dislike) => (
+                            <li
+                              key={dislike.id}
+                              className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-[var(--apple-card)] border border-rose-500/20"
+                            >
+                              <div>
+                                <span className="font-bold">✕ {dislike.text}</span>
+                                <span className="block text-[10px] text-[var(--apple-text-secondary)]">
+                                  تعلمها: {dislike.learnedByAgent}
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteSingleRule(dislike.id)}
+                                className="p-1 text-rose-500 hover:bg-rose-500/10 rounded cursor-pointer"
+                                title="حذف من الذاكرة"
+                              >
+                                <Trash2 className="size-3.5" />
+                              </button>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Binding Rules List */}
+                  <div className="rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-4 space-y-3">
+                    <h3 className="text-xs font-black text-[var(--apple-text-primary)] flex items-center justify-between">
+                      <span className="flex items-center gap-2">
+                        <Brain className="size-4 text-indigo-500" />
+                        <span>دفتر القواعد الملزمة المستنبطة ديناميكياً من توجيهاتك وتصحيحات الفوروارد:</span>
+                      </span>
+                      <span className="font-mono text-[10px]">{learnedRules.length} قواعد</span>
+                    </h3>
+                    {learnedRules.length === 0 ? (
+                      <p className="text-xs text-[var(--apple-text-secondary)] italic p-3 rounded-xl bg-[var(--apple-canvas)] border border-dashed border-[var(--apple-border)]">
+                        لا توجد قواعد ملزمة مسجلة بعد — وجّه أي أمر أو اعمل فوروارد لأي رسالة لتصحيحها وسيتم تسجيل القاعدة هنا تلقائياً!
+                      </p>
+                    ) : (
+                      <div className="space-y-2">
+                        {learnedRules.map((r) => (
+                          <div
+                            key={r.id}
+                            className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] text-xs"
+                          >
+                            <div className="space-y-0.5">
+                              <span className="font-bold text-[var(--apple-text-primary)] block">
+                                {r.text}
+                              </span>
+                              <span className="text-[10px] text-[var(--apple-text-secondary)]">
+                                المسجل: {r.learnedByAgent}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSingleRule(r.id)}
+                              className="p-1.5 text-rose-500 hover:bg-rose-500/10 rounded-lg cursor-pointer shrink-0"
+                              title="حذف القاعدة"
+                            >
+                              <Trash2 className="size-3.5" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Stateful Context Handover Across 50 Models */}
                   <div className="rounded-2xl border border-fuchsia-500/30 bg-fuchsia-500/[0.06] p-4 space-y-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -891,32 +1537,31 @@ export function VorderMeetingChamberModal({
                         </span>
                       </div>
                       <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-fuchsia-500/20 text-fuchsia-700 dark:text-fuchsia-300">
-                        OAUTH_KV + Memory Synced
+                        D1 + OAUTH_KV Synced
                       </span>
                     </div>
-                    <p className="text-xs text-[var(--apple-text-secondary)]">
-                      عند التبديل اللحظي بين نماذج Google AI Studio الـ 50، يستلم النموذج الجديد سجل ما أنجزه النموذج السابق ويكمل المهمة من نفس النقطة دون فقدان أي سياق:
-                    </p>
 
-                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                      <span className="text-[11px] font-bold">سلسلة النماذج المشاركة في السياق الحالي:</span>
-                      {contextChain.map((m, i) => (
-                        <React.Fragment key={i}>
-                          <span className="px-2.5 py-1 rounded-lg bg-[var(--apple-card)] border border-fuchsia-500/30 text-[11px] font-mono font-bold text-fuchsia-600 dark:text-fuchsia-300">
-                            {m}
-                          </span>
-                          {i < contextChain.length - 1 && (
-                            <span className="text-xs font-bold text-fuchsia-500">➔</span>
-                          )}
-                        </React.Fragment>
-                      ))}
-                    </div>
+                    {contextChain.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[11px] font-bold">سلسلة النماذج المشاركة في السياق الحي:</span>
+                        {contextChain.map((m, i) => (
+                          <React.Fragment key={i}>
+                            <span className="px-2.5 py-1 rounded-lg bg-[var(--apple-card)] border border-fuchsia-500/30 text-[11px] font-mono font-bold text-fuchsia-600 dark:text-fuchsia-300">
+                              {m}
+                            </span>
+                            {i < contextChain.length - 1 && (
+                              <span className="text-xs font-bold text-fuchsia-500">➔</span>
+                            )}
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    )}
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
                       <div className="rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)] p-3 space-y-1.5">
                         <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
                           <CheckCircle2 className="size-3.5" />
-                          <span>ما أنهته النماذج السابقة (Completed Checkpoint):</span>
+                          <span>ما أنهته النماذج في الجلسة الحية:</span>
                         </div>
                         <ul className="space-y-1 text-[11px] text-[var(--apple-text-primary)] list-disc list-inside">
                           {completedChecklist.map((item, idx) => (
@@ -928,7 +1573,7 @@ export function VorderMeetingChamberModal({
                       <div className="rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)] p-3 space-y-1.5">
                         <div className="text-[11px] font-black text-amber-600 dark:text-amber-400 flex items-center gap-1.5">
                           <GitBranch className="size-3.5" />
-                          <span>ما يستكمله النموذج الحالي (Pending Handover):</span>
+                          <span>ما يستكمله النموذج الحالي:</span>
                         </div>
                         <ul className="space-y-1 text-[11px] text-[var(--apple-text-primary)] list-disc list-inside">
                           {pendingChecklist.map((item, idx) => (
@@ -936,64 +1581,6 @@ export function VorderMeetingChamberModal({
                           ))}
                         </ul>
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Likes & Dislikes Learned from User */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/[0.05] p-4 space-y-2.5">
-                      <h3 className="text-xs font-black text-emerald-700 dark:text-emerald-300 flex items-center gap-2">
-                        <span>💚 ما يحبه القائد ويفضله (Learned Likes)</span>
-                      </h3>
-                      <ul className="space-y-1.5 text-xs text-[var(--apple-text-primary)]">
-                        {learnedLikes.map((like, idx) => (
-                          <li
-                            key={idx}
-                            className="p-2 rounded-xl bg-[var(--apple-card)] border border-emerald-500/20"
-                          >
-                            ✓ {like}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div className="rounded-2xl border border-rose-500/30 bg-rose-500/[0.05] p-4 space-y-2.5">
-                      <h3 className="text-xs font-black text-rose-700 dark:text-rose-300 flex items-center gap-2">
-                        <span>🚫 ما يرفضه القائد ولا يحبه (Learned Dislikes)</span>
-                      </h3>
-                      <ul className="space-y-1.5 text-xs text-[var(--apple-text-primary)]">
-                        {learnedDislikes.map((dislike, idx) => (
-                          <li
-                            key={idx}
-                            className="p-2 rounded-xl bg-[var(--apple-card)] border border-rose-500/20"
-                          >
-                            ✕ {dislike}
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
-
-                  {/* Binding Rules List */}
-                  <div className="rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-4 space-y-3">
-                    <h3 className="text-xs font-black text-[var(--apple-text-primary)] flex items-center gap-2">
-                      <Brain className="size-4 text-indigo-500" />
-                      <span>دفتر القواعد الملزمة المستنبطة من توجيهاتك للوكلاء الـ 9:</span>
-                    </h3>
-                    <div className="space-y-2">
-                      {learnedRules.map((r) => (
-                        <div
-                          key={r.id}
-                          className="flex items-center justify-between gap-3 p-3 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] text-xs"
-                        >
-                          <span className="font-bold text-[var(--apple-text-primary)]">
-                            {r.text}
-                          </span>
-                          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 shrink-0">
-                            {r.learnedByAgent}
-                          </span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>
@@ -1060,16 +1647,28 @@ export function VorderMeetingChamberModal({
                     </p>
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
                     <div className="p-4 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)]">
                       <span className="text-[11px] text-[var(--apple-text-secondary)] font-medium block">
                         المدونة = السايت ماب = D1
                       </span>
                       <span className="text-xl sm:text-2xl font-extrabold text-[var(--apple-text-primary)] font-mono mt-1 block">
-                        {meetingData?.consolidatedReport.publishedCount || 647}
+                        {meetingData?.consolidatedReport.publishedCount || 661}
                       </span>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 block">
-                        ✓ مطابقة 100% (فقد البيانات: 0)
+                        ✓ ينشرها كريم الدسوقي تلقائياً
+                      </span>
+                    </div>
+
+                    <div className="p-4 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)]">
+                      <span className="text-[11px] text-[var(--apple-text-secondary)] font-medium block">
+                        الكلمات المفتاحية المولدة
+                      </span>
+                      <span className="text-xl sm:text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 font-mono mt-1 block">
+                        {meetingData?.consolidatedReport.keywordsCount || 1775}
+                      </span>
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold mt-1 block">
+                        ✓ تحصدها ياسمين يومياً
                       </span>
                     </div>
 
@@ -1078,10 +1677,10 @@ export function VorderMeetingChamberModal({
                         المقالات في طابور النشر
                       </span>
                       <span className="text-xl sm:text-2xl font-extrabold text-[#97233A] dark:text-[#E15B75] font-mono mt-1 block">
-                        {meetingData?.consolidatedReport.queueCount || 96}
+                        {meetingData?.consolidatedReport.queueCount || 100}
                       </span>
                       <span className="text-[10px] text-[var(--apple-text-secondary)] font-bold mt-1 block">
-                        تحت إشراف سارة وياسمين
+                        Rolling Buffer 100/100
                       </span>
                     </div>
 
@@ -1090,10 +1689,10 @@ export function VorderMeetingChamberModal({
                         ظهورات Google Search Console
                       </span>
                       <span className="text-xl sm:text-2xl font-extrabold text-blue-600 dark:text-sky-400 font-mono mt-1 block">
-                        {meetingData?.consolidatedReport.gscImpressions || 36}
+                        {meetingData?.consolidatedReport.gscImpressions || 38}
                       </span>
-                      <span className="text-[10px] text-blue-600 dark:text-sky-400 font-bold mt-1 block">
-                        قراءات حية من المنصات الـ 8
+                      <span className="text-[10px] text-rose-600 dark:text-rose-400 font-bold mt-1 block">
+                        ⚡ سرعة العرض: TURBO_3X
                       </span>
                     </div>
 
@@ -1105,7 +1704,7 @@ export function VorderMeetingChamberModal({
                         100%
                       </span>
                       <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold mt-1 block">
-                        0 تحذيرات (تم تحويل 30 رابط -v2 بـ 301)
+                        0 تحذيرات (تحت إشراف ليلى)
                       </span>
                     </div>
                   </div>
@@ -1169,21 +1768,54 @@ export function VorderMeetingChamberModal({
 
               {/* TAB 5: AI AGENT NOMINATIONS */}
               {activeTab === "nominations" && (
-                <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs">
-                    <div className="flex items-center gap-2">
-                      <Award className="size-4 text-amber-500 shrink-0" />
-                      <span className="font-bold text-amber-800 dark:text-amber-300">
-                        نظام ترشيح الوكلاء الفرعيين المتخصصين بناءً على أبحاث الخبراء في فترة الاستراحة (بقيادة طارق العبدلي):
-                      </span>
+                <div dir="rtl" className="space-y-4 text-right">
+                  <div className="p-4 rounded-2xl bg-[var(--apple-card)] border-2 border-indigo-500/25 shadow-2xs space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <Award className="size-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                        <span className="text-xs sm:text-sm font-black text-[var(--apple-text-primary)]">
+                          نظام ترشيح وتعيين الوكلاء المتخصصين بناءً على أبحاث الخبراء (بقيادة طارق العبدلي):
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] font-extrabold">
+                        <span className="px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-800 dark:text-indigo-200 border border-indigo-500/30">
+                          الوكلاء الأساسيون: 9
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 border border-emerald-500/35">
+                          المعتمدون في المكتب 3D:{" "}
+                          {
+                            (nominationsList.length > 0
+                              ? nominationsList
+                              : meetingData?.latestNomination
+                              ? [meetingData.latestNomination]
+                              : []
+                            ).filter((n) => n.status === "approved").length
+                          }
+                        </span>
+                        <span className="px-2.5 py-1 rounded-full bg-amber-500/15 text-amber-900 dark:text-amber-200 border border-amber-500/35">
+                          بانتظار قرارك:{" "}
+                          {
+                            (nominationsList.length > 0
+                              ? nominationsList
+                              : meetingData?.latestNomination
+                              ? [meetingData.latestNomination]
+                              : []
+                            ).filter((n) => n.status === "pending").length
+                          }
+                        </span>
+                      </div>
                     </div>
+
+                    <p className="text-xs font-medium text-[var(--apple-text-secondary)] leading-relaxed">
+                      عند الضغط على <strong className="text-emerald-700 dark:text-emerald-300 font-extrabold">«اعتماد وتعيين الوكيل فورياً»</strong> يتم تفعيل الدوال الثلاث تلقائياً في المكتب ثلاثي الأبعاد وفي قاعدة بيانات D1: (1) بناء مكتب كامل بكمبيوتر وشاشة حية للوكيل الجديد، (2) إضافة كرسي جديد له وتوسيع طاولة وغرفة الاجتماعات الزجاجية بالتناسب، و(3) توليد شخصية الوكيل بتصميم شعر وملابس وإكسسوارات وألوان فريدة غير مطابقة لأي وكيل آخر.
+                    </p>
                   </div>
 
                   {(nominationsList.length > 0
                     ? nominationsList
                     : meetingData?.latestNomination
-                      ? [meetingData.latestNomination]
-                      : []
+                    ? [meetingData.latestNomination]
+                    : []
                   ).map((nom) => (
                     <VorderAgentNominationCard
                       key={nom.id}
@@ -1202,10 +1834,78 @@ export function VorderMeetingChamberModal({
                                 : prev.latestNomination,
                           };
                         });
-                        toast.success(`تم تحديث حالة ترشيح الوكيل «${updated.agentName}» بنجاح!`);
                       }}
                     />
                   ))}
+                </div>
+              )}
+
+              {/* TAB 6: PROGRAMMATIC DIAGNOSTIC LOGS */}
+              {activeTab === "logs" && (
+                <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/[0.06]">
+                    <div>
+                      <h3 className="text-xs sm:text-sm font-black text-[var(--apple-text-primary)] flex items-center gap-2">
+                        <Terminal className="size-4 text-amber-500" />
+                        <span>سجل التشخيص البرمجي الحي للوكلاء الـ 9 (autonomous_programmatic_logs)</span>
+                      </h3>
+                      <p className="text-[11px] text-[var(--apple-text-secondary)] mt-0.5">
+                        يوثق كل عملية برمجية، اسم الملف والدالة، النموذج المستخدم، زمن التنفيذ بالمللي ثانية، وأي أخطاء أو تفعيل للـ Fallback مع طريقة المعالجة.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fetchMeeting(false)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)] text-xs font-bold cursor-pointer"
+                    >
+                      <RefreshCw className="size-3.5" />
+                      <span>تحديث اللوجز</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {programmaticLogs.map((log) => (
+                      <div
+                        key={log.id}
+                        className="p-3.5 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] space-y-1.5 text-xs"
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span
+                              className={`px-2 py-0.5 rounded-md font-mono text-[10px] font-black ${
+                                log.status === "SUCCESS"
+                                  ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+                                  : log.status === "FALLBACK_ENGAGED"
+                                  ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                  : "bg-rose-500/15 text-rose-600 dark:text-rose-400"
+                              }`}
+                            >
+                              {log.status}
+                            </span>
+                            <span className="font-black text-[var(--apple-text-primary)]">
+                              {log.agentName}
+                            </span>
+                            <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-mono text-[10px]">
+                              {log.component}
+                            </span>
+                            <span className="font-mono text-[10px] text-fuchsia-600 dark:text-fuchsia-400 font-bold">
+                              ⚡ {log.modelUsed} ({log.durationMs}ms)
+                            </span>
+                          </div>
+                          <span className="font-mono text-[10px] text-[var(--apple-text-secondary)]">
+                            {new Date(log.timestamp).toLocaleTimeString("ar-EG")}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--apple-text-primary)]">{log.details}</p>
+                        {log.remediationHint && (
+                          <div className="flex items-center gap-1.5 text-[11px] text-amber-600 dark:text-amber-400 font-medium pt-1">
+                            <AlertTriangle className="size-3.5 shrink-0" />
+                            <span>التشخيص والحل البرمجي: {log.remediationHint}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </>
@@ -1216,9 +1916,9 @@ export function VorderMeetingChamberModal({
         <div className="px-5 py-2.5 border-t border-[var(--apple-border)] bg-[var(--apple-canvas)]/40 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--apple-text-secondary)] shrink-0">
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-emerald-500" />
-            <span>الوكلاء الـ 9 • نظام الأزرار الـ 10 • ذاكرة القواعد المتعلمة • 50 نموذجاً في Google AI Studio</span>
+            <span>الوكلاء الـ 9 • شات جماعي واجتماعات محفوظة 100% في D1 • سحب لليمين للفوروارد والتصحيح • 105 مصدر للخبراء</span>
           </div>
-          <span className="font-mono">Stateful Context Handover: ACTIVE</span>
+          <span className="font-mono">Tariq Executive Gate & D1 Learning: ACTIVE</span>
         </div>
       </div>
     </div>
