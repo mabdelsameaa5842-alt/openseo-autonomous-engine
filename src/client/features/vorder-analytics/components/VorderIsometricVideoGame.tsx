@@ -270,28 +270,32 @@ export const VorderIsometricVideoGame: React.FC = () => {
 
   if (renderMode === '3d') {
     return (
-      <div className="relative w-full space-y-3 font-sans select-none">
+      <div dir="rtl" className="relative w-full space-y-3 font-sans select-none text-right">
         {/* Top View Mode Switcher Header */}
-        <div className="flex items-center justify-between px-2">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <button
               type="button"
               onClick={() => setRenderMode('3d')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-bold text-xs shadow-md transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-400 text-cyan-300 font-bold text-xs shadow-md transition-all cursor-pointer"
             >
-              <Zap className="size-3.5" />
-              <span>المقر التنفيذي ثلاثي الأبعاد 360°</span>
+              <Zap className="size-3.5 shrink-0" />
+              <span>
+                المقر التنفيذي ثلاثي الأبعاد <bdi dir="ltr">360°</bdi>
+              </span>
             </button>
             <button
               type="button"
               onClick={() => setRenderMode('2d')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white font-semibold text-xs transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-zinc-400 hover:text-white font-semibold text-xs transition-all cursor-pointer"
             >
-              <span>المشهد البكسلي التفاعلي 2.5D</span>
+              <span>
+                المشهد البكسلي التفاعلي <bdi dir="ltr">2.5D</bdi>
+              </span>
             </button>
           </div>
           <span className="text-[11px] font-mono text-zinc-400 hidden sm:inline">
-            بيئة العمل التكتيكية • محاكاة 60 إطار/ثانية ومسارات نيون
+            بيئة العمل التكتيكية • محاكاة <bdi dir="ltr">60 FPS</bdi> ومسارات نيون
           </span>
         </div>
 

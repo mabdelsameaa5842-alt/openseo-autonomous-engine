@@ -14,6 +14,19 @@ export interface VorderAgentConfig {
   pants: number;
   avatarUrl: string;
   metrics: string;
+  // 8-Axis Procedural Morphology & Wardrobe DNA
+  skinTone?: number;
+  hairStyle?: 'executive_part' | 'ponytail' | 'spiky_tech' | 'hijab_wrap' | 'beanie_cap' | 'curly_volume';
+  outfitStyle?: 'open_blazer_tie' | 'trainee_tactical_vest' | 'tech_hoodie' | 'double_breasted_vest' | 'cyber_turtleneck';
+  vestOrJacketColor?: number;
+  tieOrAccentColor?: number;
+  accessory?: 'glasses_thin' | 'ar_visor' | 'headset_mic' | 'dual_lanyard' | 'none';
+  shoeColor?: number;
+  heightScale?: number;
+  shoulderScale?: number;
+  isExpansionTrainee?: boolean;
+  nominationId?: string;
+  visualProfileSummary?: string;
 }
 
 export const VORDER_OFFICE_AGENTS: VorderAgentConfig[] = [
@@ -29,8 +42,17 @@ export const VORDER_OFFICE_AGENTS: VorderAgentConfig[] = [
     hair: 0x1a1a2e,
     shirt: 0x0A3D5C,
     pants: 0x0A1628,
+    skinTone: 0xDFB995,
+    hairStyle: 'executive_part',
+    outfitStyle: 'open_blazer_tie',
+    vestOrJacketColor: 0x0F172A,
+    tieOrAccentColor: 0x0DEEF3,
+    accessory: 'glasses_thin',
+    shoeColor: 0x111827,
+    heightScale: 1.05,
+    shoulderScale: 1.06,
     avatarUrl: '/game-assets/avatars/agent_01_tariq.png',
-    metrics: '23 ظهور GSC معتمد • دقة 99.8%',
+    metrics: '38 ظهور GSC معتمد • دقة 99.8%',
   },
   {
     id: 1,
@@ -44,6 +66,15 @@ export const VORDER_OFFICE_AGENTS: VorderAgentConfig[] = [
     hair: 0x4A148C,
     shirt: 0x6A1B9A,
     pants: 0x1a1a2e,
+    skinTone: 0xF3D2B8,
+    hairStyle: 'ponytail',
+    outfitStyle: 'cyber_turtleneck',
+    vestOrJacketColor: 0x4A148C,
+    tieOrAccentColor: 0xE040FB,
+    accessory: 'glasses_thin',
+    shoeColor: 0x311B92,
+    heightScale: 0.97,
+    shoulderScale: 0.94,
     avatarUrl: '/game-assets/avatars/agent_02_sarah.png',
     metrics: '4 حملات سلة وزد بتكلفة $0.00',
   },
@@ -56,41 +87,68 @@ export const VORDER_OFFICE_AGENTS: VorderAgentConfig[] = [
     color: 0xF5A623,
     hex: '#F5A623',
     screen: 'charts',
-    hair: 0x8B4513,
+    hair: 0x5D3A1A,
     shirt: 0x8B6914,
     pants: 0x3E2723,
+    skinTone: 0xE8C3A2,
+    hairStyle: 'hijab_wrap',
+    outfitStyle: 'double_breasted_vest',
+    vestOrJacketColor: 0x4E342E,
+    tieOrAccentColor: 0xF5A623,
+    accessory: 'dual_lanyard',
+    shoeColor: 0x3E2723,
+    heightScale: 0.96,
+    shoulderScale: 0.95,
     avatarUrl: '/game-assets/avatars/agent_08_nadine.png',
-    metrics: '485 مصطلح مفهرس • ترتيب 48.5',
+    metrics: '1,775 مصطلح مفهرس • Striking Distance',
   },
   {
     id: 3,
     name: 'عمر الفاروق',
     nameEn: 'Omar El-Farouk',
-    role: 'صائغ المحتوى والأرشفة الفورية',
-    roleEn: 'Content Architect & Pipeline Lead',
+    role: 'مهندس الروابط والسلطة الدلالية',
+    roleEn: 'Internal PageRank & Authority Architect',
     color: 0xFF9100,
     hex: '#FF9100',
     screen: 'deploy',
     hair: 0x1a1a1a,
     shirt: 0xBF360C,
-    pants: 0x3E2723,
+    pants: 0x27272A,
+    skinTone: 0xC99E76,
+    hairStyle: 'curly_volume',
+    outfitStyle: 'double_breasted_vest',
+    vestOrJacketColor: 0x7C2D12,
+    tieOrAccentColor: 0xFF9100,
+    accessory: 'none',
+    shoeColor: 0x1F2937,
+    heightScale: 1.03,
+    shoulderScale: 1.04,
     avatarUrl: '/game-assets/avatars/agent_07_omar.png',
-    metrics: '742 مقال منشور ومؤرشف حياً',
+    metrics: '661 مقال مترابط داخلياً • 0 يتامى',
   },
   {
     id: 4,
     name: 'كريم الدسوقي',
     nameEn: 'Karim El-Desouki',
-    role: 'مهندس النظم السحابية وقواعد D1',
-    roleEn: 'Cloud SWE & D1 Database Guardian',
+    role: 'مهندس النشر السحابي وقواعد D1',
+    roleEn: 'Cloud SWE & D1 Publishing Pipeline',
     color: 0x00E676,
     hex: '#00E676',
     screen: 'terminal',
     hair: 0x222222,
     shirt: 0x1B5E20,
     pants: 0x1a1a2e,
+    skinTone: 0xD7AF88,
+    hairStyle: 'spiky_tech',
+    outfitStyle: 'tech_hoodie',
+    vestOrJacketColor: 0x064E3B,
+    tieOrAccentColor: 0x00E676,
+    accessory: 'headset_mic',
+    shoeColor: 0x065F46,
+    heightScale: 1.01,
+    shoulderScale: 1.02,
     avatarUrl: '/game-assets/avatars/agent_03_kareem.png',
-    metrics: '$0.00 تكلفة • استجابة 9ms',
+    metrics: '661 = 661 = 661 • استجابة 9ms',
   },
   {
     id: 5,
@@ -104,38 +162,65 @@ export const VORDER_OFFICE_AGENTS: VorderAgentConfig[] = [
     hair: 0xD84315,
     shirt: 0xC62828,
     pants: 0x212121,
+    skinTone: 0xF5D6BE,
+    hairStyle: 'ponytail',
+    outfitStyle: 'open_blazer_tie',
+    vestOrJacketColor: 0x7F1D1D,
+    tieOrAccentColor: 0xFF5252,
+    accessory: 'ar_visor',
+    shoeColor: 0x18181B,
+    heightScale: 0.98,
+    shoulderScale: 0.96,
     avatarUrl: '/game-assets/avatars/agent_06_layla.png',
     metrics: '100% Core Web Vitals • 0 أخطاء',
   },
   {
     id: 6,
     name: 'فارس النجار',
-    nameEn: 'Faris Al-Tariq',
-    role: 'منسق الترددات والأرشفة اللحظية',
-    roleEn: 'Audio Director & Tactical Frequency',
-    color: 0xCCDDEE,
-    hex: '#CCDDEE',
-    screen: 'strategy',
-    hair: 0x555555,
-    shirt: 0x546E7A,
-    pants: 0x263238,
+    nameEn: 'Faris Al-Najjar',
+    role: 'قائد السيو الإقليمي والأسواق الخمسة',
+    roleEn: 'Regional GEO & Local SEO Commander',
+    color: 0x38BDF8,
+    hex: '#38BDF8',
+    screen: 'map',
+    hair: 0x475569,
+    shirt: 0x0369A1,
+    pants: 0x1E293B,
+    skinTone: 0xC59469,
+    hairStyle: 'beanie_cap',
+    outfitStyle: 'tech_hoodie',
+    vestOrJacketColor: 0x0C4A6E,
+    tieOrAccentColor: 0x38BDF8,
+    accessory: 'headset_mic',
+    shoeColor: 0x0F172A,
+    heightScale: 1.02,
+    shoulderScale: 1.03,
     avatarUrl: '/game-assets/avatars/agent_05_fahd.png',
-    metrics: 'ترددات Lofi تكتيكية • مزامنة دقيقة',
+    metrics: '5 أسواق نشطة (SA/EG/AE/KW/QA)',
   },
   {
     id: 7,
     name: 'نور المرشدي',
     nameEn: 'Nour El-Morshedy',
-    role: 'باحثة الأسواق وتجربة التحويل CRO',
-    roleEn: 'Market Researcher & CRO Specialist',
-    color: 0x7C4DFF,
-    hex: '#7C4DFF',
+    role: 'مهندسة اقتباسات الذكاء الاصطناعي GEO',
+    roleEn: 'AI Overviews & GEO Entity Specialist',
+    color: 0xA855F7,
+    hex: '#A855F7',
     screen: 'docs',
-    hair: 0x4E342E,
-    shirt: 0x4527A0,
+    hair: 0x3B0764,
+    shirt: 0x581C87,
     pants: 0x1a1a2e,
+    skinTone: 0xEDD0B7,
+    hairStyle: 'hijab_wrap',
+    outfitStyle: 'cyber_turtleneck',
+    vestOrJacketColor: 0x4C1D95,
+    tieOrAccentColor: 0xA855F7,
+    accessory: 'ar_visor',
+    shoeColor: 0x2E1065,
+    heightScale: 0.97,
+    shoulderScale: 0.95,
     avatarUrl: '/game-assets/avatars/agent_04_ziad.png',
-    metrics: 'تحويل سلات الشراء +34%',
+    metrics: 'اقتباسات Perplexity و Gemini +34%',
   },
   {
     id: 8,
@@ -149,6 +234,15 @@ export const VORDER_OFFICE_AGENTS: VorderAgentConfig[] = [
     hair: 0x3E2723,
     shirt: 0x1565C0,
     pants: 0x263238,
+    skinTone: 0xD2A67D,
+    hairStyle: 'executive_part',
+    outfitStyle: 'open_blazer_tie',
+    vestOrJacketColor: 0x1E3A8A,
+    tieOrAccentColor: 0x448AFF,
+    accessory: 'dual_lanyard',
+    shoeColor: 0x0F172A,
+    heightScale: 1.04,
+    shoulderScale: 1.05,
     avatarUrl: '/game-assets/avatars/agent_09_rami.png',
     metrics: 'التدقيق الجنائي 360° • فحص الروابط والأمن SSL',
   },
@@ -198,8 +292,8 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   let isPan = false;
   let pointerDownPos = { x: 0, y: 0 };
   let prev = { x: 0, y: 0 };
-  const sph = { theta: Math.PI / 4.5, phi: Math.PI / 4.5, radius: 34 };
-  const tgt = new THREE.Vector3(0, 1.8, 0);
+  const sph = { theta: Math.PI / 5.2, phi: Math.PI / 4.2, radius: 31 };
+  const tgt = new THREE.Vector3(-1.5, 1.5, 1.2);
   let autoRot = false;
   let autoTmr: any = null;
 
@@ -345,120 +439,14 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     }
   }
 
-  // ═══════════════════════════════════════════════════
-  // MEETING ROOM (Right side / East — Expanded for all 9 Agents & 9 Chairs)
-  // ═══════════════════════════════════════════════════
-  const MRX = 7.8, MRZ = -3.0;
-  const mrGlass = Glass();
-  let w = new THREE.Mesh(new THREE.BoxGeometry(0.06, 3.5, 6.2), mrGlass);
-  w.position.set(MRX - 3.7, 1.75, MRZ);
-  office.add(w);
-
-  w = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.5, 0.06), mrGlass);
-  w.position.set(MRX - 2.5, 1.75, MRZ + 3.1);
-  office.add(w);
-  w = new THREE.Mesh(new THREE.BoxGeometry(2.4, 3.5, 0.06), mrGlass);
-  w.position.set(MRX + 2.5, 1.75, MRZ + 3.1);
-  office.add(w);
-
-  // Frame lines
-  [[MRX - 3.7, MRZ - 3.1], [MRX - 3.7, MRZ + 3.1], [MRX + 3.7, MRZ - 3.1], [MRX + 3.7, MRZ + 3.1]].forEach(([fx, fz]) => {
-    const f = new THREE.Mesh(new THREE.BoxGeometry(0.05, 3.5, 0.05), M(0x99AABB));
-    f.position.set(fx, 1.75, fz);
-    office.add(f);
-  });
-
-  // Expanded Conference Table for 9 Agents
-  const mt = new THREE.Mesh(new THREE.BoxGeometry(5.2, 0.08, 1.7), M(0xDDE4EC));
-  mt.position.set(MRX + 0.2, 0.72, MRZ);
-  mt.castShadow = true;
-  mt.receiveShadow = true;
-  office.add(mt);
-  [
-    [-2.2, -0.65],
-    [0, -0.65],
-    [2.2, -0.65],
-    [-2.2, 0.65],
-    [0, 0.65],
-    [2.2, 0.65],
-  ].forEach(([tx, tz]) => {
-    const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 0.06), M(0xBBCCDD));
-    l.position.set(MRX + 0.2 + tx, 0.35, MRZ + tz);
-    office.add(l);
-  });
-
-  // All 9 Meeting Chairs (1 Executive Head Chair for Tariq + 4 North + 4 South)
-  const meetSeats = [
-    { x: MRX - 2.85, z: MRZ, ry: Math.PI / 2, isHead: true },      // 0: طارق العبدلي (رأس الطاولة)
-    { x: MRX - 1.6, z: MRZ - 1.22, ry: 0, isHead: false },         // 1: سارة المهندس
-    { x: MRX - 0.4, z: MRZ - 1.22, ry: 0, isHead: false },         // 2: ياسمين الشريف
-    { x: MRX + 0.8, z: MRZ - 1.22, ry: 0, isHead: false },         // 3: عمر الفاروق
-    { x: MRX + 2.0, z: MRZ - 1.22, ry: 0, isHead: false },         // 4: كريم الدسوقي
-    { x: MRX - 1.6, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 5: ليلى الألفي
-    { x: MRX - 0.4, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 6: فارس النجار
-    { x: MRX + 0.8, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 7: نور المرشدي
-    { x: MRX + 2.0, z: MRZ + 1.22, ry: Math.PI, isHead: false },   // 8: زياد عمران
-  ];
-  meetSeats.forEach((s) => {
-    const chairColor = s.isHead ? 0x1E293B : 0x37474F;
-    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.38), M(chairColor));
-    seat.position.set(s.x, 0.42, s.z);
-    office.add(seat);
-
-    const bk = new THREE.Mesh(
-      s.isHead
-        ? new THREE.BoxGeometry(0.04, 0.38, 0.38)
-        : new THREE.BoxGeometry(0.38, 0.34, 0.04),
-      M(chairColor)
-    );
-    const bx = s.isHead ? s.x - 0.19 : s.x;
-    const bz = s.isHead ? s.z : s.z + (s.ry === 0 ? -0.19 : 0.19);
-    bk.position.set(bx, 0.61, bz);
-    office.add(bk);
-
-    [-0.13, 0.13].forEach((ox) => {
-      [-0.13, 0.13].forEach((oz) => {
-        const l = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.4, 0.03), M(0x90A4AE));
-        l.position.set(s.x + ox, 0.2, s.z + oz);
-        office.add(l);
-      });
-    });
-  });
-
-  // Whiteboard with unified 647 = 647 = 647 VORDER SEO Ground-Truth stats
-  const wbB = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.15, 0.03), M(0xCCCCCC));
-  wbB.position.set(MRX + 0.2, 2.2, MRZ - 2.95);
-  office.add(wbB);
-
-  const wbc = document.createElement('canvas');
-  wbc.width = 360;
-  wbc.height = 140;
-  const wbx = wbc.getContext('2d');
-  if (wbx) {
-    wbx.fillStyle = '#FAFAFA';
-    wbx.fillRect(0, 0, 360, 140);
-    wbx.font = 'bold 18px sans-serif';
-    wbx.fillStyle = '#059669';
-    wbx.fillText('VORDER 360° GROUND TRUTH (9 AGENTS)', 14, 28);
-    wbx.font = 'bold 12px monospace';
-    wbx.fillStyle = '#111827';
-    wbx.fillText('▸ BLOG: 647 = SITEMAP: 647 = D1: 647', 14, 54);
-    wbx.fillStyle = '#059669';
-    wbx.fillText('▸ SITE AUDIT: 100% (0 WARNINGS / 30 301s)', 14, 78);
-    wbx.fillStyle = '#2563EB';
-    wbx.fillText('▸ GSC: 36 IMPRESSIONS • COST: $0.00', 14, 102);
-    wbx.fillStyle = '#D97706';
-    wbx.fillText('▸ SALLA & ZID ORGANIC AD HUBS ACTIVE', 20, 120);
-  }
-  const wbt = new THREE.CanvasTexture(wbc);
-  const wbm = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.92), new THREE.MeshBasicMaterial({ map: wbt }));
-  wbm.position.set(MRX, 2.2, MRZ - 2.7);
-  office.add(wbm);
+  // Active runtime list of agents (starts with 9 core agents, grows dynamically as nominations are approved)
+  const activeAgentsList: VorderAgentConfig[] = [...VORDER_OFFICE_AGENTS];
+  const spawnedNominationIds = new Set<string>();
 
   // ═══════════════════════════════════════════════════
-  // DESK POSITIONS (Complete 3x3 Symmetrical Layout for all 9 Agents)
+  // DESK POSITIONS (Base 3x3 Grid for 0..8 + Dynamic Expansion Slots for 9+)
   // ═══════════════════════════════════════════════════
-  const desks = [
+  const desks: Array<{ x: number; z: number }> = [
     { x: -8, z: -3 },  // Desk 0: Tariq (North-West)
     { x: -4, z: -3 },  // Desk 1: Sara (North-Center)
     { x: 0,  z: -3 },  // Desk 2: Yasmine (North-East)
@@ -467,15 +455,46 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     { x: 0,  z: 1.5 }, // Desk 5: Layla (Mid-East)
     { x: -8, z: 6 },   // Desk 6: Faris (South-West)
     { x: -4, z: 6 },   // Desk 7: Nour (South-Center)
-    { x: 0,  z: 6 },   // Desk 8: Ziad Omran (South-East - 9th Workstation!)
+    { x: 0,  z: 6 },   // Desk 8: Ziad Omran (South-East)
   ];
 
+  const expansionDeskSlots: Array<{ x: number; z: number }> = [
+    { x: 3.1, z: 1.5 },  // Slot 9 (East Wing Mid)
+    { x: 3.1, z: 6.0 },  // Slot 10 (East Wing South)
+    { x: -8.0, z: -6.2 }, // Slot 11 (North Wing West)
+    { x: -4.0, z: -6.2 }, // Slot 12 (North Wing Center)
+    { x: 0.0,  z: -6.2 }, // Slot 13 (North Wing East)
+    { x: 3.1,  z: -6.2 }, // Slot 14 (North-East Corner)
+  ];
+
+  function getOrAssignDeskPosition(slotIndex: number): { x: number; z: number } {
+    if (desks[slotIndex]) return desks[slotIndex];
+    const expIdx = slotIndex - 9;
+    const coord =
+      expansionDeskSlots[expIdx] || {
+        x: -8 + (expIdx % 4) * 3.7,
+        z: -6.2 - Math.floor(expIdx / 4) * 2.8,
+      };
+    desks[slotIndex] = coord;
+    return coord;
+  }
+
   // ═══════════════════════════════════════════════════
-  // CHARACTER BUILDER (Standing & Sitting Voxels with Typing Arms)
+  // CHARACTER BUILDER (8-Axis Procedural Voxel Morphology, Outfits & Accessories)
   // ═══════════════════════════════════════════════════
   function buildChar(agent: VorderAgentConfig, standing = false) {
     const g = new THREE.Group();
-    const skin = 0xDEB887;
+    const skin = agent.skinTone || 0xDEB887;
+    const shoeCol = agent.shoeColor || 0x222222;
+    const vestCol = agent.vestOrJacketColor || 0x1E293B;
+    const accentCol = agent.tieOrAccentColor || agent.color;
+    const outfit = agent.outfitStyle || 'open_blazer_tie';
+    const hairStyle = agent.hairStyle || 'executive_part';
+    const accessory = agent.accessory || 'none';
+
+    const torsoY = standing ? 0.58 : 0.62;
+    const headY = standing ? 0.86 : 0.90;
+    const faceZDir = standing ? 1 : -1; // Standing faces +Z, Sitting faces -Z (toward monitor)
 
     if (standing) {
       // Legs
@@ -491,27 +510,23 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
 
       // Shoes
       [-1, 1].forEach((s) => {
-        const sh = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.05, 0.16), M(0x222222));
+        const sh = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.05, 0.16), M(shoeCol));
         sh.position.set(s * 0.08, 0.025, 0);
         g.add(sh);
       });
 
-      // Torso
+      // Base Torso
       const torso = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.3, 0.16), M(agent.shirt));
-      torso.position.set(0, 0.58, 0);
+      torso.position.set(0, torsoY, 0);
       torso.castShadow = true;
       g.add(torso);
-
-      // Collar
-      const col = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.1), M(0xFFFFFF));
-      col.position.set(0, 0.74, 0);
-      g.add(col);
 
       // Arms hanging with walking swing references
       [-1, 1].forEach((s) => {
         const armGroup = new THREE.Group();
         armGroup.position.set(s * 0.2, 0.65, 0);
-        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.08), M(agent.shirt));
+        const sleeveColor = outfit === 'open_blazer_tie' || outfit === 'tech_hoodie' ? vestCol : agent.shirt;
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.28, 0.08), M(sleeveColor));
         arm.position.set(0, -0.15, 0);
         armGroup.add(arm);
         const hand = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.08, 0.07), M(skin));
@@ -520,70 +535,35 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
         armGroup.userData = { isWalkerArm: true, phase: s > 0 ? 0 : Math.PI };
         g.add(armGroup);
       });
-
-      // Head
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), M(skin));
-      head.position.set(0, 0.86, 0);
-      head.castShadow = true;
-      g.add(head);
-
-      // Hair
-      const hair = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.22), M(agent.hair));
-      hair.position.set(0, 0.96, -0.01);
-      g.add(hair);
-      const hairB = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.04), M(agent.hair));
-      hairB.position.set(0, 0.9, -0.11);
-      g.add(hairB);
-
-      // Eyes
-      [-1, 1].forEach((s) => {
-        const eye = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.01), MB(0xFFFFFF));
-        eye.position.set(s * 0.05, 0.88, 0.11);
-        g.add(eye);
-        const pup = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.01), MB(0x1a1a2e));
-        pup.position.set(s * 0.05, 0.87, 0.115);
-        g.add(pup);
-      });
-
-      // Badge
-      const badge = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.05), MB(agent.color));
-      badge.position.set(0.16, 0.65, 0.07);
-      g.add(badge);
     } else {
       // Sitting character facing -Z (toward monitor and keyboard)
-      // Thighs
       [-1, 1].forEach((s) => {
         const thigh = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.1, 0.22), M(agent.pants));
         thigh.position.set(s * 0.09, 0.42, -0.05);
         g.add(thigh);
       });
 
-      // Lower legs
       [-1, 1].forEach((s) => {
         const shin = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.25, 0.1), M(agent.pants));
         shin.position.set(s * 0.09, 0.24, -0.15);
         g.add(shin);
-        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.05, 0.14), M(0x222222));
+        const shoe = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.05, 0.14), M(shoeCol));
         shoe.position.set(s * 0.09, 0.1, -0.15);
         g.add(shoe);
       });
 
-      // Torso
+      // Base Torso
       const torso = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.28, 0.16), M(agent.shirt));
-      torso.position.set(0, 0.62, 0);
+      torso.position.set(0, torsoY, 0);
       torso.castShadow = true;
       g.add(torso);
 
-      // Collar
-      const col = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.1), M(0xFFFFFF));
-      col.position.set(0, 0.77, 0);
-      g.add(col);
-
-      // Arms typing actively on keyboard (procedural typing animation references)
+      // Arms typing actively on keyboard
       [-1, 1].forEach((s) => {
         const armGroup = new THREE.Group();
         armGroup.position.set(s * 0.2, 0.62, -0.04);
-        const ua = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.08), M(agent.shirt));
+        const sleeveColor = outfit === 'open_blazer_tie' || outfit === 'tech_hoodie' ? vestCol : agent.shirt;
+        const ua = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.08), M(sleeveColor));
         ua.position.set(0, -0.06, -0.04);
         armGroup.add(ua);
         const fa = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.18), M(skin));
@@ -592,84 +572,281 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
         armGroup.userData = { isTypingArm: true, side: s };
         g.add(armGroup);
       });
-
-      // Head
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), M(skin));
-      head.position.set(0, 0.9, 0);
-      head.castShadow = true;
-      g.add(head);
-
-      // Hair
-      const hair = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.22), M(agent.hair));
-      hair.position.set(0, 1.0, 0.01);
-      g.add(hair);
-      const hairB = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.04), M(agent.hair));
-      hairB.position.set(0, 0.94, 0.11);
-      g.add(hairB);
-
-      // Eyes facing monitor
-      [-1, 1].forEach((s) => {
-        const eye = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.01), MB(0xFFFFFF));
-        eye.position.set(s * 0.05, 0.92, -0.11);
-        g.add(eye);
-        const pup = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.01), MB(0x1a1a2e));
-        pup.position.set(s * 0.05, 0.91, -0.115);
-        g.add(pup);
-      });
-
-      // Badge
-      const badge = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.05), MB(agent.color));
-      badge.position.set(0.16, 0.68, -0.06);
-      g.add(badge);
     }
+
+    // ─── Multi-Layered Wardrobe Geometry (5 Distinct Outfits) ───
+    const frontZ = faceZDir * 0.086;
+    if (outfit === 'open_blazer_tie') {
+      const col = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.11), M(0xFFFFFF));
+      col.position.set(0, torsoY + 0.15, 0);
+      g.add(col);
+      // Left & Right Blazer Lapels
+      [-1, 1].forEach((s) => {
+        const lapel = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.27, 0.175), M(vestCol));
+        lapel.position.set(s * 0.10, torsoY, 0);
+        g.add(lapel);
+      });
+      // Necktie
+      const tie = new THREE.Mesh(new THREE.BoxGeometry(0.038, 0.21, 0.015), MB(accentCol));
+      tie.position.set(0, torsoY + 0.01, frontZ);
+      g.add(tie);
+    } else if (outfit === 'trainee_tactical_vest') {
+      // Tactical Trainee Vest Shell
+      const vest = new THREE.Mesh(new THREE.BoxGeometry(0.295, 0.25, 0.175), M(vestCol));
+      vest.position.set(0, torsoY - 0.01, 0);
+      g.add(vest);
+      // Glowing Shoulder Epaulettes
+      [-1, 1].forEach((s) => {
+        const ep = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.025, 0.14), MB(accentCol));
+        ep.position.set(s * 0.11, torsoY + 0.145, 0);
+        g.add(ep);
+      });
+      // High-visibility Trainee Chest Stripe & Lanyard ID Card
+      const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.03, 0.015), MB(accentCol));
+      stripe.position.set(0, torsoY + 0.05, frontZ);
+      g.add(stripe);
+      const idCard = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.085, 0.018), MB(0xFFFFFF));
+      idCard.position.set(-0.06, torsoY - 0.03, frontZ + faceZDir * 0.005);
+      g.add(idCard);
+    } else if (outfit === 'tech_hoodie') {
+      // Rear Hood resting behind neck
+      const hood = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.09, 0.12), M(vestCol));
+      hood.position.set(0, torsoY + 0.16, -faceZDir * 0.05);
+      g.add(hood);
+      // Drawstrings
+      [-1, 1].forEach((s) => {
+        const cord = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.12, 0.015), MB(accentCol));
+        cord.position.set(s * 0.045, torsoY + 0.06, frontZ);
+        g.add(cord);
+      });
+    } else if (outfit === 'double_breasted_vest') {
+      const col = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.04, 0.11), M(0xFFFFFF));
+      col.position.set(0, torsoY + 0.15, 0);
+      g.add(col);
+      const waistcoat = new THREE.Mesh(new THREE.BoxGeometry(0.29, 0.24, 0.172), M(vestCol));
+      waistcoat.position.set(0, torsoY - 0.01, 0);
+      g.add(waistcoat);
+      [-0.04, 0.04].forEach((bx) => {
+        [-0.04, 0.03].forEach((by) => {
+          const btn = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.015), MB(accentCol));
+          btn.position.set(bx, torsoY + by, frontZ);
+          g.add(btn);
+        });
+      });
+    } else if (outfit === 'cyber_turtleneck') {
+      // High Turtleneck Collar
+      const neck = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.07, 0.14), M(vestCol));
+      neck.position.set(0, torsoY + 0.16, 0);
+      g.add(neck);
+      const chestNeon = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.025, 0.015), MB(accentCol));
+      chestNeon.position.set(0, torsoY + 0.06, frontZ);
+      g.add(chestNeon);
+    }
+
+    // Badge
+    const badge = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.05), MB(agent.color));
+    badge.position.set(0.15, torsoY + 0.06, faceZDir * 0.065);
+    g.add(badge);
+
+    // ─── Head & Eyes ───
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.2, 0.2), M(skin));
+    head.position.set(0, headY, 0);
+    head.castShadow = true;
+    g.add(head);
+
+    [-1, 1].forEach((s) => {
+      const eye = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.01), MB(0xFFFFFF));
+      eye.position.set(s * 0.05, headY + 0.02, faceZDir * 0.105);
+      g.add(eye);
+      const pup = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 0.01), MB(0x1a1a2e));
+      pup.position.set(s * 0.05, headY + 0.015, faceZDir * 0.112);
+      g.add(pup);
+    });
+
+    // ─── 6 Distinct 3D Hair / Headwear Styles ───
+    const hairTop = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.22), M(agent.hair));
+    hairTop.position.set(0, headY + 0.10, -faceZDir * 0.01);
+    g.add(hairTop);
+
+    const hairBack = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.14, 0.045), M(agent.hair));
+    hairBack.position.set(0, headY + 0.04, -faceZDir * 0.11);
+    g.add(hairBack);
+
+    if (hairStyle === 'ponytail') {
+      const pony = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.18, 0.07), M(agent.hair));
+      pony.position.set(0, headY - 0.02, -faceZDir * 0.145);
+      g.add(pony);
+    } else if (hairStyle === 'spiky_tech') {
+      [-0.06, 0, 0.06].forEach((sx, i) => {
+        const spike = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.07, 0.08), M(agent.hair));
+        spike.position.set(sx, headY + 0.15, faceZDir * (0.02 - i * 0.02));
+        spike.rotation.z = sx * 2.2;
+        g.add(spike);
+      });
+    } else if (hairStyle === 'hijab_wrap') {
+      const wrapSides = new THREE.Mesh(new THREE.BoxGeometry(0.235, 0.22, 0.21), M(agent.hair));
+      wrapSides.position.set(0, headY + 0.01, -faceZDir * 0.015);
+      g.add(wrapSides);
+      const wrapNeck = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.08, 0.18), M(agent.hair));
+      wrapNeck.position.set(0, headY - 0.11, 0);
+      g.add(wrapNeck);
+    } else if (hairStyle === 'beanie_cap') {
+      const beanie = new THREE.Mesh(new THREE.BoxGeometry(0.23, 0.10, 0.23), M(vestCol));
+      beanie.position.set(0, headY + 0.105, 0);
+      g.add(beanie);
+      const rim = new THREE.Mesh(new THREE.BoxGeometry(0.238, 0.03, 0.238), MB(accentCol));
+      rim.position.set(0, headY + 0.065, 0);
+      g.add(rim);
+    } else if (hairStyle === 'curly_volume') {
+      const afro = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.12, 0.25), M(agent.hair));
+      afro.position.set(0, headY + 0.11, 0);
+      g.add(afro);
+    }
+
+    // ─── 3D Facial & Head Accessories ───
+    if (accessory === 'glasses_thin') {
+      [-1, 1].forEach((s) => {
+        const frameRim = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.045, 0.015), MB(0x111827));
+        frameRim.position.set(s * 0.052, headY + 0.02, faceZDir * 0.114);
+        g.add(frameRim);
+      });
+      const bridge = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.012, 0.015), MB(accentCol));
+      bridge.position.set(0, headY + 0.025, faceZDir * 0.116);
+      g.add(bridge);
+    } else if (accessory === 'ar_visor') {
+      const visor = new THREE.Mesh(
+        new THREE.BoxGeometry(0.215, 0.048, 0.025),
+        new THREE.MeshBasicMaterial({ color: accentCol, transparent: true, opacity: 0.85 })
+      );
+      visor.position.set(0, headY + 0.022, faceZDir * 0.112);
+      g.add(visor);
+    } else if (accessory === 'headset_mic') {
+      [-1, 1].forEach((s) => {
+        const cup = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.075, 0.075), M(0x1E293B));
+        cup.position.set(s * 0.115, headY + 0.01, 0);
+        g.add(cup);
+        const led = new THREE.Mesh(new THREE.BoxGeometry(0.01, 0.04, 0.04), MB(accentCol));
+        led.position.set(s * 0.132, headY + 0.01, 0);
+        g.add(led);
+      });
+      const micBoom = new THREE.Mesh(new THREE.BoxGeometry(0.015, 0.015, 0.11), MB(accentCol));
+      micBoom.position.set(0.11, headY - 0.04, faceZDir * 0.06);
+      g.add(micBoom);
+    } else if (accessory === 'dual_lanyard') {
+      [-1, 1].forEach((s) => {
+        const strap = new THREE.Mesh(new THREE.BoxGeometry(0.018, 0.16, 0.015), MB(accentCol));
+        strap.position.set(s * 0.03, torsoY + 0.06, frontZ);
+        strap.rotation.z = s * 0.22;
+        g.add(strap);
+      });
+    }
+
+    // Apply anthropometric body scale variations so no two agents have identical silhouettes
+    const sx = agent.shoulderScale || 1.0;
+    const sy = agent.heightScale || 1.0;
+    g.scale.set(sx, sy, sx);
 
     return g;
   }
 
   // ═══════════════════════════════════════════════════
-  // BUILD WORKSTATIONS FOR ALL 9 AGENTS (No Agent Left Behind!)
+  // FUNCTION 1: spawnAgentWorkstationWithPC(agent, slotIndex)
+  // Dynamically builds a desk, 3D illuminated PC tower, live monitor, chair, and spawns the agent!
   // ═══════════════════════════════════════════════════
   const screenData: any[] = [];
   const agentData: any[] = [];
+  const defaultAgentBadges: Record<number, string[]> = {
+    0: ['⚡ يدير العمليات ويعتمد الخطط', '📊 يراجع الـ 38 ظهور في كونسول', '🎯 يوجه حصص دول النشر'],
+    1: ['📈 تحلل الـ ROAS في GA4', '🎯 تضبط سرعة العرض TURBO_3X', '💰 تراقب مسارات التحويل CAPI'],
+    2: ['🔍 تحصد كلمات Striking Distance', '🧠 تصنف نوايا الباحثين (Intent)', '📊 تحلل فجوات الكلمات بكونسول'],
+    3: ['🔗 يبني شبكة الروابط والـ PageRank', '🏛️ يعزز موثوقية الدومين Authority', '⚓ يوزع نصوص الـ Anchor الدلالية'],
+    4: ['🚀 ينشر المقالات ويحدث Sitemap', '📡 يطلق نبضات IndexNow الفورية', '📝 يدير طابور الـ 100 مقال'],
+    5: ['⚡ تفحص Core Web Vitals والـ Schema', '🔬 تدقق سرعة الموبايل LCP/CLS', '🛡️ تحرس صحة الموقع 100%'],
+    6: ['🌍 يضبط حصص السعودية ومصر والخليج', '📍 يربط المحتوى بمدن الرياض والقاهرة', '🗺️ يحسن ظهور الـ Local 3-Pack'],
+    7: ['🤖 تهندس اقتباسات الذكاء الاصطناعي GEO', '✨ تبني خريطة الـ Entities لـ Gemini', '📑 تطور فقرات الإجابة المباشرة'],
+    8: ['🛡️ يراقب قواعد D1 وفلتر ذاكرة المالك', '⚙️ يحرس نقاط الاستئناف Checkpoints', '🔒 يدقق اللوجز الجنائية لحظياً'],
+  };
 
-  VORDER_OFFICE_AGENTS.forEach((agent, idx) => {
-    const dp = desks[idx];
+  function spawnAgentWorkstationWithPC(agent: VorderAgentConfig, slotIndex: number) {
+    const dp = getOrAssignDeskPosition(slotIndex);
     const ax = dp.x, az = dp.z;
+
+    // Expand open-bay carpet dynamically when expansion workstations (slotIndex >= 9) are added
+    if (slotIndex >= 9) {
+      let minX = -9.5, maxX = 1.5, minZ = -4.5, maxZ = 7.5;
+      desks.forEach((d) => {
+        if (!d) return;
+        minX = Math.min(minX, d.x - 1.4);
+        maxX = Math.max(maxX, d.x + 1.4);
+        minZ = Math.min(minZ, d.z - 1.4);
+        maxZ = Math.max(maxZ, d.z + 1.4);
+      });
+      const newW = Math.max(11, maxX - minX);
+      const newD = Math.max(11, maxZ - minZ);
+      cp.scale.set(newW / 11, 1, newD / 11);
+      cp.position.set((minX + maxX) / 2, 0.01, (minZ + maxZ) / 2);
+    }
+
+    const deskGroup = new THREE.Group();
+    deskGroup.userData = { workstationSlot: slotIndex, agentId: agent.id };
 
     // Desk legs
     [[-0.65, -0.3], [0.65, -0.3], [-0.65, 0.3], [0.65, 0.3]].forEach(([lx, lz]) => {
       const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 0.06), M(0xBBCCDD));
       l.position.set(ax + lx, 0.35, az + lz);
       l.castShadow = true;
-      office.add(l);
+      deskGroup.add(l);
     });
 
-    // Desk top
+    // Desk top (expansion workstations get a subtle glowing front edge strip)
     const dTop = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.05, 0.75), M(0xE8ECF0));
     dTop.position.set(ax, 0.73, az);
     dTop.castShadow = true;
     dTop.receiveShadow = true;
-    office.add(dTop);
+    deskGroup.add(dTop);
+
+    if (slotIndex >= 9) {
+      const edgeTrim = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.022, 0.025), MB(agent.color));
+      edgeTrim.position.set(ax, 0.74, az - 0.37);
+      deskGroup.add(edgeTrim);
+    }
 
     // Front modesty panel
     const dFront = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.38, 0.03), M(0xDDE4EC));
     dFront.position.set(ax, 0.52, az - 0.36);
-    office.add(dFront);
+    deskGroup.add(dFront);
 
-    // Monitor Stand
+    // ─── 3D Illuminated PC Workstation Tower (with RGB GPU Strip & Power LED) ───
+    const pcChassis = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.38, 0.36), M(0x1E293B));
+    pcChassis.position.set(ax - 0.56, 0.94, az - 0.14);
+    pcChassis.castShadow = true;
+    deskGroup.add(pcChassis);
+
+    const pcRgbBar = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.32, 0.025), MB(agent.color));
+    pcRgbBar.position.set(ax - 0.455, 0.94, az + 0.03);
+    deskGroup.add(pcRgbBar);
+
+    const pcGlassSide = new THREE.Mesh(
+      new THREE.BoxGeometry(0.012, 0.30, 0.28),
+      new THREE.MeshBasicMaterial({ color: agent.color, transparent: true, opacity: 0.25 })
+    );
+    pcGlassSide.position.set(ax - 0.455, 0.94, az - 0.14);
+    deskGroup.add(pcGlassSide);
+
+    // Monitor Stand & Ultrawide Display
     const monBase = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.02, 0.12), M(0xAABBCC));
     monBase.position.set(ax, 0.77, az - 0.2);
-    office.add(monBase);
+    deskGroup.add(monBase);
     const monStand = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.03), M(0xAABBCC));
     monStand.position.set(ax, 0.88, az - 0.2);
-    office.add(monStand);
+    deskGroup.add(monStand);
 
     const monBody = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.52, 0.03), M(0x2A2A2A));
     monBody.position.set(ax, 1.28, az - 0.24);
     monBody.castShadow = true;
-    office.add(monBody);
+    deskGroup.add(monBody);
 
-    // Live animated screen
+    // Live animated screen CanvasTexture
     const cv = document.createElement('canvas');
     cv.width = 128;
     cv.height = 80;
@@ -678,40 +855,46 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     tex.minFilter = THREE.LinearFilter;
     const sf = new THREE.Mesh(new THREE.PlaneGeometry(0.78, 0.46), new THREE.MeshBasicMaterial({ map: tex }));
     sf.position.set(ax, 1.28, az - 0.22);
-    office.add(sf);
+    deskGroup.add(sf);
     screenData.push({ canvas: cv, ctx: cx, tex, type: agent.screen, hex: agent.hex, agent });
 
     // Keyboard & mouse
     const kb = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.02, 0.13), M(0x333333));
     kb.position.set(ax, 0.77, az + 0.02);
-    office.add(kb);
+    deskGroup.add(kb);
     const ms = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.09), M(0x333333));
     ms.position.set(ax + 0.42, 0.77, az + 0.02);
-    office.add(ms);
+    deskGroup.add(ms);
 
     // Coffee mug
-    const mug = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.06), M(idx % 2 ? 0xFFFFFF : 0x666666));
+    const mug = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.08, 0.06), M(slotIndex % 2 ? 0xFFFFFF : agent.color));
     mug.position.set(ax + 0.55, 0.8, az + 0.12);
-    office.add(mug);
+    deskGroup.add(mug);
 
-    // Office Chair
+    // Ergonomic Office Chair
     const cz = az + 0.55;
     const cSeat = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.04, 0.4), M(0x37474F));
     cSeat.position.set(ax, 0.44, cz);
-    office.add(cSeat);
+    deskGroup.add(cSeat);
     const cBack = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.42, 0.04), M(0x37474F));
     cBack.position.set(ax, 0.67, cz + 0.19);
-    office.add(cBack);
+    deskGroup.add(cBack);
+    const chairAccent = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.035, 0.048), MB(agent.color));
+    chairAccent.position.set(ax, 0.84, cz + 0.19);
+    deskGroup.add(chairAccent);
+
     [-0.14, 0.14].forEach((ox) => {
       [-0.14, 0.14].forEach((oz) => {
         const l = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.42, 0.03), M(0x90A4AE));
         l.position.set(ax + ox, 0.21, cz + oz);
-        office.add(l);
+        deskGroup.add(l);
       });
     });
 
+    office.add(deskGroup);
+
     // Desk Underglow
-    const dGlow = new THREE.PointLight(agent.color, 0.22, 2.5, 2);
+    const dGlow = new THREE.PointLight(agent.color, 0.25, 2.8, 2);
     dGlow.position.set(ax, 0.3, az);
     office.add(dGlow);
 
@@ -733,22 +916,20 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       if (!lctx) return;
       lctx.clearRect(0, 0, 256, 72);
 
-      // Background rounded pill
-      lctx.fillStyle = 'rgba(8, 16, 32, 0.85)';
+      lctx.fillStyle = 'rgba(8, 16, 32, 0.88)';
       lctx.beginPath();
       lctx.roundRect(4, 4, 248, 64, 12);
       lctx.fill();
       lctx.strokeStyle = agent.hex;
-      lctx.lineWidth = 1.5;
+      lctx.lineWidth = agent.isExpansionTrainee ? 2.2 : 1.5;
       lctx.stroke();
 
-      // Agent Name
-      lctx.font = 'bold 18px Tajawal, Cairo, sans-serif';
+      lctx.font = 'bold 17px Tajawal, Cairo, sans-serif';
       lctx.textAlign = 'center';
       lctx.fillStyle = agent.hex;
-      lctx.fillText(agent.name, 128, 26);
+      const titleText = agent.isExpansionTrainee ? `★ ${agent.name}` : agent.name;
+      lctx.fillText(titleText, 128, 25);
 
-      // Progress bar fill
       const barW = 180, barH = 5;
       const barX = (256 - barW) / 2;
       const barY = 34;
@@ -757,16 +938,23 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       lctx.fillStyle = agent.hex;
       lctx.fillRect(barX, barY, (barW * Math.min(100, Math.max(0, progressPct))) / 100, barH);
 
-      // Duty Status Text
       lctx.font = '11px Tajawal, sans-serif';
-      lctx.fillStyle = 'rgba(220, 235, 255, 0.95)';
+      lctx.fillStyle = 'rgba(220, 235, 255, 0.96)';
       lctx.fillText(statusBadge, 128, 56);
       lTex.needsUpdate = true;
     }
-    renderLabelCanvas(85, '● يعمل بتركيز (85%)');
+
+    const customBadges = defaultAgentBadges[agent.id] || [
+      `⚡ ينفذ مهام ${agent.role.slice(0, 22)}`,
+      `🚀 يعزز نتائج الفريق (${agent.name})`,
+      `📊 يزامن مخرجاته مع قواعد D1`,
+    ];
+    const initPct = 36 + ((agent.id * 17) % 58);
+    const initBadge = customBadges[0];
+    renderLabelCanvas(initPct, `${initBadge} (${initPct}%)`);
 
     const label = new THREE.Sprite(new THREE.SpriteMaterial({ map: lTex, transparent: true, depthTest: false }));
-    label.scale.set(1.5, 0.42, 1);
+    label.scale.set(1.55, 0.44, 1);
     label.position.set(ax, 1.85, az + 0.55);
     office.add(label);
 
@@ -782,14 +970,220 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       label,
       renderLabelCanvas,
       dGlow,
+      deskGroup,
       home: { x: ax, z: az + 0.55 },
       state: 'sitting',
-      timer: 3 + rng.r(0, 6),
+      timer: 4 + rng.r(0, 6),
       walkTarget: null,
+      walkDestinationLabel: '',
       walkPause: 0,
+      liveProgressPct: initPct,
+      liveBadgeAr: initBadge,
+      badgeOptions: customBadges,
       agent,
     });
+  }
+
+  // Spawn initial 9 core workstations
+  VORDER_OFFICE_AGENTS.forEach((agent, idx) => {
+    spawnAgentWorkstationWithPC(agent, idx);
   });
+
+  // ═══════════════════════════════════════════════════
+  // FUNCTION 2: expandMeetingRoomAndAddChair(totalAgentsCount)
+  // Parametrically builds/expands the conference room, table, chairs, and whiteboard!
+  // ═══════════════════════════════════════════════════
+  const MRX = 7.8, MRZ = -3.0;
+  const meetingRoomGroup = new THREE.Group();
+  office.add(meetingRoomGroup);
+
+  const meetSeats: Array<{ x: number; z: number; ry: number; isHead: boolean }> = [];
+  const meetChars: any[] = [];
+  let lastPubCount = 661;
+  let lastGscImp = 38;
+  let lastKwCount = 1775;
+
+  const wbc = document.createElement('canvas');
+  wbc.width = 360;
+  wbc.height = 140;
+  const wbx = wbc.getContext('2d');
+  const wbt = new THREE.CanvasTexture(wbc);
+
+  function drawWhiteboard(pubCount = lastPubCount, gscImp = lastGscImp, kwCount = lastKwCount, agentsCount = activeAgentsList.length) {
+    lastPubCount = pubCount;
+    lastGscImp = gscImp;
+    lastKwCount = kwCount;
+    if (!wbx) return;
+    wbx.fillStyle = '#FAFAFA';
+    wbx.fillRect(0, 0, 360, 140);
+    wbx.font = 'bold 16px sans-serif';
+    wbx.fillStyle = '#059669';
+    wbx.fillText(`VORDER 360° LIVE TELEMETRY (${agentsCount} AGENTS)`, 10, 26);
+    wbx.font = 'bold 12px monospace';
+    wbx.fillStyle = '#111827';
+    wbx.fillText(`▸ BLOG: ${pubCount} = SITEMAP: ${pubCount} = D1: ${pubCount}`, 12, 52);
+    wbx.fillStyle = '#059669';
+    wbx.fillText(`▸ KEYWORDS: ${kwCount} • SITE AUDIT: 100%`, 12, 76);
+    wbx.fillStyle = '#2563EB';
+    wbx.fillText(`▸ GSC: ${gscImp} IMPRESSIONS • TURBO_3X`, 12, 100);
+    wbx.fillStyle = '#D97706';
+    wbx.fillText(`▸ ACTIVE TEAM: ${agentsCount} SEATS & WORKSTATIONS`, 12, 122);
+    wbt.needsUpdate = true;
+  }
+
+  function expandMeetingRoomAndAddChair(totalAgentsCount: number) {
+    // Clear previous meeting room static meshes
+    while (meetingRoomGroup.children.length > 0) {
+      const child = meetingRoomGroup.children[0] as any;
+      meetingRoomGroup.remove(child);
+    }
+
+    const sideAgents = Math.max(8, totalAgentsCount - 1);
+    const sidePairs = Math.ceil(sideAgents / 2); // 4 pairs for 9 agents, 5 pairs for 10-11, 6 pairs for 12-13...
+    const extraPairs = Math.max(0, sidePairs - 4);
+
+    const tableLen = 5.2 + extraPairs * 0.95;
+    const tableWidthZ = 1.7 + Math.min(0.35, extraPairs * 0.1);
+    const roomHalfX = Math.max(3.7, tableLen / 2 + 1.15);
+    const roomHalfZ = Math.max(3.1, 3.1 + extraPairs * 0.22);
+
+    const mrGlass = Glass();
+    // West glass wall of meeting room
+    const westWall = new THREE.Mesh(new THREE.BoxGeometry(0.06, 3.5, roomHalfZ * 2), mrGlass);
+    westWall.position.set(MRX - roomHalfX, 1.75, MRZ);
+    meetingRoomGroup.add(westWall);
+
+    // South glass walls with doorway
+    const doorHalfGap = 1.25;
+    const southSegW = Math.max(1.8, roomHalfX - doorHalfGap);
+    const southLeft = new THREE.Mesh(new THREE.BoxGeometry(southSegW, 3.5, 0.06), mrGlass);
+    southLeft.position.set(MRX - roomHalfX + southSegW / 2, 1.75, MRZ + roomHalfZ);
+    meetingRoomGroup.add(southLeft);
+
+    const southRight = new THREE.Mesh(new THREE.BoxGeometry(southSegW, 3.5, 0.06), mrGlass);
+    southRight.position.set(MRX + roomHalfX - southSegW / 2, 1.75, MRZ + roomHalfZ);
+    meetingRoomGroup.add(southRight);
+
+    // Corner frames
+    [
+      [MRX - roomHalfX, MRZ - roomHalfZ],
+      [MRX - roomHalfX, MRZ + roomHalfZ],
+      [MRX + roomHalfX, MRZ - roomHalfZ],
+      [MRX + roomHalfX, MRZ + roomHalfZ],
+    ].forEach(([fx, fz]) => {
+      const f = new THREE.Mesh(new THREE.BoxGeometry(0.05, 3.5, 0.05), M(0x99AABB));
+      f.position.set(fx, 1.75, fz);
+      meetingRoomGroup.add(f);
+    });
+
+    // Parametric Conference Table
+    const mt = new THREE.Mesh(new THREE.BoxGeometry(tableLen, 0.08, tableWidthZ), M(0xDDE4EC));
+    mt.position.set(MRX + 0.2, 0.72, MRZ);
+    mt.castShadow = true;
+    mt.receiveShadow = true;
+    meetingRoomGroup.add(mt);
+
+    const legSpanX = tableLen / 2 - 0.45;
+    const legSpanZ = tableWidthZ / 2 - 0.2;
+    [
+      [-legSpanX, -legSpanZ],
+      [0, -legSpanZ],
+      [legSpanX, -legSpanZ],
+      [-legSpanX, legSpanZ],
+      [0, legSpanZ],
+      [legSpanX, legSpanZ],
+    ].forEach(([tx, tz]) => {
+      const l = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 0.06), M(0xBBCCDD));
+      l.position.set(MRX + 0.2 + tx, 0.35, MRZ + tz);
+      meetingRoomGroup.add(l);
+    });
+
+    // Rebuild meetSeats array for all totalAgentsCount seats
+    meetSeats.length = 0;
+    const headX = MRX + 0.2 - tableLen / 2 - 0.32;
+    meetSeats.push({ x: headX, z: MRZ, ry: Math.PI / 2, isHead: true }); // Seat 0: Tariq
+
+    const northCount = Math.ceil((totalAgentsCount - 1) / 2);
+    const southCount = (totalAgentsCount - 1) - northCount;
+    const startX = MRX + 0.2 - tableLen / 2 + 0.65;
+    const endX = MRX + 0.2 + tableLen / 2 - 0.55;
+
+    for (let i = 0; i < northCount; i++) {
+      const ratio = northCount <= 1 ? 0.5 : i / (northCount - 1);
+      const sx = startX + ratio * (endX - startX);
+      meetSeats.push({ x: sx, z: MRZ - (tableWidthZ / 2 + 0.37), ry: 0, isHead: false });
+    }
+    for (let i = 0; i < southCount; i++) {
+      const ratio = southCount <= 1 ? 0.5 : i / (southCount - 1);
+      const sx = startX + ratio * (endX - startX);
+      meetSeats.push({ x: sx, z: MRZ + (tableWidthZ / 2 + 0.37), ry: Math.PI, isHead: false });
+    }
+
+    meetSeats.forEach((s, idx) => {
+      const ag = activeAgentsList[idx];
+      const isExpansionSeat = idx >= 9;
+      const chairColor = s.isHead ? 0x1E293B : isExpansionSeat ? 0x1E293B : 0x37474F;
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.04, 0.38), M(chairColor));
+      seat.position.set(s.x, 0.42, s.z);
+      meetingRoomGroup.add(seat);
+
+      const bk = new THREE.Mesh(
+        s.isHead
+          ? new THREE.BoxGeometry(0.04, 0.38, 0.38)
+          : new THREE.BoxGeometry(0.38, 0.34, 0.04),
+        M(chairColor)
+      );
+      const bx = s.isHead ? s.x - 0.19 : s.x;
+      const bz = s.isHead ? s.z : s.z + (s.ry === 0 ? -0.19 : 0.19);
+      bk.position.set(bx, 0.61, bz);
+      meetingRoomGroup.add(bk);
+
+      // Highlight newly added expansion chairs with their agent's glowing neon accent bar
+      if (ag && (isExpansionSeat || s.isHead)) {
+        const topBar = new THREE.Mesh(
+          s.isHead ? new THREE.BoxGeometry(0.05, 0.035, 0.36) : new THREE.BoxGeometry(0.36, 0.035, 0.05),
+          MB(ag.color)
+        );
+        topBar.position.set(bx, 0.79, bz);
+        meetingRoomGroup.add(topBar);
+      }
+
+      [-0.13, 0.13].forEach((ox) => {
+        [-0.13, 0.13].forEach((oz) => {
+          const l = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.4, 0.03), M(0x90A4AE));
+          l.position.set(s.x + ox, 0.2, s.z + oz);
+          meetingRoomGroup.add(l);
+        });
+      });
+    });
+
+    // Whiteboard inside meeting room
+    const wbB = new THREE.Mesh(new THREE.BoxGeometry(3.2, 1.15, 0.03), M(0xCCCCCC));
+    wbB.position.set(MRX + 0.2, 2.2, MRZ - roomHalfZ + 0.15);
+    meetingRoomGroup.add(wbB);
+
+    drawWhiteboard(lastPubCount, lastGscImp, lastKwCount, totalAgentsCount);
+    const wbm = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 0.92), new THREE.MeshBasicMaterial({ map: wbt }));
+    wbm.position.set(MRX, 2.2, MRZ - roomHalfZ + 0.4);
+    meetingRoomGroup.add(wbm);
+
+    // Sync seated meeting characters positions and spawn any missing meetChar
+    activeAgentsList.forEach((ag, i) => {
+      const s = meetSeats[i] || meetSeats[0];
+      if (!meetChars[i]) {
+        const mc = buildChar(ag, false);
+        mc.userData = { agentId: ag.id };
+        mc.visible = false;
+        office.add(mc);
+        meetChars[i] = mc;
+      }
+      meetChars[i].position.set(s.x, 0, s.z);
+      meetChars[i].rotation.y = s.isHead ? Math.PI / 2 : s.z < MRZ ? 0 : Math.PI;
+    });
+  }
+
+  // Initial Meeting Room build for the 9 core agents
+  expandMeetingRoomAndAddChair(activeAgentsList.length);
 
   // ═══════════════════════════════════════════════════
   // RECEPTION DESK (East Side Entrance Checkpoint)
@@ -876,30 +1270,30 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   office.add(pulseRing);
 
   // ═══════════════════════════════════════════════════
-  // WATER COOLER CHAT BUBBLES (Authentic VORDER Arabic Dialogue)
+  // WATER COOLER CHAT BUBBLES (Distinct Agent Personalities — Zero Rejected Clichés)
   // ═══════════════════════════════════════════════════
   const chatBubbles: any[] = [];
   const arabicChatPhrases = [
-    'يا ريس وحدنا الـ 647 مقال في المدونة والسايت ماب وD1 🚀',
-    'تصفير الـ 30 تحذير ورفع Site Audit لـ 100% بالـ 301 Redirect 🛡️',
-    'كونسول مسجل 36 ظهور حي بمتوسط ترتيب 9.7 📈',
-    'رجعنا مقال Consent Mode v2 ومفيش مقال واحد ناقص ✨',
-    'قريت أبحاث خبراء الـ GEO لرفع اقتباسات AI Overviews 🧠',
-    'الـ 9 كراسي كملت في أوضة الميتينج والقعدة منورة 🎙️',
-    'رشحنا 3 وكلاء فرعيين جدد عشان الباشمهندس يعتمدهم ⚡',
-    'استهلاك قواعد D1 وSupabase هو $0.00 وفقد البيانات 0% 🔒',
+    'المدونة والسايت ماب وD1 متطابقين 100% وطابور النشر 100/100 🚀',
+    'صحة الموقع Site Audit ثابتة عند 100% بدون أي تحذير تقني 🛡️',
+    'كونسول مسجل 38 ظهور فعلي بمتوسط ترتيب 9.4 في التصاعد 📈',
+    'سرعة العرض شغالة بوضع TURBO_3X في السعودية ومصر والخليج ✨',
+    'فقرات الإجابة المباشرة GEO رفعت جاهزية الاقتباس في AI Overviews 🧠',
+    'شبكة الروابط الداخلية بتغذي صفحات الـ Striking Distance تلقائياً 🔗',
+    'فلتر ذاكرة المالك في D1 نشط ويمنع أي جمل مرفوضة فوراً ⚡',
+    'نقاط الاستئناف Checkpoints بتحفظ كل خطوة برمجية في D1 🔒',
   ];
 
   const meetingBreakDialogues: Array<{ idx: number; text: string }> = [
-    { idx: 0, text: 'طارق: منورين الـ 9 كراسي يا وحوش! قولولي عملتوا إيه في الـ 30 تحذير؟ 🎙️' },
-    { idx: 5, text: 'ليلى: حولت الـ 30 رابط -v2 بـ 301 Redirect والـ Site Audit بقى 100%! 🛡️' },
-    { idx: 4, text: 'كريم: المدونة 647 = السايت ماب 647 = D1 647 ورجعنا مقال Consent v2! ⚡' },
-    { idx: 2, text: 'ياسمين: من أبحاث الخبراء في الاستراحة بنرفع الـ CTR للـ 36 ظهور! 📈' },
-    { idx: 1, text: 'سارة: ربطت GA4 وAds مع Consent Mode v2 ونزلنا الـ CAC بـ 28%! 🎯' },
-    { idx: 7, text: 'نور: رشحنا وكيل صائد اقتباسات AI Overviews بناءً على أبحاث GEO! 🧠' },
-    { idx: 3, text: 'عمر: ربطت مستودعات GitHub بـ sameAs Schema لتعزيز سلطة الدومين! 🔗' },
-    { idx: 6, text: 'فارس: ظبطنا الـ Local 3-Pack للرياض وجدة والقاهرة ودبي! 📍' },
-    { idx: 8, text: 'زياد: كله متطابق 100% وفقد البيانات 0% في D1 وSupabase يا ريس! 🔒' },
+    { idx: 0, text: 'طارق: اجتماع المراجعة اللحظية — نراجع تسريع الـ 38 ظهور في كونسول! 🎙️' },
+    { idx: 5, text: 'ليلى: هندسياً مؤشرات CWV والـ Schema وSite Audit عند 100%! 🛡️' },
+    { idx: 4, text: 'كريم: خط النشر شغال بأقصى سرعة والسايت ماب وIndexNow متزامنين! ⚡' },
+    { idx: 2, text: 'ياسمين: اصطدت تكتلات كلمات جديدة في منطقة Striking Distance! 📈' },
+    { idx: 1, text: 'سارة: بلغة الـ ROAS رفعنا سرعة العرض إلى TURBO_3X في الأسواق النشطة! 🎯' },
+    { idx: 7, text: 'نور: دعمت المقالات بفقرات Direct Answer لرفع اقتباسات Perplexity! 🧠' },
+    { idx: 3, text: 'عمر: ضاعفت تدفق الـ Internal PageRank للصفحات المحققة للظهور! 🔗' },
+    { idx: 6, text: 'فارس: حصص الرياض وجدة والقاهرة ودبي مضبوطة إقليمياً بدقة! 📍' },
+    { idx: 8, text: 'زياد: سجلات الرقابة وذاكرة المالك في D1 موثقة ومحمية 100%! 🔒' },
   ];
 
   function createBubble(x: number, y: number, z: number, text: string, color: string) {
@@ -969,17 +1363,17 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // WALKING & PATROL ENGINE (All 9 Agents Active!)
+  // WALKING & PATROL ENGINE (All 9 Agents Active with Live Overhead Status!)
   // ═══════════════════════════════════════════════════
   const walkDestinations = [
-    { x: 2, z: 7.5 },
-    { x: -10, z: 0 },   // Water cooler
-    { x: -2, z: -7 },  // North window terrace
-    { x: 4, z: 5 },    // Hallway
-    { x: -6, z: 7 },   // South corridor
-    { x: 3, z: 0 },    // Central lounge
-    { x: 8, z: 6.0 },  // Reception desk inspection (Special patrol for Ziad & others)
-    { x: 10.5, z: 6 }, // Lounge sofa
+    { x: 2, z: 7.5, label: '🚶 يتفقد الممر الجنوبي' },
+    { x: -10, z: 0, label: '💧 يتوجه لمبرد المياه' },
+    { x: -2, z: -7, label: '🪟 يراجع المؤشرات عند النافذة' },
+    { x: 4, z: 5, label: '🚶 يتحرك لتنسيق مهمة' },
+    { x: -6, z: 7, label: '🚶 جولة تفقدية في القسم' },
+    { x: 3, z: 0, label: '🤝 ينسق مهمة سريعة بالوسط' },
+    { x: 8, z: 6.0, label: '🛡️ يتفقد بوابة الاستقبال والأمان' },
+    { x: 10.5, z: 6, label: '☕ استراحة قصيرة في الصالة' },
   ];
 
   function updateWalkers(delta: number) {
@@ -992,25 +1386,38 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
           ad.walker.visible = true;
           ad.walker.position.set(ad.home.x, 0, ad.home.z);
 
-          // Ziad (id: 8) often inspects the reception desk or other agent desks
-          let dest: { x: number; z: number };
+          let dest: { x: number; z: number; label?: string };
           if (ad.agent.id === 8 && rng.n() > 0.4) {
-            dest = rng.n() > 0.5 ? { x: 8, z: 6.0 } : rng.pick(desks);
+            if (rng.n() > 0.5) {
+              dest = { x: 8, z: 6.0, label: '🛡️ يفحص بوابة الاستقبال ولوجز D1' };
+            } else {
+              const peerDesk = rng.pick(desks);
+              dest = { x: peerDesk.x, z: peerDesk.z, label: '🔍 يراجع جودة المخرجات مع زميله' };
+            }
           } else {
             dest = rng.pick(walkDestinations);
           }
 
           ad.walkTarget = { x: dest.x + rng.r(-0.4, 0.4), z: dest.z + rng.r(-0.4, 0.4) };
+          ad.walkDestinationLabel = dest.label || '🚶 يتحرك داخل المكتب';
           ad.walkPause = 0;
+          ad.renderLabelCanvas(ad.liveProgressPct || 80, ad.walkDestinationLabel);
         }
       } else if (ad.state === 'walking_out') {
         const dx = ad.walkTarget.x - ad.walker.position.x;
         const dz = ad.walkTarget.z - ad.walker.position.z;
         const dist = Math.sqrt(dx * dx + dz * dz);
         if (dist < 0.25) {
+          if (ad.walkPause === 0) {
+            ad.renderLabelCanvas(
+              ad.liveProgressPct || 85,
+              ad.walkDestinationLabel.replace('يتوجه', 'في استراحة عند').replace('يتحرك', 'ينسق الآن')
+            );
+          }
           ad.walkPause += delta;
           if (ad.walkPause > 3 + rng.r(0, 3)) {
             ad.state = 'walking_back';
+            ad.renderLabelCanvas(ad.liveProgressPct || 88, `🚶 يعود لمكتبه لاستئناف المهمة (${ad.liveProgressPct || 88}%)`);
           }
         } else {
           const speed = 1.6 * delta;
@@ -1039,11 +1446,14 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
           ad.walker.visible = false;
           ad.sittingChar.visible = true;
           ad.label.position.set(ad.home.x, 1.85, ad.home.z);
-          ad.timer = 8 + rng.r(0, 18);
+          ad.timer = 10 + rng.r(0, 18);
           ad.walker.children.forEach((c: any) => {
             if (c.userData && c.userData.isLeg) c.position.z = 0;
             if (c.userData && c.userData.isWalkerArm) c.rotation.x = 0;
           });
+          const pct = ad.liveProgressPct || 85;
+          const badge = ad.liveBadgeAr || ad.badgeOptions?.[0] || '⚡ ينفذ مهامه الحية';
+          ad.renderLabelCanvas(pct, `${badge} (${pct}%)`);
         } else {
           const speed = 1.6 * delta;
           const nx = dx / dist, nz = dz / dist;
@@ -1067,31 +1477,177 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // 9-AGENT MEETING ROOM ENGINE (All 9 Chairs & Live Egyptian Arabic Break Dialogue)
+  // FUNCTION 3: generateUniqueAgentMorphologyAndSpawn(nomination, newIndex)
+  // Generates a 100% unique 8-axis 3D appearance & wardrobe, then calls Function 1 & Function 2!
+  // ═══════════════════════════════════════════════════
+  function hslToHexColor(hDeg: number, sPct: number, lPct: number): { num: number; hex: string } {
+    const c = new THREE.Color();
+    c.setHSL(((hDeg % 360) + 360) % 360 / 360, sPct / 100, lPct / 100);
+    return { num: c.getHex(), hex: `#${c.getHexString().toUpperCase()}` };
+  }
+
+  function generateUniqueAgentMorphologyAndSpawn(nomination: any, newIndex: number): VorderAgentConfig {
+    const seed = typeof nomination?.seedIndex === 'number' ? nomination.seedIndex : newIndex;
+    // Golden Angle (137.508 deg) guarantees zero color collision with the 9 core agents or other trainees
+    const goldenHue = (seed * 137.508 + 28) % 360;
+    const primaryTone = hslToHexColor(goldenHue, 88, 56);
+    const shirtTone = hslToHexColor((goldenHue + 18) % 360, 68, 32);
+    const vestTone = hslToHexColor((goldenHue + 195) % 360, 52, 20);
+    const pantsTone = hslToHexColor((goldenHue + 210) % 360, 35, 15);
+    const hairTone = hslToHexColor((seed * 67) % 360, 42, 18 + (seed % 3) * 8);
+
+    const SKIN_TONES = [0xF5D6BE, 0xEDD0B7, 0xDFB995, 0xC99E76, 0xB3835B, 0x8D5B3C];
+    const HAIR_STYLES: Array<NonNullable<VorderAgentConfig['hairStyle']>> = [
+      'spiky_tech',
+      'beanie_cap',
+      'curly_volume',
+      'ponytail',
+      'hijab_wrap',
+      'executive_part',
+    ];
+    const OUTFIT_STYLES: Array<NonNullable<VorderAgentConfig['outfitStyle']>> = [
+      'trainee_tactical_vest',
+      'tech_hoodie',
+      'cyber_turtleneck',
+      'double_breasted_vest',
+      'open_blazer_tie',
+    ];
+    const ACCESSORIES: Array<NonNullable<VorderAgentConfig['accessory']>> = [
+      'ar_visor',
+      'headset_mic',
+      'dual_lanyard',
+      'glasses_thin',
+    ];
+    const SCREENS: Array<VorderAgentConfig['screen']> = [
+      'terminal',
+      'charts',
+      'strategy',
+      'map',
+      'deploy',
+      'docs',
+      'palette',
+      'bugs',
+    ];
+    const AVATARS = [
+      '/game-assets/avatars/agent_03_kareem.png',
+      '/game-assets/avatars/agent_05_fahd.png',
+      '/game-assets/avatars/agent_07_omar.png',
+      '/game-assets/avatars/agent_08_nadine.png',
+      '/game-assets/avatars/agent_04_ziad.png',
+    ];
+
+    const chosenOutfit = OUTFIT_STYLES[(seed * 3) % OUTFIT_STYLES.length];
+    const chosenHair = HAIR_STYLES[(seed * 5) % HAIR_STYLES.length];
+    const chosenAccessory = ACCESSORIES[(seed * 7) % ACCESSORIES.length];
+
+    const newAgent: VorderAgentConfig = {
+      id: newIndex,
+      nominationId: nomination?.id || `nom_exp_${newIndex}`,
+      name: nomination?.agentName || `وكيل توسع #${newIndex - 8}`,
+      nameEn: nomination?.title || `Expansion Specialist #${newIndex - 8}`,
+      role: nomination?.title || 'وكيل توسع متخصص ومعتمد',
+      roleEn: nomination?.proposedByRole || 'Autonomous Expansion Agent',
+      color: primaryTone.num,
+      hex: primaryTone.hex,
+      screen: SCREENS[seed % SCREENS.length],
+      hair: hairTone.num,
+      shirt: shirtTone.num,
+      pants: pantsTone.num,
+      skinTone: SKIN_TONES[(seed * 5) % SKIN_TONES.length],
+      hairStyle: chosenHair,
+      outfitStyle: chosenOutfit,
+      vestOrJacketColor: vestTone.num,
+      tieOrAccentColor: primaryTone.num,
+      accessory: chosenAccessory,
+      shoeColor: 0x111827,
+      heightScale: Number((0.95 + ((seed * 11) % 13) * 0.01).toFixed(2)),
+      shoulderScale: Number((0.94 + ((seed * 7) % 14) * 0.01).toFixed(2)),
+      isExpansionTrainee: true,
+      visualProfileSummary:
+        nomination?.visualProfileSummary ||
+        `مظهر 3D فريد (${chosenOutfit} + ${chosenHair} + ${chosenAccessory}) بلون ${primaryTone.hex}`,
+      avatarUrl: AVATARS[seed % AVATARS.length],
+      metrics: nomination?.expectedImpact || 'مكتب مستقل بكمبيوتر حي • مقعد رسمي في غرفة الاجتماعات',
+    };
+
+    activeAgentsList[newIndex] = newAgent;
+
+    // 1. Call Function 1: Spawn new workstation with illuminated 3D PC tower, live monitor & chair
+    spawnAgentWorkstationWithPC(newAgent, newIndex);
+
+    // 2. Call Function 2: Expand meeting room, extend conference table & add new chair
+    expandMeetingRoomAndAddChair(activeAgentsList.length);
+
+    // 3. Register in live meeting & office dialogues
+    const shortName = newAgent.name.split(' ')[0];
+    meetingBreakDialogues.push({
+      idx: newIndex,
+      text: `${shortName}: مكتبي وحاسوبي جاهزين وبنفذ مهام ${newAgent.role.slice(0, 25)} فوراً! 🚀`,
+    });
+    liveOfficeActivities.push(
+      `🚀 ${newAgent.name} (${newAgent.role}) يعمل من مكتبه الجديد رقم #${newIndex + 1} ويدعم مؤشرات D1`
+    );
+
+    // 4. If currently in a meeting, immediately seat the new agent at their new chair
+    if (inMeeting) {
+      const seat = meetSeats[newIndex] || meetSeats[0];
+      const ad = agentData[newIndex];
+      if (ad) {
+        ad.walker.visible = false;
+        ad.sittingChar.visible = false;
+        ad.state = 'meeting';
+        ad.label.position.set(seat.x, 1.85, seat.z);
+        ad.renderLabelCanvas(100, `🎙️ اجتماع الطاولة المستديرة (${activeAgentsList.length} كراسي)`);
+      }
+      if (meetChars[newIndex]) {
+        meetChars[newIndex].visible = true;
+      }
+    } else {
+      const deskCoord = desks[newIndex] || { x: 0, z: 0 };
+      createBubble(
+        deskCoord.x,
+        1.55,
+        deskCoord.z + 0.4,
+        `تم تجهيز مكتبي وحاسوبي وانضمامي للفريق! (${newAgent.name}) 🚀`,
+        newAgent.hex
+      );
+    }
+
+    return newAgent;
+  }
+
+  function syncApprovedExpansionAgents(approvedNominations: any[]) {
+    if (!Array.isArray(approvedNominations)) return;
+    let addedAny = false;
+    approvedNominations.forEach((nom) => {
+      const nomId = String(nom?.id || nom?.agentName || '');
+      if (!nomId || spawnedNominationIds.has(nomId)) return;
+      spawnedNominationIds.add(nomId);
+      const nextIndex = activeAgentsList.length;
+      generateUniqueAgentMorphologyAndSpawn(nom, nextIndex);
+      addedAny = true;
+    });
+    if (addedAny) {
+      refreshAgentOverheadLabels(timeOfDay);
+      if (onStatusUpdate) onStatusUpdate(getArabicStatus(timeOfDay));
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  // DYNAMIC N-AGENT MEETING ROOM ENGINE (Supports 9+ Chairs & Live Break Dialogue)
   // ═══════════════════════════════════════════════════
   let inMeeting = false;
   let manualMeetingOverride: boolean | null = null;
   let meetingChatTimer = 0;
   let meetingSpeakerPointer = 0;
-  const meetChars: any[] = [];
-
-  VORDER_OFFICE_AGENTS.forEach((agent, i) => {
-    const mc = buildChar(agent, false);
-    mc.userData = { agentId: i };
-    const s = meetSeats[i] || meetSeats[0];
-    mc.position.set(s.x, 0, s.z);
-    mc.rotation.y = s.isHead ? Math.PI / 2 : s.z < MRZ ? 0 : Math.PI;
-    mc.visible = false;
-    office.add(mc);
-    meetChars.push(mc);
-  });
 
   function applyMeetingState(active: boolean) {
+    const totalSeats = activeAgentsList.length;
     if (active && !inMeeting) {
       inMeeting = true;
       if (onMeetingChange) onMeetingChange(true);
       meetChars.forEach((c) => {
-        c.visible = true;
+        if (c) c.visible = true;
       });
       agentData.forEach((ad, idx) => {
         const seat = meetSeats[idx] || meetSeats[0];
@@ -1099,25 +1655,28 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
         ad.sittingChar.visible = false;
         ad.state = 'meeting';
         ad.label.position.set(seat.x, 1.85, seat.z);
-        ad.renderLabelCanvas(100, '🎙️ اجتماع الاستراحة والـ 9 كراسي');
+        ad.renderLabelCanvas(100, `🎙️ اجتماع الطاولة المستديرة (${totalSeats} كراسي)`);
       });
-      // Immediately spawn opening bubble from Tariq
       const firstLine = meetingBreakDialogues[0];
-      const firstSeat = meetSeats[firstLine.idx];
-      createBubble(firstSeat.x, 1.55, firstSeat.z, firstLine.text, VORDER_OFFICE_AGENTS[firstLine.idx].hex);
+      const firstSeat = meetSeats[firstLine.idx] || meetSeats[0];
+      const firstAg = activeAgentsList[firstLine.idx] || activeAgentsList[0];
+      createBubble(firstSeat.x, 1.55, firstSeat.z, firstLine.text, firstAg.hex);
       meetingSpeakerPointer = 1;
       meetingChatTimer = 3.2;
     } else if (!active && inMeeting) {
       inMeeting = false;
       if (onMeetingChange) onMeetingChange(false);
       meetChars.forEach((c) => {
-        c.visible = false;
+        if (c) c.visible = false;
       });
       agentData.forEach((ad) => {
         ad.state = 'sitting';
         ad.sittingChar.visible = true;
         ad.label.position.set(ad.home.x, 1.85, ad.home.z);
         ad.timer = 5 + rng.r(0, 10);
+        const pct = ad.liveProgressPct || 85;
+        const badge = ad.liveBadgeAr || ad.badgeOptions?.[0] || '⚡ ينفذ مهامه الحية';
+        ad.renderLabelCanvas(pct, `${badge} (${pct}%)`);
       });
     }
   }
@@ -1127,7 +1686,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     const shouldMeet =
       manualMeetingOverride !== null
         ? manualMeetingOverride
-        : cycleMin >= 24 && cycleMin <= 30;
+        : cycleMin >= 25 && cycleMin <= 30;
     applyMeetingState(shouldMeet);
   }
 
@@ -1137,7 +1696,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     if (meetingChatTimer <= 0) {
       const turn = meetingBreakDialogues[meetingSpeakerPointer % meetingBreakDialogues.length];
       const seat = meetSeats[turn.idx] || meetSeats[0];
-      const ag = VORDER_OFFICE_AGENTS[turn.idx] || VORDER_OFFICE_AGENTS[0];
+      const ag = activeAgentsList[turn.idx] || activeAgentsList[0];
       createBubble(seat.x, 1.55, seat.z, turn.text, ag.hex);
       meetingSpeakerPointer = (meetingSpeakerPointer + 1) % meetingBreakDialogues.length;
       meetingChatTimer = 3.4;
@@ -1167,7 +1726,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       c.fill();
       c.globalAlpha = 1;
       c.font = 'bold 8px sans-serif';
-      c.fillText('VORDER AI // 36 GSC', 12, 48);
+      c.fillText('VORDER AI // 38 GSC', 12, 48);
       for (let i = 0; i < 6; i++) {
         const y = (54 + i * 5 + Math.floor(t * 3)) % h;
         c.globalAlpha = 0.2 + Math.sin(i + t) * 0.1;
@@ -1195,7 +1754,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       for (let i = 0; i < 12; i++) {
         const y = (8 + i * 6 + Math.floor(t * 5)) % (h + 10);
         c.globalAlpha = 0.3 + (i % 3) * 0.15;
-        c.fillText('D1_SYNC: 647=647=647 ZERO LOSS;'.substr(Math.floor(t * 2 + i * 5) % 25, 22), 4, y);
+        c.fillText('D1_SYNC: 661=661=661 ZERO LOSS;'.substr(Math.floor(t * 2 + i * 5) % 25, 22), 4, y);
       }
       if (Math.sin(t * 4) > 0) {
         c.globalAlpha = 0.8;
@@ -1230,9 +1789,9 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       c.fillStyle = hex;
       c.globalAlpha = 0.8;
       c.fillText('Blog = Sitemap = D1', 10, 38);
-      c.fillText(`Article #${Math.floor(t * 3) % 647 + 1}/647`, 10, 50);
+      c.fillText(`Article #${Math.floor(t * 3) % 661 + 1}/661`, 10, 50);
       c.fillStyle = '#00E676';
-      c.fillText('✓ 647=647=647 Sync', 10, 64);
+      c.fillText('✓ 661=661=661 Sync', 10, 64);
     } else if (type === 'docs') {
       c.fillStyle = 'rgba(255,255,255,.08)';
       c.fillRect(8, 8, w - 16, h - 16);
@@ -1243,15 +1802,14 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     } else if (type === 'bugs') {
       c.font = '6px monospace';
       if (agent.id === 8) {
-        // Ziad Omran Watchdog 360 & Forensic QA terminal
         c.fillStyle = hex;
         c.fillText('WATCHDOG 360 // QA HOST', 6, 12);
-        [['✓ SITE AUDIT: 100%', '#00E676'], ['✓ D1 SYNC: 647=647', hex], ['✓ WARNINGS: 0', '#00E676'], ['✓ 301 REDIRECT: 30', hex]].forEach(([txt, cl], i) => {
+        [['✓ SITE AUDIT: 100%', '#00E676'], ['✓ D1 SYNC: 661=661', hex], ['✓ WARNINGS: 0', '#00E676'], ['✓ 301 REDIRECT: 30', hex]].forEach(([txt, cl], i) => {
           c.fillStyle = cl;
           c.fillText(txt, 6, 26 + i * 12);
         });
       } else {
-        [['● AUDIT 100%', hex], ['● 0 WARNINGS', '#00E676'], ['● 647 SYNCED', hex], ['● 301 ACTIVE', '#00E676']].forEach(([txt, cl], i) => {
+        [['● AUDIT 100%', hex], ['● 0 WARNINGS', '#00E676'], ['● 661 SYNCED', hex], ['● 301 ACTIVE', '#00E676']].forEach(([txt, cl], i) => {
           c.fillStyle = cl;
           c.fillText(txt, 10, 14 + i * 14);
         });
@@ -1262,43 +1820,70 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // 24-HOUR TIME PROGRESSION & DUTY/REST CADENCE
+  // 24-HOUR TIME PROGRESSION, DYNAMIC OFFICE STATUS & PER-AGENT LIVE TELEMETRY
   // ═══════════════════════════════════════════════════
-  let timeOfDay = 540; // 9:00 AM Default (Busy Morning, Everyone at Desks)
+  let timeOfDay = 540; // 9:00 AM Default
+  let statusRotationTick = 0;
+  const liveOfficeActivities = [
+    '⚡ طارق العبدلي يدير التكتيكات ويعتمد خطة تسريع العرض TURBO_3X',
+    '🔍 ياسمين الشريف تحصد كلمات Striking Distance من Google Search Console',
+    '📈 سارة المهندس تحلل عائد ROAS وتضبط أحداث التحويل في GA4',
+    '🚀 كريم الدسوقي ينشر المقالات في المدونة ويحدث Sitemap.xml و IndexNow',
+    '🤖 نور المرشدي تهندس فقرات الإجابة المباشرة لتصدر Google AI Overviews',
+    '🔗 عمر الفاروق يدور سلطة الـ Internal PageRank لدعم صفحات الظهور',
+    '🌍 فارس النجار يوازن حصص النشر بين السعودية (35%) ومصر (25%) والخليج',
+    '🔬 ليلى الألفي تراقب مؤشرات Core Web Vitals وتحافظ على Site Audit 100%',
+    '🛡️ زياد عمران يحرس قواعد D1 ويطبق فلتر ذاكرة المالك المتعلمة بصرامة',
+  ];
+
   const getArabicStatus = (m: number) => {
     const cycleMin = m % 30;
-    if (manualMeetingOverride || cycleMin >= 24) {
-      return '🎙️ استراحة واجتماع الـ 9 وكلاء على الـ 9 كراسي (مناقشة أبحاث الخبراء وتوحيد 647=647=647)';
+    const totalSeats = activeAgentsList.length;
+    if (manualMeetingOverride || cycleMin >= 25) {
+      return `🎙️ اجتماع الطاولة المستديرة الحي (${totalSeats} وكلاء على ${totalSeats} كراسي — مراجعة الـ 38 ظهوراً واعتماد القرارات)`;
     }
-    if (m < 360) return 'الوردية الليلية · حراسة قواعد D1 المستقلة ($0.00) وصحة الموقع 100%';
-    if (m < 540) return 'توافد الوكلاء الصباحي ومزامنة الـ 647 مقالاً مع الكونسول';
-    if (m < 720) return 'العمل العميق · جميع الوكلاء الـ 9 متصلون وينفذون المهام (0 تحذيرات)';
-    if (m < 780) return 'استراحة الظهيرة ومراجعة أبحاث الخبراء وعوائد سلة وزد';
-    if (m < 1020) return 'تركيز ما بعد الظهيرة وصياغة المقالات التكتيكية';
-    return 'الوردية المسائية · أرشفة المقالات والتحقق الجنائي 360° (647 = 647 = 647)';
+    if (cycleMin >= 22 && cycleMin < 25) {
+      return '☕ استراحة قصيرة وتبادل نقاشات سريعة بين الوكلاء قبل اجتماع الطاولة المستديرة';
+    }
+    const activeWalkers = agentData.filter((a) => a.state !== 'sitting' && a.state !== 'meeting');
+    if (activeWalkers.length > 0 && statusRotationTick % 3 === 1) {
+      const w = activeWalkers[statusRotationTick % activeWalkers.length];
+      return `${w.agent.name}: ${w.walkDestinationLabel || 'يتحرك لتنسيق مهمة داخل المكتب'} · باقي الفريق (${totalSeats} وكلاء) ينفذ المهام`;
+    }
+    return liveOfficeActivities[statusRotationTick % liveOfficeActivities.length];
   };
+
+  function refreshAgentOverheadLabels(min: number) {
+    const cycleMin = min % 30;
+    const isMeet = manualMeetingOverride || cycleMin >= 25;
+    const isBreak = !isMeet && cycleMin >= 22 && cycleMin < 25;
+    const totalSeats = activeAgentsList.length;
+
+    agentData.forEach((ad, idx) => {
+      if (isMeet || ad.state === 'meeting') {
+        ad.renderLabelCanvas(100, `🎙️ اجتماع الطاولة المستديرة (${totalSeats} كراسي)`);
+      } else if (ad.state === 'walking_out' || ad.state === 'walking_back') {
+        return;
+      } else if (isBreak) {
+        const rem = Math.max(1, Math.ceil(25 - cycleMin));
+        ad.renderLabelCanvas(100, `☕ استراحة قصيرة (${rem}د للاجتماع)`);
+      } else {
+        const pct = ad.liveProgressPct || (30 + ((idx * 13 + min * 3) % 68));
+        const badge =
+          ad.liveBadgeAr ||
+          ad.badgeOptions?.[Math.floor((statusRotationTick + idx) / 2) % ad.badgeOptions.length] ||
+          '⚡ ينفذ مهامه الحية';
+        ad.renderLabelCanvas(pct, `${badge} (${pct}%)`);
+      }
+    });
+  }
 
   function updateTime(min: number) {
     timeOfDay = min;
     if (onTimeUpdate) onTimeUpdate(min);
     if (onStatusUpdate) onStatusUpdate(getArabicStatus(min));
 
-    // Update duty/rest progress billboards
-    const cycleMin = min % 30;
-    const isBreak = cycleMin >= 24 && cycleMin < 28;
-    const isMeet = manualMeetingOverride || cycleMin >= 24;
-    const progressPct = isBreak || isMeet ? 100 : Math.min(100, Math.floor((cycleMin / 24) * 100));
-
-    agentData.forEach((ad) => {
-      if (isMeet) {
-        ad.renderLabelCanvas(100, '🎙️ اجتماع الـ 9 كراسي');
-      } else if (isBreak) {
-        const rem = Math.ceil(28 - cycleMin);
-        ad.renderLabelCanvas(100, `☕ استراحة (${rem}د متبقية)`);
-      } else {
-        ad.renderLabelCanvas(progressPct, `● يعمل بتركيز (${progressPct}%)`);
-      }
-    });
+    refreshAgentOverheadLabels(min);
 
     let df: number;
     if (min < 360) df = 0.3;
@@ -1346,15 +1931,15 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // RAYCASTER AGENT CLICK SELECTION (Suppressed on drag > 6px)
+  // RAYCASTER AGENT CLICK SELECTION (Supports all 9 Core + Dynamically Spawned Agents!)
   // ═══════════════════════════════════════════════════
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
 
   const handlePointerDownRaycast = (event: MouseEvent) => {
-    if (event.button !== 0) return; // Only trigger on Left Click
+    if (event.button !== 0) return;
     const dist = Math.hypot(event.clientX - pointerDownPos.x, event.clientY - pointerDownPos.y);
-    if (dist > 6) return; // Drag detected: suppress click so camera orbit doesn't pop up agent modal!
+    if (dist > 6) return;
 
     const rect = renderer.domElement.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -1367,7 +1952,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       while (curr) {
         if (curr.userData && curr.userData.agentId !== undefined) {
           const aId = curr.userData.agentId;
-          const agent = VORDER_OFFICE_AGENTS[aId];
+          const agent = activeAgentsList[aId] || VORDER_OFFICE_AGENTS[aId];
           if (agent && onAgentClick) {
             onAgentClick(aId, agent);
           }
@@ -1380,11 +1965,12 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   renderer.domElement.addEventListener('click', handlePointerDownRaycast);
 
   // ═══════════════════════════════════════════════════
-  // RENDER & ANIMATION LOOP (With Procedural Typing & Auto-Clock Tick)
+  // RENDER & ANIMATION LOOP (With Procedural Typing, Live Progress Bars & Dynamic Status)
   // ═══════════════════════════════════════════════════
   let animId: number;
   const clock = new THREE.Clock();
   let timeTickAccumulator = 0;
+  let progressTickAccumulator = 0;
 
   function animate() {
     animId = requestAnimationFrame(animate);
@@ -1392,10 +1978,28 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     const elapsed = clock.getElapsedTime();
     frame++;
 
-    // Continuous subtle auto-clock tick: 1 game minute every 2.5 real seconds
+    progressTickAccumulator += delta;
+    if (progressTickAccumulator >= 1.2) {
+      progressTickAccumulator = 0;
+      agentData.forEach((ad, idx) => {
+        const nextPct = (ad.liveProgressPct || 40) + 1 + (idx % 2);
+        if (nextPct >= 99) {
+          ad.liveProgressPct = 22 + ((idx * 9) % 25);
+          if (ad.badgeOptions && ad.badgeOptions.length > 0) {
+            const currIdx = ad.badgeOptions.indexOf(ad.liveBadgeAr);
+            ad.liveBadgeAr = ad.badgeOptions[(currIdx + 1) % ad.badgeOptions.length];
+          }
+        } else {
+          ad.liveProgressPct = nextPct;
+        }
+      });
+      refreshAgentOverheadLabels(timeOfDay);
+    }
+
     timeTickAccumulator += delta;
     if (timeTickAccumulator >= 2.5) {
       timeTickAccumulator = 0;
+      statusRotationTick++;
       timeOfDay = (timeOfDay + 1) % 1440;
       updateTime(timeOfDay);
     }
@@ -1411,7 +2015,6 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     updateMeetingConversation(delta);
     updateBubbles(delta);
 
-    // Procedural Typing Animation for Seated Agents
     const typingFreq = elapsed * 14;
     agentData.forEach((a, idx) => {
       if (a.state === 'sitting' && a.sittingChar.visible) {
@@ -1425,12 +2028,10 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       }
     });
 
-    // Tariq pulse ring animation
     const pulseT = (elapsed * 0.5) % 1;
     pulseRing.scale.set(1 + pulseT * 0.3, 1, 1 + pulseT * 0.3);
     (pulseRing.material as THREE.MeshBasicMaterial).opacity = 0.15 * (1 - pulseT);
 
-    // Floating label subtle bobbing (works both at desk and in the 9-chair meeting room)
     agentData.forEach((a, i) => {
       if (a.state === 'sitting' || a.state === 'meeting') {
         a.label.position.y = 1.85 + Math.sin(elapsed * 1.2 + i * 1.1) * 0.03;
@@ -1441,7 +2042,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
   animate();
 
-  updateTime(540); // Initial 9:00 AM kickoff
+  updateTime(540);
 
   const onResize = () => {
     const w = container.clientWidth;
@@ -1457,6 +2058,47 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       manualMeetingOverride = null;
       updateTime(min);
     },
+    syncApprovedExpansionAgents,
+    spawnAgentWorkstationWithPC,
+    expandMeetingRoomAndAddChair,
+    generateUniqueAgentMorphologyAndSpawn,
+    getActiveAgents: () => activeAgentsList,
+    updateLiveTelemetry: (payload: {
+      publishedCount?: number;
+      gscImpressions?: number;
+      keywordsCount?: number;
+      approvedExpansionAgents?: any[];
+      agentsLiveTelemetry?: Array<{
+        agentIndex: number;
+        statusBadgeAr: string;
+        progressPct: number;
+        currentTaskTitle?: string;
+      }>;
+    }) => {
+      if (Array.isArray(payload.approvedExpansionAgents)) {
+        syncApprovedExpansionAgents(payload.approvedExpansionAgents);
+      }
+      if (payload.publishedCount || payload.gscImpressions || payload.keywordsCount) {
+        drawWhiteboard(
+          payload.publishedCount || 661,
+          payload.gscImpressions || 38,
+          payload.keywordsCount || 1775,
+          activeAgentsList.length
+        );
+      }
+      if (Array.isArray(payload.agentsLiveTelemetry)) {
+        payload.agentsLiveTelemetry.forEach((item) => {
+          const ad = agentData[item.agentIndex];
+          if (ad) {
+            ad.liveBadgeAr = item.statusBadgeAr || ad.liveBadgeAr;
+            if (typeof item.progressPct === 'number') {
+              ad.liveProgressPct = item.progressPct;
+            }
+          }
+        });
+        refreshAgentOverheadLabels(timeOfDay);
+      }
+    },
     toggleCyberpunk: () => toggleCyberpunk(),
     isCyberpunk: () => cyberpunkMode,
     toggleMeetingRoom: () => {
@@ -1470,8 +2112,10 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
         sph.phi = Math.PI / 3.8;
         updCam();
       } else {
-        tgt.set(0, 1.8, 0);
-        sph.radius = 34;
+        tgt.set(-1.5, 1.5, 1.2);
+        sph.radius = 31;
+        sph.theta = Math.PI / 5.2;
+        sph.phi = Math.PI / 4.2;
         updCam();
       }
       if (onStatusUpdate) onStatusUpdate(getArabicStatus(timeOfDay));
@@ -1496,10 +2140,10 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       updCam();
     },
     resetCamera: () => {
-      tgt.set(0, 1.8, 0);
-      sph.radius = 34;
-      sph.theta = Math.PI / 4.5;
-      sph.phi = Math.PI / 4.5;
+      tgt.set(-1.5, 1.5, 1.2);
+      sph.radius = 31;
+      sph.theta = Math.PI / 5.2;
+      sph.phi = Math.PI / 4.2;
       updCam();
     },
     flyToAgent: (agentId: number) => {

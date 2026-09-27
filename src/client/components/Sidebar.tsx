@@ -212,19 +212,35 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
     queryFn: async () => {
       const pid = projectId || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
       const res = await fetch(
-        `/api/automation/dual-pipelines-telemetry?projectId=${encodeURIComponent(pid)}`
+        `/api/automation/dual-pipelines-telemetry?projectId=${encodeURIComponent(pid)}&t=${Date.now()}`,
+        { cache: "no-store" }
       );
       if (!res.ok) return null;
-      return (await res.json()) as any;
+      const json = (await res.json()) as any;
+      const count =
+        Number(json?.flowisePipeline?.totalPublished) ||
+        Number(json?.summary?.totalArticles) ||
+        0;
+      if (count > 0 && typeof window !== "undefined") {
+        try {
+          localStorage.setItem("vorder_last_published_count", String(count));
+        } catch {}
+      }
+      return json;
     },
-    staleTime: 30000,
-    refetchInterval: 30000,
+    staleTime: 15000,
+    refetchInterval: 20000,
   });
+
+  const cachedPublishedCount =
+    typeof window !== "undefined"
+      ? Number(localStorage.getItem("vorder_last_published_count")) || 688
+      : 688;
 
   const liveArticlesCount =
     telemetryQuery.data?.flowisePipeline?.totalPublished ||
     telemetryQuery.data?.summary?.totalArticles ||
-    485;
+    cachedPublishedCount;
 
 
   // Group expansion state: all groups start expanded by default

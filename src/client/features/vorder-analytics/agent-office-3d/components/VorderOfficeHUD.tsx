@@ -33,30 +33,33 @@ export const VorderOfficeHUD: React.FC<VorderOfficeHUDProps> = ({
   const isNight = timeMinutes < 360 || timeMinutes > 1140;
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 w-[95%] max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-2.5 rounded-2xl sm:rounded-full bg-slate-950/85 backdrop-blur-xl border border-white/10 shadow-2xl text-white font-sans">
+    <div
+      dir="rtl"
+      className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 w-[96%] max-w-4xl flex flex-col sm:flex-row items-center justify-between gap-2.5 px-4 py-2 rounded-2xl sm:rounded-full bg-slate-950/90 backdrop-blur-xl border border-white/15 shadow-2xl text-white font-sans text-right"
+    >
       {/* 1. Time & Status */}
-      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start min-w-0">
+        <div className="flex items-center gap-2 shrink-0">
           {isNight ? (
             <Moon className="size-4 text-cyan-400 animate-pulse" />
           ) : (
             <Sun className="size-4 text-amber-400 animate-spin-slow" />
           )}
-          <span className="font-mono font-bold text-sm text-cyan-300 min-w-[50px] tracking-wider">
-            {timeFormatted}
+          <span className="font-mono font-bold text-xs sm:text-sm text-cyan-300 min-w-[56px] tracking-wider">
+            <bdi dir="ltr">{timeFormatted}</bdi>
           </span>
         </div>
 
-        <div className="hidden sm:block w-px h-4 bg-white/15" />
+        <div className="hidden sm:block w-px h-4 bg-white/15 shrink-0" />
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 min-w-0">
           {inMeeting && (
-            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold animate-pulse">
+            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40 text-rose-300 text-[10px] font-bold animate-pulse shrink-0">
               <Users className="size-3" />
               <span>اجتماع قيادة</span>
             </span>
           )}
-          <span className="text-[11px] font-medium text-slate-300 truncate max-w-[200px] sm:max-w-xs">
+          <span className="text-[11px] font-medium text-slate-300 truncate max-w-[220px] sm:max-w-xs">
             {status}
           </span>
         </div>

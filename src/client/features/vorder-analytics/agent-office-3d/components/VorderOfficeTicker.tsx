@@ -1,30 +1,44 @@
 import React from 'react';
 
-const tickerItems = [
-  { text: 'طارق العبدلي: قيادة الوكلاء الـ 9 في اجتماع الـ 9 كراسي وتوحيد الحقيقة الرقمية 360°', color: '#0DEEF3' },
-  { text: 'كريم الدسوقي: تطابق 100%: المدونة (647) = السايت ماب (647 مقال + 2 ثابتة = 649) = قاعدة D1 (647)', color: '#00E676' },
-  { text: 'ليلى الألفي: علاج ذاتي لـ 30 رابط -v2 عبر 301 Redirect ورفع Site Audit إلى 100% (0 تحذيرات)', color: '#FF5252' },
-  { text: 'ياسمين الشريف: 485 كلمة دلالية مع 36 ظهوراً حياً في Google Search Console بمتوسط ترتيب 9.7', color: '#F5A623' },
-  { text: 'سارة المهندس: مزامنة حملات Google Ads وGA4 مع Consent Mode v2 وتخفيض تكلفة الاستحواذ 28%', color: '#E040FB' },
-  { text: 'نور المرشدي: أبحاث خبراء GEO 2026 وترشيح وكيل صائد اقتباسات AI Overviews & Perplexity', color: '#7C4DFF' },
-  { text: 'عمر الفاروق: ربط مستودعات GitHub بصفحات المقالات عبر sameAs Schema لتعزيز سلطة النطاق', color: '#FF9100' },
-  { text: 'فارس النجار: تصدر حزمة الخرائط الثلاثية Local 3-Pack في الرياض وجدة والقاهرة ودبي', color: '#CCDDEE' },
-  { text: 'زياد عمران: حراسة Flowise وSupabase وCloudflare D1 بتكلفة $0.00 ونسبة فقد بيانات 0%', color: '#448AFF' },
+export interface VorderTickerItem {
+  text: string;
+  color: string;
+}
+
+interface VorderOfficeTickerProps {
+  items?: VorderTickerItem[];
+}
+
+const fallbackTickerItems: VorderTickerItem[] = [
+  { text: 'طارق العبدلي: قيادة الوكلاء الـ 9 واعتماد خطة تسريع قوة العرض (Impression Velocity = TURBO_3X)', color: '#0DEEF3' },
+  { text: 'كريم الدسوقي: مزامنة المقالات الحية بين المدونة والسايت ماب وقاعدة بيانات Cloudflare D1 بنسبة 100%', color: '#00E676' },
+  { text: 'ليلى الألفي: صحة الفحص التقني Site Audit = 100% وحقن TechArticle & FAQPage Schema', color: '#FF5252' },
+  { text: 'ياسمين الشريف: حصاد الكلمات المفتاحية وتحليل استعلامات Google Search Console الحية', color: '#F5A623' },
+  { text: 'سارة المهندس: مزامنة نوايا الشراء في GA4 وServer-Side CAPI لتعظيم العائد ROAS', color: '#E040FB' },
+  { text: 'نور المرشدي: تطبيق معايير دراسة Princeton GEO لرفع الاقتباس التوليدي في Google AI Overviews وPerplexity', color: '#7C4DFF' },
+  { text: 'عمر الفاروق: تدوير سلطة النطاق (Internal PageRank) لدعم الصفحات المحققة للظهور وفق دراسة Zyppy', color: '#FF9100' },
+  { text: 'فارس النجار: ضبط حصص دول النشر النشطة (السعودية 35% • مصر 25% • الإمارات 20% • الكويت 10% • قطر 10%)', color: '#CCDDEE' },
+  { text: 'زياد عمران: تفعيل فلتر الحماية البرمجي (Post-Generation Guardrail) وتوثيق التحسينات في D1', color: '#448AFF' },
 ];
 
-const doubled = [...tickerItems, ...tickerItems];
+export const VorderOfficeTicker: React.FC<VorderOfficeTickerProps> = ({ items }) => {
+  const sourceItems = items && items.length > 0 ? items : fallbackTickerItems;
+  const doubled = [...sourceItems, ...sourceItems];
 
-export const VorderOfficeTicker: React.FC = () => {
   return (
-    <div className="absolute top-3 left-0 right-0 z-20 pointer-events-none overflow-hidden h-7 bg-black/40 backdrop-blur-md border-y border-white/5 flex items-center">
-      <div className="flex gap-8 whitespace-nowrap animate-ticker-scroll-ar">
+    <div
+      dir="ltr"
+      className="absolute top-0 left-0 right-0 z-20 pointer-events-none overflow-hidden h-8 bg-slate-950/90 backdrop-blur-md border-b border-cyan-500/20 flex items-center"
+    >
+      <div className="flex gap-10 whitespace-nowrap animate-ticker-scroll-ar px-4">
         {doubled.map((item, idx) => (
           <span
             key={idx}
-            className="inline-flex items-center gap-1.5 font-mono text-[11px] font-medium tracking-wide"
+            dir="rtl"
+            className="inline-flex items-center gap-2 font-sans text-[11px] font-semibold tracking-normal"
             style={{ color: item.color }}
           >
-            <span className="opacity-70">◈</span>
+            <span className="opacity-80">◈</span>
             <span>{item.text}</span>
           </span>
         ))}
@@ -32,10 +46,10 @@ export const VorderOfficeTicker: React.FC = () => {
       <style>{`
         @keyframes tickerScrollAr {
           0% { transform: translateX(0); }
-          100% { transform: translateX(50%); }
+          100% { transform: translateX(-50%); }
         }
         .animate-ticker-scroll-ar {
-          animation: tickerScrollAr 45s linear infinite;
+          animation: tickerScrollAr 55s linear infinite;
         }
       `}</style>
     </div>

@@ -3,12 +3,21 @@
 // Endpoint: POST https://${domain}/api/articles
 // Live URL: https://${domain}/blog/[slug]
 
+import {
+  executeWithInstantFallback,
+  getTeamLearnedMemory,
+  recordProgrammaticDiagnosticLog,
+  normalizeProjectId,
+} from "./SubMillisecondFallbackEngine";
+
 export interface ArticleQueueItem {
   id?: string;
+  project_id?: string;
   article_slug: string;
   article_title: string;
   primary_keyword: string;
   intent?: string;
+  target_market?: string;
   secondary_keywords?: string[] | string;
   brief_outline?: string[] | string;
   monthly_volume?: number;
@@ -306,11 +315,55 @@ export async function generateAndPublishArticle(
   url: string;
   category: string;
   wordCount: number;
+  modelUsed?: string;
   portfolioResponse?: any;
   error?: string;
 }> {
+  const startTime = Date.now();
+  const pid = normalizeProjectId(item.project_id);
   const generated = generateTacticalArticleContent(item);
-  const words = generated.content.split(/\s+/).filter(Boolean).length;
+  let finalContent = generated.content;
+  let modelUsed = "gemini-2.5-pro";
+
+  // Agent Karim Al-Desouki + Nour Al-Morshedy + Layla Al-Alfi: AI Enrichment governed by Owner's Learned Memory & 105 Expert Sources
+  try {
+    const memory = await getTeamLearnedMemory(pid, env);
+    const ownerPreferencesNote =
+      memory.likes.length > 0 || memory.dislikes.length > 0 || memory.bindingRules.length > 0
+        ? `\n- تفضيلات المالك المعتمدة (Likes): ${memory.likes.join(" | ") || "محتوى عملي مباشر بالأرقام"}\n- محظورات المالك (Dislikes): ${memory.dislikes.join(" | ") || "تجنب الحشو الإنشائي"}\n- القواعد الملزمة: ${memory.bindingRules.slice(0, 5).map((r) => r.text).join(" | ")}`
+        : "";
+
+    const aiPrompt = `أنت كريم الدسوقي (مهندس المحتوى والفهرسة) بالتعاون مع نور المرشدي (GEO AI) وسارة المهندس (CRO) في خلية VORDER SEO.
+اكتب قسماً تنفيذياً حصرياً ومكثفاً (حوالي 250 كلمة بصيغة Markdown احترافية) للمقال التالي:
+- العنوان: "${item.article_title}"
+- الكلمة المفتاحية المحورية: "${item.primary_keyword}"
+- السوق والدولة المستهدفة: "${item.target_market || "السعودية ومصر والخليج"}"${ownerPreferencesNote}
+
+المطلوب في هذا القسم:
+1. فقرة إجابة حاسمة ومباشرة (Direct Answer Block 50 كلمة) مهيأة للاقتباس الفوري في Google AI Overviews وChatGPT وPerplexity.
+2. 3 خطوات تطبيقية رقمية مخصصة لسوق (${item.target_market || "السعودية ومصر والخليج"}) مع الاستشهاد بمرجع علمي موثق (مثل Google Search Central أو دراسة Princeton GEO أو Baymard CRO).
+لا تكتب مقدمات عامة، ابدأ مباشرة بالعنوان الفرعي \`## خلاصة التطبيق الميداني واقتباس الذكاء الاصطناعي (GEO & Executive Blueprint)\`.`;
+
+    const aiExec = await executeWithInstantFallback({
+      prompt: aiPrompt,
+      env,
+      projectId: pid,
+      agentId: "vorder-karim",
+      agentName: "كريم الدسوقي",
+      operationName: "agent_article_generation",
+      moduleFile: "portfolioPublisher.ts:generateAndPublishArticle",
+      preferredModelId: "gemini-2.5-flash",
+    });
+
+    if (aiExec?.text && aiExec.text.trim().length > 80) {
+      modelUsed = aiExec.modelUsed;
+      finalContent = `${aiExec.text.trim()}\n\n---\n\n${generated.content}`;
+    }
+  } catch (aiErr: any) {
+    console.warn("[portfolioPublisher] AI enrichment fallback to tactical blueprint:", aiErr?.message);
+  }
+
+  const words = finalContent.split(/\s+/).filter(Boolean).length;
 
   const payload: PortfolioArticlePayload = {
     id: "art_auto_" + item.article_slug.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 30),
@@ -321,13 +374,33 @@ export async function generateAndPublishArticle(
     excerpt: generated.metaDescription,
     metaDescription: generated.metaDescription,
     coverImage: "",
-    content: generated.content,
+    content: finalContent,
     published: true,
     readTime: generated.readTime,
   };
 
   const publishRes = await publishArticleToPortfolio(payload, 3, domain);
   const publicUrl = `${getPortfolioBlogBase(domain)}/${item.article_slug}`;
+
+  await recordProgrammaticDiagnosticLog({
+    projectId: pid,
+    env,
+    agentId: "vorder-karim",
+    agentName: "كريم الدسوقي",
+    moduleFile: "portfolioPublisher.ts:generateAndPublishArticle",
+    operationName: "publish_article_and_sitemap_ping",
+    status: publishRes.success ? "SUCCESS" : "FALLBACK_ENGAGED",
+    modelUsed,
+    durationMs: Date.now() - startTime,
+    inputSummary: `slug=${item.article_slug}, keyword=${item.primary_keyword}, market=${item.target_market || "MENA"}`,
+    outputSummary: publishRes.success
+      ? `تم توليد ونشر المقال (${words} كلمة) وتحديث السايت ماب: ${publicUrl}`
+      : `تم حفظ المقال في D1 وتفعيل مسار النشر البديل: ${publishRes.error}`,
+    errorDiagnostic: publishRes.success ? undefined : publishRes.error,
+    remediationHint: publishRes.success
+      ? undefined
+      : "يتم تقديم المقال مباشرة من Cloudflare D1 عبر /api/public/articles مع مزامنة السايت ماب تلقائياً.",
+  });
 
   if (!publishRes.success) {
     return {
@@ -337,6 +410,7 @@ export async function generateAndPublishArticle(
       url: publicUrl,
       category: generated.category,
       wordCount: words,
+      modelUsed,
       error: publishRes.error,
     };
   }
@@ -355,6 +429,7 @@ export async function generateAndPublishArticle(
     url: publicUrl,
     category: generated.category,
     wordCount: words,
+    modelUsed,
     portfolioResponse: publishRes.data,
   };
 }
