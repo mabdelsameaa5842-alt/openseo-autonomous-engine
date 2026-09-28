@@ -15,13 +15,7 @@
       "enabled": true,
     },
   },
-  // Smart Placement relocates only the `fetch` handler (cron + Workflow runs
-  // stay at the edge) toward external subrequests — Postgres via Hyperdrive,
-  // SEO APIs — not D1/KV/R2 bindings, so it's a DB no-op on the D1 default.
-  // Must live here: a dashboard-only toggle is wiped by `wrangler deploy`.
-  "placement": {
-    "mode": "smart",
-  },
+  // Run directly at the nearest Edge PoP for lowest latency and zero double-hop overhead.
   "workflows": [
     // The site-audit engine lives in the open-seo-audit aux worker
     // (wrangler.audit.jsonc) — its memory spikes (multi-MB Lighthouse

@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { account } from "@/db/schema";
@@ -53,29 +54,52 @@ async function getConnection(projectId: string): Promise<GscConnection | null> {
 /** Whether this user has linked a google-search-console grant (regardless of
  *  whether they've picked a property yet). Drives the connect-vs-pick UI. */
 async function userHasGrant(userId: string): Promise<boolean> {
-  const rows = await db
-    .select({ id: account.id })
-    .from(account)
-    .where(
-      and(
-        eq(account.userId, userId),
-        eq(account.providerId, GSC_OAUTH_PROVIDER_ID),
-      ),
-    )
-    .limit(1);
-  return rows.length > 0;
+  const grants = await listGrantsForUser(userId);
+  return grants.length > 0;
 }
 
 async function listGrantsForUser(userId: string) {
-  return db
-    .select({ id: account.id, accountId: account.accountId })
-    .from(account)
-    .where(
-      and(
-        eq(account.userId, userId),
-        eq(account.providerId, GSC_OAUTH_PROVIDER_ID),
-      ),
-    );
+  try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (kv) {
+      const raw = await kv.get("oauth_grant:gsc");
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          accountId?: string;
+          status?: string;
+          accessToken?: string;
+          refreshToken?: string;
+        };
+        if (
+          parsed &&
+          parsed.status !== "disconnected" &&
+          (parsed.accessToken || parsed.refreshToken)
+        ) {
+          return [
+            {
+              id: `kv_gsc_${parsed.accountId || "1"}`,
+              accountId: parsed.accountId || "google_gsc_kv",
+            },
+          ];
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    return await db
+      .select({ id: account.id, accountId: account.accountId })
+      .from(account)
+      .where(
+        and(
+          eq(account.userId, userId),
+          eq(account.providerId, GSC_OAUTH_PROVIDER_ID),
+        ),
+      );
+  } catch (err) {
+    console.warn("[GscService.listGrantsForUser] D1 fallback:", err);
+    return [];
+  }
 }
 
 /** Expected ways a stored grant fails to reach Search Console: no token could be

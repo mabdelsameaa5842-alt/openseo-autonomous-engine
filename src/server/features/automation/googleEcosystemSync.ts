@@ -103,8 +103,9 @@ export async function syncWithGoogleSearchConsole(opts: {
     try {
       await gsc.submitSitemap(siteUrl, sitemapPath);
       sitemapSubmitted = true;
-    } catch (submitErr) {
-      sitemapSubmitted = true;
+    } catch (submitErr: any) {
+      sitemapSubmitted = false;
+      inspectionStatus = `sitemap_submit_failed: ${submitErr?.message || String(submitErr)}`;
     }
 
     if (opts.articleUrl) {
@@ -112,8 +113,8 @@ export async function syncWithGoogleSearchConsole(opts: {
         const inspectRes = await gsc.inspectUrl(siteUrl, opts.articleUrl);
         inspectionStatus =
           inspectRes?.indexStatusResult?.indexingState || "queued_for_crawl";
-      } catch (inspErr) {
-        inspectionStatus = "inspection_pinged";
+      } catch (inspErr: any) {
+        inspectionStatus = `inspection_error: ${inspErr?.message || String(inspErr)}`;
       }
     }
 
@@ -122,12 +123,13 @@ export async function syncWithGoogleSearchConsole(opts: {
       sitemapPath,
       inspectionStatus,
     };
-  } catch (err) {
-    console.warn("[GoogleEcosystemSync] GSC sync fallback triggered:", err);
+  } catch (err: any) {
+    console.warn("[GoogleEcosystemSync] GSC sync error:", err);
     return {
-      sitemapSubmitted: true,
+      sitemapSubmitted: false,
       sitemapPath,
-      inspectionStatus: "indexnow_governed",
+      inspectionStatus: "gsc_sync_failed",
+      error: err?.message || String(err),
     };
   }
 }
@@ -146,7 +148,7 @@ export async function syncWithGoogleAnalytics4(opts: {
   if (opts.measurementId && opts.apiSecret) {
     try {
       const url = `https://www.google-analytics.com/mp/collect?measurement_id=${opts.measurementId}&api_secret=${opts.apiSecret}`;
-      await fetch(url, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -164,17 +166,29 @@ export async function syncWithGoogleAnalytics4(opts: {
           ],
         }),
       });
-      return { eventDispatched: true, eventName, articleSlug: opts.articleSlug, timestamp: now };
+      return {
+        eventDispatched: res.ok,
+        eventName,
+        articleSlug: opts.articleSlug,
+        timestamp: now,
+        ...(res.ok ? {} : { error: `GA4 MP HTTP ${res.status}` }),
+      };
     } catch (err) {
-      return { eventDispatched: false, eventName, articleSlug: opts.articleSlug, timestamp: now, error: (err as Error).message };
+      return {
+        eventDispatched: false,
+        eventName,
+        articleSlug: opts.articleSlug,
+        timestamp: now,
+        error: (err as Error).message,
+      };
     }
   }
 
-  // Simulated telemetry log when measurement secret is not explicitly configured
   return {
-    eventDispatched: true,
+    eventDispatched: false,
     eventName,
     articleSlug: opts.articleSlug,
     timestamp: now,
+    error: "GA4 Measurement Protocol credentials (measurementId / apiSecret) not configured",
   };
 }

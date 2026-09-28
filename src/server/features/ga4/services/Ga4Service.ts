@@ -1,3 +1,4 @@
+import { env } from "cloudflare:workers";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { account } from "@/db/schema";
@@ -15,15 +16,47 @@ async function getConnection(projectId: string): Promise<Ga4Connection | null> {
 }
 
 async function listGrantsForUser(userId: string) {
-  return db
-    .select({ id: account.id, accountId: account.accountId })
-    .from(account)
-    .where(
-      and(
-        eq(account.userId, userId),
-        eq(account.providerId, GA4_OAUTH_PROVIDER_ID),
-      ),
-    );
+  try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (kv) {
+      const raw = await kv.get("oauth_grant:ga4");
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          accountId?: string;
+          status?: string;
+          accessToken?: string;
+          refreshToken?: string;
+        };
+        if (
+          parsed &&
+          parsed.status !== "disconnected" &&
+          (parsed.accessToken || parsed.refreshToken)
+        ) {
+          return [
+            {
+              id: `kv_ga4_${parsed.accountId || "1"}`,
+              accountId: parsed.accountId || "google_ga4_kv",
+            },
+          ];
+        }
+      }
+    }
+  } catch {}
+
+  try {
+    return await db
+      .select({ id: account.id, accountId: account.accountId })
+      .from(account)
+      .where(
+        and(
+          eq(account.userId, userId),
+          eq(account.providerId, GA4_OAUTH_PROVIDER_ID),
+        ),
+      );
+  } catch (err) {
+    console.warn("[Ga4Service.listGrantsForUser] D1 fallback:", err);
+    return [];
+  }
 }
 
 async function userHasGrant(userId: string): Promise<boolean> {

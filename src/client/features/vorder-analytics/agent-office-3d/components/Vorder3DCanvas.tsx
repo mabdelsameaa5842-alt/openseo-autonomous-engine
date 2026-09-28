@@ -259,10 +259,11 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
   const [approvedExpansionList, setApprovedExpansionList] = useState<any[]>([]);
   const [liveSummaryStats, setLiveSummaryStats] = useState({
     publishedCount: 688,
-    gscImpressions: 38,
+    gscImpressions: 48,
     keywordsCount: 2948,
-    totalMessagesCount: 408,
+    totalMessagesCount: 858,
   });
+  const handoverDemoIdxRef = useRef<number>(0);
 
   // Selected Agent & Overlays
   const [selectedAgentId, setSelectedAgentId] = useState<number>(0);
@@ -329,9 +330,9 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
 
         const rep = data.meeting.consolidatedReport || {};
         const pubCount = Number(rep.publishedCount) || 688;
-        const gscImp = Number(rep.gscImpressions) || 38;
+        const gscImp = Number(rep.gscImpressions) || 48;
         const kwCount = Number(rep.keywordsCount) || 2948;
-        const msgCount = Number(data.totalMessagesCount || data.meeting.totalMessagesCount) || 408;
+        const msgCount = Number(data.totalMessagesCount || data.meeting.totalMessagesCount) || 858;
 
         setLiveSummaryStats({
           publishedCount: pubCount,
@@ -367,15 +368,19 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
           if (featured?.name && featured?.statusBadgeAr) {
             setStatus(`${featured.name}: ${featured.statusBadgeAr} (${featured.progressPct}%)`);
           }
-          if (sceneRef.current?.updateLiveTelemetry) {
-            sceneRef.current.updateLiveTelemetry({
-              publishedCount: pubCount,
-              gscImpressions: gscImp,
-              keywordsCount: kwCount,
-              approvedExpansionAgents: approvedNoms,
-              agentsLiveTelemetry: arr,
-            });
-          }
+        }
+
+        if (sceneRef.current?.updateLiveTelemetry) {
+          sceneRef.current.updateLiveTelemetry({
+            publishedCount: pubCount,
+            gscImpressions: gscImp,
+            keywordsCount: kwCount,
+            approvedExpansionAgents: approvedNoms,
+            platformRacksStatus: data.meeting.platformRacksStatus || rep.platformRacksStatus,
+            recentPipelineHandovers: data.meeting.recentPipelineHandovers || rep.recentPipelineHandovers,
+            dialogue: data.meeting.dialogue,
+            agentsLiveTelemetry: arr,
+          });
         }
       } catch {}
     };
@@ -394,27 +399,6 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
     };
   }, []);
 
-  // Smooth 1.1-second local progress bar increment so loading bars inside the HUD and clicked Agent Profile Modal visibly animate
-  useEffect(() => {
-    const tick = setInterval(() => {
-      setLiveTelemetryMap((prev) => {
-        const next: Record<number, LiveAgentTelemetry> = {};
-        Object.keys(prev).forEach((k) => {
-          const idx = Number(k);
-          const item = prev[idx];
-          if (!item) return;
-          const nextPct = item.progressPct >= 98 ? 24 + ((idx * 7) % 20) : item.progressPct + 1 + (idx % 2);
-          next[idx] = {
-            ...item,
-            progressPct: nextPct,
-          };
-        });
-        return next;
-      });
-    }, 1100);
-    return () => clearInterval(tick);
-  }, []);
-
   // Initialize Three.js 3D Miniature Office Scene ONCE
   useEffect(() => {
     if (!containerRef.current) return;
@@ -429,7 +413,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
           combinedRosterRef.current[agentId] ||
           (clicked3dConfig
             ? ({
-                id: `vorder-exp-${agentId}`,
+                id: clicked3dConfig.nominationId || `vorder-exp-${agentId}`,
                 name: clicked3dConfig.nameEn,
                 title: clicked3dConfig.name,
                 role: clicked3dConfig.roleEn,
@@ -454,12 +438,18 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
     });
 
     sceneRef.current = scene;
+    try {
+      (window as any).__VORDER_3D_INSPECTOR__ = scene;
+    } catch {}
 
     return () => {
       if (sceneRef.current) {
         sceneRef.current.destroy();
         sceneRef.current = null;
       }
+      try {
+        delete (window as any).__VORDER_3D_INSPECTOR__;
+      } catch {}
     };
   }, []);
 
@@ -586,6 +576,43 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
                 ? 'إنهاء الاجتماع والعودة للمكاتب'
                 : `جمع الـ ${totalActiveCount} وكلاء في الميتينج (${totalActiveCount} كراسي) 🎙️`}
             </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              const handoverScenarios = [
+                { from: 1, to: 4, summary: 'ياسمين الشريف تسلم عنقود كلمات GSC لنور المرشدي (GEO)' },
+                { from: 4, to: 3, summary: 'نور المرشدي تسلم مخطط الكيانات لكريم الدسوقي للنشر' },
+                { from: 3, to: 5, summary: 'كريم الدسوقي يسلم المقال المنشور لعمر الفاروق لربط الـ PageRank' },
+                { from: 0, to: 2, summary: 'طارق العبدلي يعتمد خطة سرعة العرض مع سارة المهندس' },
+                { from: 7, to: 8, summary: 'ليلى الألفي تسلم شهادة الأداء 100% لزياد عمران' },
+              ];
+              const pick = handoverScenarios[handoverDemoIdxRef.current % handoverScenarios.length];
+              handoverDemoIdxRef.current += 1;
+              if (sceneRef.current?.triggerAgentTaskHandoverWalk) {
+                sceneRef.current.triggerAgentTaskHandoverWalk(pick.from, pick.to, pick.summary);
+                setStatus(`⚡ ${pick.summary}`);
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/50 text-cyan-200 font-bold text-xs shadow-md transition-all cursor-pointer"
+          >
+            <Activity className="size-3.5 text-cyan-300 shrink-0" />
+            <span>تسليم مهمة حي (مسار A*)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              if (sceneRef.current?.flyToServerWall) {
+                sceneRef.current.flyToServerWall();
+                setStatus('🖥️ فحص جدار السيرفرات الـ 8 الحية (8/8 منصات متصلة وفعالة)');
+              }
+            }}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/50 text-emerald-200 font-bold text-xs shadow-md transition-all cursor-pointer"
+          >
+            <Database className="size-3.5 text-emerald-300 shrink-0" />
+            <span>جدار المنصات الـ 8</span>
           </button>
 
           <button

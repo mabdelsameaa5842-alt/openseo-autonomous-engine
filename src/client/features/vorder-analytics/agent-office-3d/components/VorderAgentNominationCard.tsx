@@ -55,18 +55,33 @@ export function VorderAgentNominationCard({
   const handleAction = async (action: "approve" | "reject" | "reset") => {
     setIsSubmitting(true);
     try {
-      const res = await fetch("/api/automation/agent-nominations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action,
-          nominationId: nomination.id,
-        }),
+      const payloadStr = JSON.stringify({
+        action,
+        nominationId: nomination.id,
       });
 
-      if (!res.ok) throw new Error("فشل إرسال القرار إلى السيرفر");
+      const attemptRequest = async (url: string) => {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: payloadStr,
+        });
+        const rawText = await res.text();
+        if (!res.ok || !rawText.trim()) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+        return JSON.parse(rawText) as any;
+      };
 
-      const data = (await res.json()) as any;
+      let data: any;
+      try {
+        data = await attemptRequest("/api/automation/agent-nominations");
+      } catch {
+        data = await attemptRequest(
+          "https://open-seo.abdelsameaa.workers.dev/api/automation/agent-nominations"
+        );
+      }
+
       const newStatus =
         action === "approve"
           ? "approved"
@@ -102,7 +117,7 @@ export function VorderAgentNominationCard({
         onStatusChange(data.nomination);
       }
     } catch (err: any) {
-      toast.error(`خطأ: ${err.message || String(err)}`);
+      toast.error(`خطأ: ${err.message || "فشل إرسال القرار إلى السيرفر"}`);
     } finally {
       setIsSubmitting(false);
     }

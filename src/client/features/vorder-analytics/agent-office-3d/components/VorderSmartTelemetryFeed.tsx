@@ -58,7 +58,7 @@ export function VorderSmartTelemetryFeed({
   const [liveFeed, setLiveFeed] = useState<SmartFeedItem[]>([]);
   const [liveRestStatus, setLiveRestStatus] = useState<RestPeriodStatus | null>(null);
   const [totalChatCount, setTotalChatCount] = useState<number>(
-    Number(telemetryData?.totalMessagesCount) || 408
+    Number(telemetryData?.totalMessagesCount) || 858
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRunningCycle, setIsRunningCycle] = useState(false);
@@ -67,7 +67,7 @@ export function VorderSmartTelemetryFeed({
   const fetchLiveFeedFromD1 = useCallback(async (silent = true) => {
     if (!silent) setIsRefreshing(true);
     try {
-      const res = await fetch(`/api/automation/dual-pipelines-telemetry?refresh=true&t=${Date.now()}`, {
+      const res = await fetch(`/api/automation/dual-pipelines-telemetry?t=${Date.now()}`, {
         cache: "no-store",
       });
       if (!res.ok) return;

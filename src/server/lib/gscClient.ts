@@ -1,4 +1,5 @@
 import { getAuth } from "@/lib/auth";
+import { getOrRefreshGoogleOAuthTokenFromKv } from "@/server/features/google/selfHostedOAuth";
 import { GSC_OAUTH_PROVIDER_ID } from "@/shared/gsc";
 import { GscApiError, GscTokenError } from "./gscErrors";
 
@@ -78,19 +79,22 @@ function messageForStatus(status: number, body: string): string {
 
 /** Free Google Search Console client. Unlike the DataForSEO client it does NOT
  *  meter credits — GSC is first-party data with no per-call cost. Access tokens
- *  are minted (and auto-refreshed) by Better Auth from the connector's stored
- *  google-search-console grant. */
+ *  are minted (and auto-refreshed) by OAUTH_KV or Better Auth from the connector's
+ *  stored google-search-console grant. */
 export function createGscClient(opts: {
   userId: string;
   gscAccountId?: string;
 }) {
-  async function getToken(): Promise<string> {
+  async function getToken(forceRefresh = false): Promise<string> {
+    // 1. Primary: OAUTH_KV with automatic refresh_token renewal (Zero D1 reads!)
+    const kvToken = await getOrRefreshGoogleOAuthTokenFromKv("gsc", forceRefresh);
+    if (kvToken?.accessToken) {
+      return kvToken.accessToken;
+    }
+
+    // 2. Fallback: Better Auth D1 account table
     let result: { accessToken?: string } | undefined;
     try {
-      // Headerless call: getAccessToken trusts body.userId when no request
-      // session is present, and auto-refreshes via the genericOAuth provider.
-      // Works in every auth mode — self-hosted builds the same Better Auth
-      // instance once BETTER_AUTH_SECRET is set.
       result = await getAuth().api.getAccessToken({
         body: {
           providerId: GSC_OAUTH_PROVIDER_ID,
@@ -116,9 +120,9 @@ export function createGscClient(opts: {
     url: string,
     init?: { method?: string; body?: unknown },
   ): Promise<T> {
-    const token = await getToken();
+    let token = await getToken(false);
     const hasBody = init?.body !== undefined;
-    const response = await fetch(url, {
+    let response = await fetch(url, {
       method: init?.method ?? "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -126,6 +130,23 @@ export function createGscClient(opts: {
       },
       body: hasBody ? JSON.stringify(init?.body) : undefined,
     });
+
+    // If token expired mid-flight (401), force-refresh via refresh_token in OAUTH_KV and retry once
+    if (response.status === 401) {
+      const refreshed = await getOrRefreshGoogleOAuthTokenFromKv("gsc", true);
+      if (refreshed?.accessToken) {
+        token = refreshed.accessToken;
+        response = await fetch(url, {
+          method: init?.method ?? "GET",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            ...(hasBody ? { "Content-Type": "application/json" } : {}),
+          },
+          body: hasBody ? JSON.stringify(init?.body) : undefined,
+        });
+      }
+    }
+
     if (!response.ok) {
       const body = await response.text().catch(() => "");
       throw new GscApiError(

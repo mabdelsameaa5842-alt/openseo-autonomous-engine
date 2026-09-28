@@ -73,39 +73,41 @@ export async function harvestKeywordBatch(opts: {
       ? opts.preferredCountries.join("، ")
       : "السعودية (الرياض، جدة، الدمام)، مصر (القاهرة، التجمع الخامس، الشيخ زايد، الإسكندرية)، الإمارات (دبي، أبوظبي)، الكويت، قطر (الدوحة)، والوطن العربي";
 
-  // 1. Harvest from Google Search Console striking distance (queries near page 1)
-  if (opts.userId) {
-    try {
-      const gsc = createGscClient({ userId: opts.userId });
-      const now = new Date();
-      const prev28 = new Date(now.getTime() - 28 * 86400 * 1000);
-      const rows = await gsc.querySearchAnalytics(`https://${opts.domain}/`, {
-        startDate: prev28.toISOString().slice(0, 10),
-        endDate: now.toISOString().slice(0, 10),
-        dimensions: ["query"],
-        rowLimit: 250,
-      });
+  // 1. Harvest from Google Search Console striking distance (queries near page 1 via OAUTH_KV grant)
+  try {
+    const effectiveGscUserId = opts.userId || "local-admin";
+    const gsc = createGscClient({ userId: effectiveGscUserId });
+    const now = new Date();
+    const prev28 = new Date(now.getTime() - 28 * 86400 * 1000);
+    const siteUrl = opts.domain.startsWith("http")
+      ? opts.domain.endsWith("/") ? opts.domain : `${opts.domain}/`
+      : `https://${opts.domain}/`;
+    const rows = await gsc.querySearchAnalytics(siteUrl, {
+      startDate: prev28.toISOString().slice(0, 10),
+      endDate: now.toISOString().slice(0, 10),
+      dimensions: ["query"],
+      rowLimit: 250,
+    });
 
-      for (const row of rows) {
-        if (row.keys && row.keys[0]) {
-          const kw = row.keys[0].trim().toLowerCase();
-          if (kw.length > 2 && !keywordsMap.has(kw) && !existingDbKeywords.has(kw)) {
-            keywordsMap.set(kw, {
-              keyword: kw,
-              source: "gsc",
-              monthlyVolume: Math.round(row.impressions * 1.5) || 120,
-              competition: row.position < 10 ? "HIGH" : "MEDIUM",
-              targetMarket: "الوطن العربي",
-              intent: "commercial",
-              strategicReason:
-                "كلمة بحثية نشطة في Google Search Console قريبة من الصفحة الأولى (Striking Distance).",
-            });
-          }
+    for (const row of rows) {
+      if (row.keys && row.keys[0]) {
+        const kw = row.keys[0].trim().toLowerCase();
+        if (kw.length > 2 && !keywordsMap.has(kw) && !existingDbKeywords.has(kw)) {
+          keywordsMap.set(kw, {
+            keyword: kw,
+            source: "gsc",
+            monthlyVolume: Math.round(row.impressions * 1.5) || 120,
+            competition: row.position < 10 ? "HIGH" : "MEDIUM",
+            targetMarket: "الوطن العربي",
+            intent: "commercial",
+            strategicReason:
+              "كلمة بحثية نشطة في Google Search Console قريبة من الصفحة الأولى (Striking Distance).",
+          });
         }
       }
-    } catch (err) {
-      console.warn("[KeywordHarvester] GSC harvest skipped/fallback:", (err as Error).message);
     }
+  } catch (err) {
+    console.warn("[KeywordHarvester] GSC harvest skipped/fallback:", (err as Error).message);
   }
 
   // 2. Harvest from Google Ads Keyword Planner (with graceful Algorithmic Fallback)

@@ -6,6 +6,37 @@ import { googleAdsConnections } from "@/db/schema";
 export type GoogleAdsConnection = typeof googleAdsConnections.$inferSelect;
 
 const memAdsStore = new Map<string, GoogleAdsConnection>();
+let googleAdsTableEnsured = false;
+
+async function ensureGoogleAdsConnectionsTable(): Promise<void> {
+  if (googleAdsTableEnsured) return;
+  try {
+    const rawD1 = (env as any)?.DB;
+    if (rawD1 && typeof rawD1.prepare === "function") {
+      await rawD1
+        .prepare(
+          `CREATE TABLE IF NOT EXISTS google_ads_connections (
+            id TEXT PRIMARY KEY NOT NULL,
+            project_id TEXT NOT NULL UNIQUE,
+            organization_id TEXT NOT NULL,
+            customer_id TEXT NOT NULL,
+            customer_descriptive_name TEXT NOT NULL,
+            currency_code TEXT,
+            time_zone TEXT,
+            connected_by_user_id TEXT NOT NULL,
+            google_ads_account_id TEXT NOT NULL,
+            connected_account_email TEXT,
+            created_at TEXT DEFAULT (current_timestamp) NOT NULL,
+            updated_at TEXT DEFAULT (current_timestamp) NOT NULL
+          )`,
+        )
+        .run();
+      googleAdsTableEnsured = true;
+    }
+  } catch {
+    // Non-blocking fallback to OAUTH_KV
+  }
+}
 
 function getKvKey(projectId: string) {
   return `google_ads_conn_v2:${projectId}`;
@@ -14,7 +45,21 @@ function getKvKey(projectId: string) {
 async function getByProjectId(
   projectId: string,
 ): Promise<GoogleAdsConnection | null> {
+  // 1. Prioritize OAUTH_KV first for sub-millisecond read and D1 quota protection
   try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (kv) {
+      const raw = await kv.get(getKvKey(projectId));
+      if (raw) {
+        const parsed = JSON.parse(raw) as GoogleAdsConnection;
+        memAdsStore.set(projectId, parsed);
+        return parsed;
+      }
+    }
+  } catch {}
+
+  try {
+    await ensureGoogleAdsConnectionsTable();
     const rows = await db
       .select()
       .from(googleAdsConnections)
@@ -27,18 +72,6 @@ async function getByProjectId(
   } catch (err) {
     console.warn("[GoogleAdsConnectionRepository.getByProjectId] D1 fallback to KV:", err);
   }
-
-  try {
-    const kv = (env as any)?.OAUTH_KV;
-    if (kv) {
-      const raw = await kv.get(getKvKey(projectId));
-      if (raw) {
-        const parsed = JSON.parse(raw) as GoogleAdsConnection;
-        memAdsStore.set(projectId, parsed);
-        return parsed;
-      }
-    }
-  } catch {}
 
   return memAdsStore.get(projectId) ?? null;
 }

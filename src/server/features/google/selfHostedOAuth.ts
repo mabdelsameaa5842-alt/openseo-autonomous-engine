@@ -318,6 +318,201 @@ export async function recordOAuthDiagnosticLog(
   }
 }
 
+const inMemoryOAuthTokenCache = new Map<
+  string,
+  {
+    accessToken: string;
+    expiresAt: number;
+    email: string | null;
+    accountId: string;
+    selectedResource: string | null;
+    availableResources: Array<{ id: string; label: string; permission?: string }>;
+  }
+>();
+
+const inMemorySelectedResourceCache = new Map<string, string>();
+
+export function setInMemoryOAuthSelectedResource(
+  stateNamespace: string,
+  resourceId: string,
+): void {
+  const canonical =
+    stateNamespace === "gemini" || stateNamespace === "google-ai-studio"
+      ? "google_ai_studio"
+      : stateNamespace;
+  inMemorySelectedResourceCache.set(canonical, resourceId);
+  const existing = inMemoryOAuthTokenCache.get(canonical);
+  if (existing) {
+    existing.selectedResource = resourceId;
+  }
+}
+
+export async function getOrRefreshGoogleOAuthTokenFromKv(
+  stateNamespace: "gsc" | "ga4" | "google-ads" | "google_ai_studio" | string,
+  forceRefresh = false,
+): Promise<{
+  accessToken: string;
+  email: string | null;
+  accountId: string;
+  selectedResource: string | null;
+  availableResources: Array<{ id: string; label: string; permission?: string }>;
+} | null> {
+  const canonicalNs =
+    stateNamespace === "gemini" || stateNamespace === "google-ai-studio"
+      ? "google_ai_studio"
+      : stateNamespace;
+  const cached = inMemoryOAuthTokenCache.get(canonicalNs);
+  if (!forceRefresh && cached && cached.accessToken && cached.expiresAt > Date.now() + 90_000) {
+    return {
+      ...cached,
+      selectedResource:
+        inMemorySelectedResourceCache.get(canonicalNs) || cached.selectedResource || null,
+    };
+  }
+  try {
+    const kv = (env as any)?.OAUTH_KV;
+    if (!kv) return null;
+
+    const providerKeyMap: Record<string, string> = {
+      gsc: GSC_OAUTH_PROVIDER_ID,
+      ga4: GA4_OAUTH_PROVIDER_ID,
+      "google-ads": GOOGLE_ADS_OAUTH_PROVIDER_ID,
+      google_ai_studio: "google-ai-studio",
+      "google-ai-studio": "google_ai_studio",
+      gemini: "google_ai_studio",
+    };
+    const primaryKey = `oauth_grant:${stateNamespace}`;
+    const secondaryKey = providerKeyMap[stateNamespace]
+      ? `oauth_grant:${providerKeyMap[stateNamespace]}`
+      : null;
+
+    const raw =
+      (await kv.get(primaryKey)) ||
+      (secondaryKey ? await kv.get(secondaryKey) : null);
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as {
+      providerId?: string;
+      stateNamespace?: string;
+      userId?: string;
+      accountId?: string;
+      email?: string | null;
+      name?: string;
+      accessToken?: string;
+      refreshToken?: string | null;
+      scope?: string;
+      expiresAt?: number;
+      selectedResource?: string | null;
+      availableResources?: Array<{ id: string; label: string; permission?: string }>;
+      connectedAt?: string;
+      status?: string;
+    };
+
+    if (parsed.status === "disconnected") {
+      return null;
+    }
+
+    const now = Date.now();
+    const isExpired =
+      forceRefresh ||
+      !parsed.accessToken ||
+      typeof parsed.expiresAt !== "number" ||
+      parsed.expiresAt <= now + 90_000;
+
+    if (!isExpired && parsed.accessToken) {
+      return {
+        accessToken: parsed.accessToken,
+        email: parsed.email || null,
+        accountId: parsed.accountId || "google_kv_account",
+        selectedResource: parsed.selectedResource || null,
+        availableResources: Array.isArray(parsed.availableResources)
+          ? parsed.availableResources
+          : [],
+      };
+    }
+
+    if (parsed.refreshToken) {
+      const config = await getGoogleOAuthClientConfig();
+      if (config?.clientId && config?.clientSecret) {
+        const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            client_id: config.clientId,
+            client_secret: config.clientSecret,
+            refresh_token: parsed.refreshToken,
+            grant_type: "refresh_token",
+          }),
+        });
+
+        if (tokenRes.ok) {
+          const refreshed = (await tokenRes.json()) as {
+            access_token?: string;
+            expires_in?: number;
+            refresh_token?: string;
+            scope?: string;
+          };
+          if (refreshed.access_token) {
+            const updatedPayload = {
+              ...parsed,
+              accessToken: refreshed.access_token,
+              refreshToken: refreshed.refresh_token || parsed.refreshToken,
+              expiresAt: Date.now() + (refreshed.expires_in ?? 3600) * 1000,
+              status: "connected",
+            };
+            inMemoryOAuthTokenCache.set(canonicalNs, {
+              accessToken: refreshed.access_token,
+              expiresAt: updatedPayload.expiresAt,
+              email: updatedPayload.email || null,
+              accountId: updatedPayload.accountId || "google_kv_account",
+              selectedResource:
+                inMemorySelectedResourceCache.get(canonicalNs) || updatedPayload.selectedResource || null,
+              availableResources: Array.isArray(updatedPayload.availableResources)
+                ? updatedPayload.availableResources
+                : [],
+            });
+            try {
+              await kv.put(primaryKey, JSON.stringify(updatedPayload), {
+                expirationTtl: 60 * 60 * 24 * 180,
+              });
+              if (secondaryKey) {
+                await kv.put(secondaryKey, JSON.stringify(updatedPayload), {
+                  expirationTtl: 60 * 60 * 24 * 180,
+                });
+              }
+            } catch {}
+            return {
+              accessToken: refreshed.access_token,
+              email: updatedPayload.email || null,
+              accountId: updatedPayload.accountId || "google_kv_account",
+              selectedResource:
+                inMemorySelectedResourceCache.get(canonicalNs) || updatedPayload.selectedResource || null,
+              availableResources: Array.isArray(updatedPayload.availableResources)
+                ? updatedPayload.availableResources
+                : [],
+            };
+          }
+        }
+      }
+    }
+
+    if (parsed.accessToken) {
+      return {
+        accessToken: parsed.accessToken,
+        email: parsed.email || null,
+        accountId: parsed.accountId || "google_kv_account",
+        selectedResource: parsed.selectedResource || null,
+        availableResources: Array.isArray(parsed.availableResources)
+          ? parsed.availableResources
+          : [],
+      };
+    }
+  } catch (err) {
+    console.warn(`[getOrRefreshGoogleOAuthTokenFromKv] warning for ${stateNamespace}:`, err);
+  }
+  return null;
+}
+
 async function discoverGoogleResources(
   stateNamespace: string,
   accessToken: string,
@@ -378,8 +573,17 @@ async function discoverGoogleResources(
     console.warn(`[discoverGoogleResources] discovery warning for ${stateNamespace}:`, e);
   }
 
+  // Prefer the portfolio property/site if multiple resources exist on the Google account
+  const preferredMatch = availableResources.find(
+    (r) =>
+      r.id.toLowerCase().includes("mohamed-abdelsamee") ||
+      r.label.toLowerCase().includes("mohamed-abdelsamee") ||
+      r.label.toLowerCase().includes("portfolio") ||
+      r.id === "properties/553404486",
+  );
+
   return {
-    selectedResource: availableResources[0]?.id || null,
+    selectedResource: preferredMatch?.id || availableResources[0]?.id || null,
     availableResources,
   };
 }
@@ -388,43 +592,102 @@ async function upsertGrant(input: {
   integration: SelfHostedGoogleOAuthIntegration;
   user: SelfHostedGoogleUser;
   tokens: GoogleTokenResponse;
+  projectId?: string;
 }): Promise<{ email: string | null; accountId: string; selectedResource: string | null }> {
   const profile = await getGoogleAccountProfile(input.tokens);
   const discovered = await discoverGoogleResources(
     input.integration.stateNamespace,
     input.tokens.access_token,
   );
+  const targetProjectId = input.projectId || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
 
-  // 1. Primary KV Storage (Guaranteed Zero-Failure Persistence)
+  // 1. Primary KV Storage (Guaranteed Zero-Failure Persistence + Auto-Bind Project Connection)
   try {
     const kv = (env as any).OAUTH_KV;
     if (kv) {
+      let existingRefreshToken: string | null = null;
+      try {
+        const prevRaw = await kv.get(`oauth_grant:${input.integration.stateNamespace}`);
+        if (prevRaw) {
+          const prevParsed = JSON.parse(prevRaw);
+          if (prevParsed?.refreshToken) {
+            existingRefreshToken = prevParsed.refreshToken;
+          }
+        }
+      } catch {}
+
+      const nowIso = new Date().toISOString();
+      const resolvedEmail = profile.email || input.user.userEmail || "mohamed701164@gmail.com";
       const kvPayload = {
         providerId: input.integration.providerId,
         stateNamespace: input.integration.stateNamespace,
         userId: input.user.userId,
         accountId: profile.accountId,
-        email: profile.email || input.user.userEmail || "connected@google.com",
+        email: resolvedEmail,
         name: profile.name || input.integration.displayName,
         accessToken: input.tokens.access_token,
-        refreshToken: input.tokens.refresh_token || null,
+        refreshToken: input.tokens.refresh_token || existingRefreshToken || null,
         scope: input.tokens.scope || input.integration.scopes.join(" "),
         expiresAt: Date.now() + (input.tokens.expires_in ?? 3600) * 1000,
         selectedResource: discovered.selectedResource,
         availableResources: discovered.availableResources,
-        connectedAt: new Date().toISOString(),
+        connectedAt: nowIso,
         status: "connected",
       };
       await kv.put(
         `oauth_grant:${input.integration.stateNamespace}`,
         JSON.stringify(kvPayload),
-        { expirationTtl: 60 * 60 * 24 * 90 },
+        { expirationTtl: 60 * 60 * 24 * 180 },
       );
       await kv.put(
         `oauth_grant:${input.integration.providerId}`,
         JSON.stringify(kvPayload),
-        { expirationTtl: 60 * 60 * 24 * 90 },
+        { expirationTtl: 60 * 60 * 24 * 180 },
       );
+
+      // Immediately persist the bound project connection in OAUTH_KV so Dashboard & Banner turn Connected immediately!
+      if (input.integration.stateNamespace === "gsc") {
+        const siteUrl =
+          discovered.selectedResource ||
+          "https://mohamed-abdelsamee-portfolio.vercel.app/";
+        const gscConnRow = {
+          id: crypto.randomUUID(),
+          projectId: targetProjectId,
+          organizationId: "local-org",
+          siteUrl,
+          connectedByUserId: input.user.userId || "local-admin",
+          gscAccountId: profile.accountId,
+          connectedAccountEmail: resolvedEmail,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        await kv.put(`gsc_conn_v2:${targetProjectId}`, JSON.stringify(gscConnRow), {
+          expirationTtl: 60 * 60 * 24 * 180,
+        });
+      } else if (input.integration.stateNamespace === "ga4") {
+        const propId = discovered.selectedResource || "properties/553404486";
+        const matchedProp = discovered.availableResources.find((r) => r.id === propId);
+        const ga4ConnRow = {
+          id: crypto.randomUUID(),
+          projectId: targetProjectId,
+          organizationId: "local-org",
+          propertyId: propId,
+          propertyDisplayName:
+            matchedProp?.label ||
+            "https://mohamed-abdelsamee-portfolio.vercel.app/ — mohamed abdelsameaa",
+          propertyTimeZone: "Africa/Cairo",
+          propertyCurrencyCode: "EGP",
+          connectedByUserId: input.user.userId || "local-admin",
+          ga4AccountId: profile.accountId,
+          connectedAccountEmail: resolvedEmail,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        await kv.put(`ga4_conn_v2:${targetProjectId}`, JSON.stringify(ga4ConnRow), {
+          expirationTtl: 60 * 60 * 24 * 180,
+        });
+      }
+
       // Clear any previous error diagnostic log on success
       await kv.delete(`diag:global:${input.integration.stateNamespace}`);
     }
@@ -683,6 +946,28 @@ export async function handleSelfHostedGoogleOAuthCallback(input: {
         const now = new Date().toISOString();
         const projectMatch = state.callbackPath.match(/\/p\/([^/?#]+)/);
         const projectId = projectMatch?.[1] || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
+        let prevRefreshToken: string | null = null;
+        let prevUserSelectedModel: string | null = null;
+        try {
+          const prevGrantRaw = await kv.get("oauth_grant:google_ai_studio");
+          if (prevGrantRaw) {
+            const prevGrant = JSON.parse(prevGrantRaw);
+            prevRefreshToken = prevGrant?.refreshToken || null;
+            prevUserSelectedModel = prevGrant?.selectedResource || null;
+          }
+          const prevRecRaw = await kv.get(`verified_platform_v2:${projectId}:google_ai_studio`);
+          if (prevRecRaw) {
+            const prevRec = JSON.parse(prevRecRaw);
+            prevRefreshToken = prevRefreshToken || prevRec?.credentials?.refreshToken || null;
+            prevUserSelectedModel =
+              prevRec?.selectedResourceMeta?.userSelectedModel ||
+              prevRec?.selectedResourceId ||
+              prevUserSelectedModel;
+          }
+        } catch {}
+
+        const effectiveModel = prevUserSelectedModel || "gemini-2.5-flash";
+        const effectiveRefresh = tokens.refresh_token || prevRefreshToken || null;
         const geminiRecord = {
           id: crypto.randomUUID(),
           projectId,
@@ -692,14 +977,16 @@ export async function handleSelfHostedGoogleOAuthCallback(input: {
           credentials: {
             token: tokens.access_token,
             apiKey: tokens.access_token,
+            refreshToken: effectiveRefresh,
           },
           accountName: `Google AI Studio (${saved.email || "Google OAuth"})`,
           connectedByEmail: saved.email || input.user.userEmail || "Google OAuth",
-          selectedResourceId: "gemini-2.5-flash",
-          selectedResourceName: "Gemini 2.5 Flash (gemini-2.5-flash)",
+          selectedResourceId: effectiveModel,
+          selectedResourceName: `Google AI Studio (${effectiveModel})`,
           selectedResourceMeta: {
-            modelId: "gemini-2.5-flash",
-            displayName: "Gemini 2.5 Flash",
+            modelId: effectiveModel,
+            userSelectedModel: effectiveModel,
+            displayName: effectiveModel,
             inputTokenLimit: 1048576,
             outputTokenLimit: 65536,
             authMode: "Google OAuth 2.0",
@@ -716,8 +1003,11 @@ export async function handleSelfHostedGoogleOAuthCallback(input: {
           "oauth_grant:google_ai_studio",
           JSON.stringify({
             accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token || null,
+            refreshToken: effectiveRefresh,
             email: saved.email || input.user.userEmail,
+            selectedResource: effectiveModel,
+            expiresAt: Date.now() + (tokens.expires_in ?? 3600) * 1000,
+            status: "connected",
             connectedAt: now,
           }),
           { expirationTtl: 60 * 60 * 24 * 180 },

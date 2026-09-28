@@ -2,6 +2,13 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Send, Sparkles, MessageSquare, Bot, CheckCircle2, ShieldCheck, Zap } from 'lucide-react';
 import { VORDER_AGENTS_ROSTER, type VorderAgentData } from '../../agent-office-engine/vorderAgentsData';
 
+interface SuggestedActionChip {
+  id: string;
+  label: string;
+  prompt: string;
+  category?: 'execute' | 'brainstorm' | 'audit';
+}
+
 interface Message {
   id: string;
   sender: 'director' | 'user';
@@ -9,6 +16,12 @@ interface Message {
   time: string;
   modelUsed?: string;
   durationMs?: number;
+  suggestedActions?: SuggestedActionChip[];
+  executedAction?: {
+    executed: boolean;
+    actionType: string;
+    summaryAr: string;
+  } | null;
 }
 
 interface VorderAgentDirectorChatProps {
@@ -18,21 +31,21 @@ interface VorderAgentDirectorChatProps {
 
 // Agent-specific initial greetings (Distinct Personalities — Zero Rejected Clichés)
 const AGENT_GREETINGS: Record<string, string> = {
-  'vorder-tariq': 'أهلاً بك يا باشمهندس محمد. أنا طارق العبدلي، المدير التنفيذي وقائد التكتيكات لخلية الوكلاء الـ 9. جميع المنصات الـ 8 متصلة حياً وأمامي الآن تقارير الـ 38 ظهوراً في كونسول.. ما التوجيه التنفيذي الذي نبدأ به؟',
+  'vorder-tariq': 'أهلاً بك يا باشمهندس محمد. أنا طارق العبدلي، المدير التنفيذي وقائد التكتيكات لخلية الوكلاء الـ 9. جميع المنصات الـ 8 متصلة حياً وأمامي الآن تقارير الـ 48 ظهوراً في كونسول.. ما التوجيه التنفيذي الذي نبدأ به؟',
   'vorder-sara': 'من زاوية العائد والتحويل في GA4 وGoogle Ads، أنا سارة المهندس. أراقب الآن سرعة العرض (TURBO_3X) ومسارات Server-Side CAPI لضمان أعلى ROAS. أي حملة أو سوق نحلله مالياً الآن؟',
   'vorder-yasmine': 'من واقع فحص استعلامات Search Console، أنا ياسمين الشريف، خبيرة حصاد الكلمات وتصنيف النوايا. رصدت تكتلات كلمات قوية في منطقة الـ Striking Distance.. تحب نفتح خريطة الكلمات لأي قطاع؟',
-  'vorder-omar': 'على مستوى هندسة الروابط وثقة النطاق، أهلاً بك يا باشمهندس. أنا عمر الفاروق، مسؤول العلاقات الرقمية وتدفق الـ Internal PageRank. تحب نراجع شبكة الروابط الداخلية الداعمة لصفحات الظهور؟',
-  'vorder-karim': 'في خط إنتاج المحتوى وطابور النشر، أنا كريم الدسوقي. المدونة والسايت ماب متطابقان (661 مقالاً) وطابور الـ 100 مقال جاهز مع نبضات IndexNow الفورية. هل نراجع حالة الأرشفة أو نطلق دفعة نشر جديدة؟',
+  'vorder-omar': 'على مستوى هندسة الروابط وثقة النطاق، أهلاً بك يا باشمهندس محمد. أنا عمر الفاروق، مسؤول العلاقات الرقمية وتدفق الـ Internal PageRank. تحب نراجع شبكة الروابط الداخلية الداعمة لصفحات الظهور؟',
+  'vorder-karim': 'في خط إنتاج المحتوى وطابور النشر، أنا كريم الدسوقي. المدونة والسايت ماب متطابقان وطابور الـ 100 مقال جاهز مع نبضات IndexNow الفورية. هل نراجع حالة الأرشفة أو نطلق دفعة نشر جديدة؟',
   'vorder-layla': 'هندسياً وعلى مستوى مؤشرات Core Web Vitals، أنا ليلى الألفي. صحة الموقع Site Audit عند 100% (0 تحذيرات) وأكواد TechArticle Schema مفعّلة بالكامل. هل نفحص سرعة الأداء أو الكود المصدري؟',
   'vorder-faris': 'إقليمياً وعلى خريطة الأسواق المستهدفة، أنا فارس النجار، خبير السيو المحلي وأسواق السعودية ومصر والخليج. حصص النشر مضبوطة بين الرياض وجدة والقاهرة ودبي.. أي سوق إقليمي نركز عليه الآن؟',
   'vorder-nour': 'فيما يخص محركات الإجابة التوليدية GEO، أنا نور المرشدي. أعمل على تعزيز فقرات الإجابة المباشرة والـ Entities لتصدر اقتباسات ChatGPT وGemini وPerplexity. هل نراجع جاهزية الاقتباس التوليدي؟',
-  'vorder-ziad': 'سجلات الرقابة الجنائية في D1 جاهزة أمامك. أنا زياد عمران، حارس الجودة والذاكرة المتعلمة. جميع توجيهاتك وقواعد الحظر مفعّلة بصرامة على الوكلاء الـ 9. هل نعرض سجل العمليات أو نراجع الذاكرة؟',
+  'vorder-ziad': 'سجلات الرقابة الجنائية في D1 جاهزة أمامك يا باشمهندس محمد. أنا زياد عمران، حارس الجودة والذاكرة المتعلمة. جميع توجيهاتك وقواعد الحظر مفعّلة بصرامة على الوكلاء الـ 9. هل نعرض سجل العمليات أو نراجع الذاكرة؟',
 };
 
 // Agent-specific quick prompts
 const AGENT_QUICK_PROMPTS: Record<string, string[]> = {
   'vorder-tariq': [
-    'اعرض لي خطة مضاعفة الـ 38 ظهوراً في Search Console',
+    'اعرض لي خطة مضاعفة الـ 48 ظهوراً في Search Console',
     'ما حالة التزام الوكلاء الـ 9 بذاكرة التفضيلات في D1؟',
     'كيف نوزع قوة النشر بين السعودية ومصر والإمارات؟',
     'راجع لي حالة الربط الحي في المنصات الـ 8 الآن',
@@ -50,7 +63,7 @@ const AGENT_QUICK_PROMPTS: Record<string, string[]> = {
     'كيف نرفع نسبة النقر CTR للاستعلامات الحالية؟',
   ],
   'vorder-omar': [
-    'كيف نوزع الـ Internal PageRank لدعم الـ 15 صفحة المحققة للظهور؟',
+    'كيف نوزع الـ Internal PageRank لدعم الـ 29 صفحة المحققة للظهور؟',
     'ما خطتك لتنويع نصوص الـ Anchor Text الدلالية؟',
     'كيف نعزز ثقة الدومين (Authority) عبر GitHub والمصادر الموثوقة؟',
     'هل توجد أي صفحات يتيمة (Orphan Pages) في الموقع؟',
@@ -87,18 +100,19 @@ const AGENT_QUICK_PROMPTS: Record<string, string[]> = {
   ],
 };
 
-const DEFAULT_GREETING = AGENT_GREETINGS['vorder-tariq'];
-const DEFAULT_PROMPTS = AGENT_QUICK_PROMPTS['vorder-tariq'];
-
 export const VorderAgentDirectorChat: React.FC<VorderAgentDirectorChatProps> = ({ onClose, agent }) => {
   const currentAgent = agent || VORDER_AGENTS_ROSTER[0];
   const agentKey = currentAgent.id;
+
+  const initialGreeting =
+    AGENT_GREETINGS[agentKey] ||
+    `أهلاً بك يا باشمهندس محمد عبد السميع. أنا ${currentAgent.title} (${currentAgent.roleAr})، وكيل التوسع المعتمد في المكتب ثلاثي الأبعاد. مكتبي وحاسوبي متصلان حياً ببيانات D1 وSearch Console.. ما المهمة المتخصصة التي نبدأ بها؟`;
 
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'm1',
       sender: 'director',
-      text: AGENT_GREETINGS[agentKey] || DEFAULT_GREETING,
+      text: initialGreeting,
       time: 'الآن',
     },
   ]);
@@ -106,7 +120,70 @@ export const VorderAgentDirectorChat: React.FC<VorderAgentDirectorChatProps> = (
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
-  const quickPrompts: string[] = AGENT_QUICK_PROMPTS[agentKey] || DEFAULT_PROMPTS;
+  const quickPrompts: string[] = AGENT_QUICK_PROMPTS[agentKey] || [
+    `ما مهامك التخصصية كـ ${currentAgent.title} في خلية VORDER؟`,
+    'ما خطتك لدعم الـ 48 ظهوراً في Search Console؟',
+    'كيف تتكامل مخرجات مكتبك مع طارق العبدلي وباقي الوكلاء؟',
+  ];
+
+  // Hydrate recent persisted conversation turns for this agent from D1 / OAUTH_KV
+  useEffect(() => {
+    let mounted = true;
+    fetch(`/api/automation/agent-meetings?limit=80&t=${Date.now()}`, { cache: 'no-store' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((json: any) => {
+        if (!mounted || !Array.isArray(json?.meeting?.dialogue)) return;
+        const dialogue: any[] = json.meeting.dialogue;
+        const firstWord = currentAgent.title.split(' ')[0];
+        const relevant: Message[] = [];
+        for (let i = 0; i < dialogue.length; i++) {
+          const d = dialogue[i];
+          if (!d || !d.text) continue;
+          const isThisAgent =
+            d.agentId === agentKey ||
+            (d.agentName && firstWord && String(d.agentName).includes(firstWord));
+          if (isThisAgent) {
+            const prev = i > 0 ? dialogue[i - 1] : null;
+            if (prev && (prev.senderType === 'user' || prev.agentId === 'human-director' || prev.agentId === 'user')) {
+              if (!relevant.some((m) => m.id === prev.id)) {
+                relevant.push({
+                  id: prev.id,
+                  sender: 'user',
+                  text: prev.text,
+                  time: prev.time || 'محفوظ',
+                });
+              }
+            }
+            if (!relevant.some((m) => m.id === d.id)) {
+              relevant.push({
+                id: d.id,
+                sender: 'director',
+                text: d.text,
+                time: d.time || 'محفوظ',
+                modelUsed: d.modelUsed,
+                suggestedActions: d.suggestedActions,
+                executedAction: d.executedAction,
+              });
+            }
+          }
+        }
+        if (relevant.length > 0) {
+          setMessages([
+            {
+              id: 'm1',
+              sender: 'director',
+              text: initialGreeting,
+              time: 'الآن',
+            },
+            ...relevant.slice(-8),
+          ]);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, [agentKey, currentAgent.title, initialGreeting]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -137,7 +214,10 @@ export const VorderAgentDirectorChat: React.FC<VorderAgentDirectorChatProps> = (
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          projectId: 'cc58e018-8ef9-4be7-8f3a-2af2bc158d62',
           agentId: currentAgent.id,
+          agentName: currentAgent.title,
+          agentRole: currentAgent.roleAr,
           message: query,
           history: historyPayload,
         }),
@@ -147,7 +227,13 @@ export const VorderAgentDirectorChat: React.FC<VorderAgentDirectorChatProps> = (
         throw new Error(`HTTP error ${res.status}`);
       }
 
-      const data = (await res.json()) as { reply?: string; modelUsed?: string; durationMs?: number };
+      const data = (await res.json()) as {
+        reply?: string;
+        modelUsed?: string;
+        durationMs?: number;
+        suggestedActions?: SuggestedActionChip[];
+        executedAction?: { executed: boolean; actionType: string; summaryAr: string } | null;
+      };
       const replyText = data.reply || 'جاري استخراج القراءات الحية من المنصات المربوطة.';
       const modelUsed = data.modelUsed || 'gemini-2.5-flash';
       const durationMs = data.durationMs;
@@ -159,6 +245,8 @@ export const VorderAgentDirectorChat: React.FC<VorderAgentDirectorChatProps> = (
         time: new Date().toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' }),
         modelUsed,
         durationMs,
+        suggestedActions: data.suggestedActions,
+        executedAction: data.executedAction,
       };
 
       setMessages((prev) => [...prev, botMsg]);
@@ -245,7 +333,29 @@ export const VorderAgentDirectorChat: React.FC<VorderAgentDirectorChatProps> = (
                   : 'bg-zinc-900/90 border border-white/10 text-zinc-200 rounded-tl-none whitespace-pre-line shadow-lg'
               }`}
             >
+              {m.executedAction?.summaryAr && (
+                <div className="mb-2 flex items-center gap-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1.5 text-[11px] font-bold text-emerald-300">
+                  <CheckCircle2 className="size-3.5 shrink-0 text-emerald-400" />
+                  <span>{m.executedAction.summaryAr}</span>
+                </div>
+              )}
+
               <p className="leading-relaxed">{m.text}</p>
+
+              {m.suggestedActions && m.suggestedActions.length > 0 && (
+                <div className="mt-3 pt-2 border-t border-white/10 flex flex-wrap items-center gap-1.5">
+                  {m.suggestedActions.map((act) => (
+                    <button
+                      key={act.id}
+                      type="button"
+                      onClick={() => handleSend(act.prompt)}
+                      className="inline-flex items-center gap-1 rounded-xl border border-cyan-500/35 bg-cyan-500/10 hover:bg-cyan-500/25 px-2.5 py-1 text-[10px] font-bold text-cyan-200 transition-all cursor-pointer"
+                    >
+                      <span>{act.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
               
               <div className="flex items-center justify-between gap-2 mt-2 pt-1.5 border-t border-white/10">
                 {m.modelUsed && (

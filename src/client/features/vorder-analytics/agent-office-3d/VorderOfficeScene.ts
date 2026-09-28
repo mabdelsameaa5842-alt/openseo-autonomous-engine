@@ -459,12 +459,12 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   ];
 
   const expansionDeskSlots: Array<{ x: number; z: number }> = [
-    { x: 3.1, z: 1.5 },  // Slot 9 (East Wing Mid)
-    { x: 3.1, z: 6.0 },  // Slot 10 (East Wing South)
+    { x: 2.0, z: 1.5 },  // Slot 9 (East Wing Mid — clear of Meeting Room West Wall)
+    { x: 2.0, z: 6.0 },  // Slot 10 (East Wing South)
     { x: -8.0, z: -6.2 }, // Slot 11 (North Wing West)
     { x: -4.0, z: -6.2 }, // Slot 12 (North Wing Center)
     { x: 0.0,  z: -6.2 }, // Slot 13 (North Wing East)
-    { x: 3.1,  z: -6.2 }, // Slot 14 (North-East Corner)
+    { x: 2.0,  z: -6.2 }, // Slot 14 (North-East Corner — clear of Meeting Room West Wall)
   ];
 
   function getOrAssignDeskPosition(slotIndex: number): { x: number; z: number } {
@@ -756,7 +756,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   const screenData: any[] = [];
   const agentData: any[] = [];
   const defaultAgentBadges: Record<number, string[]> = {
-    0: ['⚡ يدير العمليات ويعتمد الخطط', '📊 يراجع الـ 38 ظهور في كونسول', '🎯 يوجه حصص دول النشر'],
+    0: ['⚡ يدير العمليات ويعتمد الخطط', '📊 يراجع الـ 48 ظهور في كونسول', '🎯 يوجه حصص دول النشر'],
     1: ['📈 تحلل الـ ROAS في GA4', '🎯 تضبط سرعة العرض TURBO_3X', '💰 تراقب مسارات التحويل CAPI'],
     2: ['🔍 تحصد كلمات Striking Distance', '🧠 تصنف نوايا الباحثين (Intent)', '📊 تحلل فجوات الكلمات بكونسول'],
     3: ['🔗 يبني شبكة الروابط والـ PageRank', '🏛️ يعزز موثوقية الدومين Authority', '⚓ يوزع نصوص الـ Anchor الدلالية'],
@@ -1000,8 +1000,10 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   const meetSeats: Array<{ x: number; z: number; ry: number; isHead: boolean }> = [];
   const meetChars: any[] = [];
   let lastPubCount = 661;
-  let lastGscImp = 38;
+  let lastGscImp = 48;
   let lastKwCount = 1775;
+  let currentRoomHalfX = 3.75;
+  let currentRoomHalfZ = 3.1;
 
   const wbc = document.createElement('canvas');
   wbc.width = 360;
@@ -1042,10 +1044,12 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     const sidePairs = Math.ceil(sideAgents / 2); // 4 pairs for 9 agents, 5 pairs for 10-11, 6 pairs for 12-13...
     const extraPairs = Math.max(0, sidePairs - 4);
 
-    const tableLen = 5.2 + extraPairs * 0.95;
-    const tableWidthZ = 1.7 + Math.min(0.35, extraPairs * 0.1);
-    const roomHalfX = Math.max(3.7, tableLen / 2 + 1.15);
-    const roomHalfZ = Math.max(3.1, 3.1 + extraPairs * 0.22);
+    const tableLen = Math.min(6.4, 5.2 + extraPairs * 0.55);
+    const tableWidthZ = 1.7 + Math.min(0.35, extraPairs * 0.08);
+    const roomHalfX = Math.min(4.2, Math.max(3.7, tableLen / 2 + 0.95));
+    const roomHalfZ = Math.min(3.8, Math.max(3.1, 3.1 + extraPairs * 0.18));
+    currentRoomHalfX = roomHalfX;
+    currentRoomHalfZ = roomHalfZ;
 
     const mrGlass = Glass();
     // West glass wall of meeting room
@@ -1270,22 +1274,393 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   office.add(pulseRing);
 
   // ═══════════════════════════════════════════════════
-  // WATER COOLER CHAT BUBBLES (Distinct Agent Personalities — Zero Rejected Clichés)
+  // 2D NAVIGATION GRID & A* PATHFINDING ENGINE (Zero Teleportation & Zero Wall Clipping)
+  // ═══════════════════════════════════════════════════
+  const NAV_MIN_X = -12.0;
+  const NAV_MAX_X = 12.0;
+  const NAV_MIN_Z = -9.0;
+  const NAV_MAX_Z = 9.0;
+  const NAV_CELL = 0.45;
+  const NAV_COLS = Math.ceil((NAV_MAX_X - NAV_MIN_X) / NAV_CELL);
+  const NAV_ROWS = Math.ceil((NAV_MAX_Z - NAV_MIN_Z) / NAV_CELL);
+  const navBlocked = new Uint8Array(NAV_COLS * NAV_ROWS);
+
+  function worldToGrid(x: number, z: number): { c: number; r: number } {
+    const c = Math.max(0, Math.min(NAV_COLS - 1, Math.floor((x - NAV_MIN_X) / NAV_CELL)));
+    const r = Math.max(0, Math.min(NAV_ROWS - 1, Math.floor((z - NAV_MIN_Z) / NAV_CELL)));
+    return { c, r };
+  }
+
+  function gridToWorld(c: number, r: number): { x: number; z: number } {
+    return {
+      x: Number((NAV_MIN_X + (c + 0.5) * NAV_CELL).toFixed(2)),
+      z: Number((NAV_MIN_Z + (r + 0.5) * NAV_CELL).toFixed(2)),
+    };
+  }
+
+  function markRectBlocked(minX: number, maxX: number, minZ: number, maxZ: number, blocked = 1) {
+    const p1 = worldToGrid(minX, minZ);
+    const p2 = worldToGrid(maxX, maxZ);
+    for (let r = Math.min(p1.r, p2.r); r <= Math.max(p1.r, p2.r); r++) {
+      for (let c = Math.min(p1.c, p2.c); c <= Math.max(p1.c, p2.c); c++) {
+        navBlocked[r * NAV_COLS + c] = blocked;
+      }
+    }
+  }
+
+  function rebuildNavGridObstacles() {
+    navBlocked.fill(0);
+    // 1. Block all workstation desk surfaces (while leaving chair positions at az + 0.55 walkable)
+    desks.forEach((d) => {
+      if (!d) return;
+      markRectBlocked(d.x - 0.82, d.x + 0.82, d.z - 0.46, d.z + 0.24, 1);
+    });
+    // 2. Block reception desk & water cooler
+    markRectBlocked(RCX - 1.35, RCX + 1.35, RCZ - 0.38, RCZ + 0.38, 1);
+    markRectBlocked(-10.3, -9.7, -0.3, 0.3, 1);
+
+    // 3. Block meeting room glass walls EXCEPT the South Doorway gap (x in [MRX - 1.15, MRX + 1.15])
+    const sideAgents = Math.max(8, activeAgentsList.length - 1);
+    const sidePairs = Math.ceil(sideAgents / 2);
+    const extraPairs = Math.max(0, sidePairs - 4);
+    const tableLen = 5.2 + extraPairs * 0.95;
+    const tableWidthZ = 1.7 + Math.min(0.35, extraPairs * 0.1);
+    const roomHalfX = Math.max(3.7, tableLen / 2 + 1.15);
+    const roomHalfZ = Math.max(3.1, 3.1 + extraPairs * 0.22);
+
+    // West wall of meeting room
+    markRectBlocked(MRX - roomHalfX - 0.22, MRX - roomHalfX + 0.22, MRZ - roomHalfZ, MRZ + roomHalfZ, 1);
+    // South wall left & right of doorway
+    markRectBlocked(MRX - roomHalfX, MRX - 1.15, MRZ + roomHalfZ - 0.22, MRZ + roomHalfZ + 0.22, 1);
+    markRectBlocked(MRX + 1.15, MRX + roomHalfX, MRZ + roomHalfZ - 0.22, MRZ + roomHalfZ + 0.22, 1);
+    // Conference table surface (leaving chairs around it walkable)
+    markRectBlocked(
+      MRX + 0.2 - tableLen / 2 - 0.12,
+      MRX + 0.2 + tableLen / 2 + 0.12,
+      MRZ - tableWidthZ / 2 - 0.12,
+      MRZ + tableWidthZ / 2 + 0.12,
+      1
+    );
+    // Ensure doorway corridor is explicitly open
+    markRectBlocked(MRX - 1.05, MRX + 1.05, MRZ + roomHalfZ - 0.5, MRZ + roomHalfZ + 0.5, 0);
+  }
+  rebuildNavGridObstacles();
+
+  function findSmoothPath(
+    startX: number,
+    startZ: number,
+    goalX: number,
+    goalZ: number
+  ): Array<{ x: number; z: number }> {
+    const start = worldToGrid(startX, startZ);
+    const goal = worldToGrid(goalX, goalZ);
+    if (start.c === goal.c && start.r === goal.r) {
+      return [{ x: goalX, z: goalZ }];
+    }
+
+    const total = NAV_COLS * NAV_ROWS;
+    const gScore = new Float32Array(total).fill(Infinity);
+    const fScore = new Float32Array(total).fill(Infinity);
+    const cameFrom = new Int32Array(total).fill(-1);
+    const closed = new Uint8Array(total);
+    const open: number[] = [];
+
+    const startIdx = start.r * NAV_COLS + start.c;
+    const goalIdx = goal.r * NAV_COLS + goal.c;
+    gScore[startIdx] = 0;
+    fScore[startIdx] = Math.hypot(goal.c - start.c, goal.r - start.r);
+    open.push(startIdx);
+
+    const dirs = [
+      [1, 0, 1],
+      [-1, 0, 1],
+      [0, 1, 1],
+      [0, -1, 1],
+      [1, 1, 1.414],
+      [-1, 1, 1.414],
+      [1, -1, 1.414],
+      [-1, -1, 1.414],
+    ];
+
+    let found = false;
+    let iterations = 0;
+    while (open.length > 0 && iterations < 1600) {
+      iterations++;
+      let bestPos = 0;
+      for (let i = 1; i < open.length; i++) {
+        if (fScore[open[i]] < fScore[open[bestPos]]) bestPos = i;
+      }
+      const current = open.splice(bestPos, 1)[0];
+      if (current === goalIdx) {
+        found = true;
+        break;
+      }
+      closed[current] = 1;
+      const cr = Math.floor(current / NAV_COLS);
+      const cc = current % NAV_COLS;
+
+      for (const [dc, dr, cost] of dirs) {
+        const nc = cc + dc;
+        const nr = cr + dr;
+        if (nc < 0 || nc >= NAV_COLS || nr < 0 || nr >= NAV_ROWS) continue;
+        const nIdx = nr * NAV_COLS + nc;
+        if (closed[nIdx]) continue;
+        // Allow stepping onto startIdx or goalIdx even if near a desk edge
+        if (navBlocked[nIdx] && nIdx !== goalIdx && nIdx !== startIdx) continue;
+
+        const tentativeG = gScore[current] + cost;
+        if (tentativeG < gScore[nIdx]) {
+          cameFrom[nIdx] = current;
+          gScore[nIdx] = tentativeG;
+          fScore[nIdx] = tentativeG + Math.hypot(goal.c - nc, goal.r - nr);
+          if (!open.includes(nIdx)) open.push(nIdx);
+        }
+      }
+    }
+
+    if (!found) {
+      // Fallback via safe central corridor & doorway
+      return [
+        { x: startX, z: Math.max(startZ, 3.2) },
+        { x: MRX, z: 1.2 },
+        { x: goalX, z: goalZ },
+      ];
+    }
+
+    const rawPath: Array<{ x: number; z: number }> = [];
+    let curr = goalIdx;
+    while (curr !== -1 && curr !== startIdx) {
+      const r = Math.floor(curr / NAV_COLS);
+      const c = curr % NAV_COLS;
+      rawPath.push(gridToWorld(c, r));
+      curr = cameFrom[curr];
+    }
+    rawPath.reverse();
+
+    // Downsample every 2nd waypoint for natural smooth stride + exact goal
+    const smoothed: Array<{ x: number; z: number }> = [];
+    for (let i = 0; i < rawPath.length; i += 2) {
+      smoothed.push(rawPath[i]);
+    }
+    smoothed.push({ x: goalX, z: goalZ });
+    return smoothed;
+  }
+
+  // ═══════════════════════════════════════════════════
+  // 3D 8-PLATFORM SERVER RACKS WALL (East Wing Live Infrastructure Telemetry)
+  // ═══════════════════════════════════════════════════
+  const serverWallGroup = new THREE.Group();
+  office.add(serverWallGroup);
+  const serverRackUnits: Array<{
+    id: string;
+    label: string;
+    status: 'LIVE' | 'KV_CACHE' | 'UNLINKED';
+    metricText: string;
+    canvas: HTMLCanvasElement;
+    ctx: CanvasRenderingContext2D | null;
+    tex: THREE.CanvasTexture;
+    ledStrip: THREE.Mesh;
+    pointLight: THREE.PointLight;
+  }> = [];
+
+  const DEFAULT_8_PLATFORMS: Array<{
+    id: string;
+    label: string;
+    status: 'LIVE' | 'KV_CACHE' | 'UNLINKED';
+    metricText: string;
+  }> = [
+    { id: 'gsc', label: '1. Search Console', status: 'LIVE', metricText: '690 URLs • 40 Imp' },
+    { id: 'ga4', label: '2. Analytics GA4', status: 'LIVE', metricText: 'Prop 553404486' },
+    { id: 'google_ads', label: '3. Google Ads API', status: 'LIVE', metricText: '2,084 KW • Active' },
+    { id: 'google_ai_studio', label: '4. Gemini 2.5 AI', status: 'LIVE', metricText: '6 Models • OAuth' },
+    { id: 'supabase', label: '5. Supabase DB', status: 'LIVE', metricText: 'Vector Sync OK' },
+    { id: 'github', label: '6. GitHub CI/CD', status: 'LIVE', metricText: 'Workflows Guarded' },
+    { id: 'vercel', label: '7. Vercel Edge', status: 'LIVE', metricText: '688 Blog Routes' },
+    { id: 'cloudflare', label: '8. Cloudflare D1+KV', status: 'LIVE', metricText: '5 Indexes • Shield' },
+  ];
+
+  function renderServerRackCanvas(unit: (typeof serverRackUnits)[number]) {
+    const ctx = unit.ctx;
+    if (!ctx) return;
+    const w = unit.canvas.width;
+    const h = unit.canvas.height;
+    ctx.fillStyle = '#070D19';
+    ctx.fillRect(0, 0, w, h);
+
+    const statusColor =
+      unit.status === 'LIVE' ? '#00E676' : unit.status === 'KV_CACHE' ? '#F59E0B' : '#EF4444';
+    ctx.strokeStyle = statusColor;
+    ctx.lineWidth = 3;
+    ctx.strokeRect(3, 3, w - 6, h - 6);
+
+    ctx.fillStyle = '#E2E8F0';
+    ctx.font = 'bold 14px monospace';
+    ctx.fillText(unit.label, 10, 24);
+
+    ctx.fillStyle = statusColor;
+    ctx.font = 'bold 12px monospace';
+    ctx.fillText(`● ${unit.status}`, 10, 46);
+
+    ctx.fillStyle = '#38BDF8';
+    ctx.font = '11px monospace';
+    ctx.fillText(unit.metricText.slice(0, 22), 10, 68);
+    unit.tex.needsUpdate = true;
+  }
+
+  function spawn8PlatformServerWall() {
+    const baseX = 11.85;
+    const startZ = 0.8;
+    const spacingZ = 1.02;
+
+    DEFAULT_8_PLATFORMS.forEach((plat, idx) => {
+      const rz = startZ + idx * spacingZ;
+      const rack = new THREE.Group();
+
+      const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.46, 1.68, 0.78), M(0x0F172A));
+      cabinet.position.set(baseX, 0.84, rz);
+      cabinet.castShadow = true;
+      rack.add(cabinet);
+
+      const ledColor = plat.status === 'LIVE' ? 0x00E676 : plat.status === 'KV_CACHE' ? 0xF59E0B : 0xEF4444;
+      const ledStrip = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.52, 0.04), MB(ledColor));
+      ledStrip.position.set(baseX - 0.24, 0.84, rz - 0.32);
+      rack.add(ledStrip);
+
+      const cv = document.createElement('canvas');
+      cv.width = 180;
+      cv.height = 84;
+      const ctx = cv.getContext('2d');
+      const tex = new THREE.CanvasTexture(cv);
+      tex.minFilter = THREE.LinearFilter;
+
+      const screenMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.68, 0.34),
+        new THREE.MeshBasicMaterial({ map: tex })
+      );
+      screenMesh.rotation.y = -Math.PI / 2;
+      screenMesh.position.set(baseX - 0.24, 1.25, rz);
+      rack.add(screenMesh);
+
+      const pLight = new THREE.PointLight(ledColor, 0.22, 2.2, 2);
+      pLight.position.set(baseX - 0.4, 1.1, rz);
+      rack.add(pLight);
+
+      serverWallGroup.add(rack);
+      const unit = {
+        id: plat.id,
+        label: plat.label,
+        status: plat.status,
+        metricText: plat.metricText,
+        canvas: cv,
+        ctx,
+        tex,
+        ledStrip,
+        pointLight: pLight,
+      };
+      renderServerRackCanvas(unit);
+      serverRackUnits.push(unit);
+    });
+  }
+  spawn8PlatformServerWall();
+
+  function update8PlatformServerRacks(
+    racks?: Array<{ id: string; label?: string; status: 'LIVE' | 'KV_CACHE' | 'UNLINKED'; metricText?: string }>
+  ) {
+    if (!Array.isArray(racks)) return;
+    racks.forEach((r) => {
+      const unit = serverRackUnits.find((u) => u.id === r.id);
+      if (!unit) return;
+      unit.status = r.status || 'LIVE';
+      if (r.metricText) unit.metricText = r.metricText;
+      const colHex = unit.status === 'LIVE' ? 0x00E676 : unit.status === 'KV_CACHE' ? 0xF59E0B : 0xEF4444;
+      (unit.ledStrip.material as THREE.MeshBasicMaterial).color.setHex(colHex);
+      unit.pointLight.color.setHex(colHex);
+      renderServerRackCanvas(unit);
+    });
+  }
+
+  // ═══════════════════════════════════════════════════
+  // 3D GLOWING DATA PACKET BEAMS BETWEEN AGENT DESKS (QuadraticBezierCurve3)
+  // ═══════════════════════════════════════════════════
+  const activeDataPulses: Array<{
+    curve: THREE.QuadraticBezierCurve3;
+    packetMesh: THREE.Mesh;
+    lineMesh: THREE.Line;
+    progress: number;
+    speed: number;
+  }> = [];
+
+  function spawn3DDataPulseBetweenDesks(fromIdx: number, toIdx: number, colorHex = 0x0DEEF3) {
+    const d1 = desks[fromIdx] || desks[0];
+    const d2 = desks[toIdx] || desks[1];
+    if (!d1 || !d2) return;
+
+    const pStart = new THREE.Vector3(d1.x, 1.25, d1.z - 0.15);
+    const pEnd = new THREE.Vector3(d2.x, 1.25, d2.z - 0.15);
+    const mid = new THREE.Vector3((d1.x + d2.x) / 2, 2.55, (d1.z + d2.z) / 2);
+    const curve = new THREE.QuadraticBezierCurve3(pStart, mid, pEnd);
+
+    const points = curve.getPoints(24);
+    const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+    const lineMat = new THREE.LineBasicMaterial({
+      color: colorHex,
+      transparent: true,
+      opacity: 0.45,
+    });
+    const lineMesh = new THREE.Line(lineGeo, lineMat);
+    office.add(lineMesh);
+
+    const packetGeo = new THREE.SphereGeometry(0.09, 12, 12);
+    const packetMat = new THREE.MeshBasicMaterial({ color: colorHex });
+    const packetMesh = new THREE.Mesh(packetGeo, packetMat);
+    packetMesh.position.copy(pStart);
+    office.add(packetMesh);
+
+    activeDataPulses.push({
+      curve,
+      packetMesh,
+      lineMesh,
+      progress: 0,
+      speed: 0.55,
+    });
+  }
+
+  function update3DDataPulses(delta: number) {
+    for (let i = activeDataPulses.length - 1; i >= 0; i--) {
+      const p = activeDataPulses[i];
+      p.progress += delta * p.speed;
+      if (p.progress >= 1) {
+        office.remove(p.packetMesh);
+        office.remove(p.lineMesh);
+        p.packetMesh.geometry.dispose();
+        (p.packetMesh.material as THREE.Material).dispose();
+        p.lineMesh.geometry.dispose();
+        (p.lineMesh.material as THREE.Material).dispose();
+        activeDataPulses.splice(i, 1);
+      } else {
+        const pt = p.curve.getPointAt(p.progress);
+        p.packetMesh.position.copy(pt);
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════════════
+  // WATER COOLER CHAT BUBBLES (Distinct Agent Personalities — Zero VRAM Leak)
   // ═══════════════════════════════════════════════════
   const chatBubbles: any[] = [];
   const arabicChatPhrases = [
     'المدونة والسايت ماب وD1 متطابقين 100% وطابور النشر 100/100 🚀',
     'صحة الموقع Site Audit ثابتة عند 100% بدون أي تحذير تقني 🛡️',
-    'كونسول مسجل 38 ظهور فعلي بمتوسط ترتيب 9.4 في التصاعد 📈',
+    'كونسول مسجل 40 ظهور فعلي بمتوسط ترتيب 9.4 في التصاعد 📈',
     'سرعة العرض شغالة بوضع TURBO_3X في السعودية ومصر والخليج ✨',
     'فقرات الإجابة المباشرة GEO رفعت جاهزية الاقتباس في AI Overviews 🧠',
     'شبكة الروابط الداخلية بتغذي صفحات الـ Striking Distance تلقائياً 🔗',
     'فلتر ذاكرة المالك في D1 نشط ويمنع أي جمل مرفوضة فوراً ⚡',
-    'نقاط الاستئناف Checkpoints بتحفظ كل خطوة برمجية في D1 🔒',
+    'درع حماية D1 (5 فهارس مركبة + لقطة OAUTH_KV) يحمي الحصة اليومية 100% 🔒',
   ];
 
-  const meetingBreakDialogues: Array<{ idx: number; text: string }> = [
-    { idx: 0, text: 'طارق: اجتماع المراجعة اللحظية — نراجع تسريع الـ 38 ظهور في كونسول! 🎙️' },
+  let meetingBreakDialogues: Array<{ idx: number; text: string }> = [
+    { idx: 0, text: 'طارق: اجتماع المراجعة اللحظية — نراجع تسريع الـ 40 ظهور في كونسول! 🎙️' },
     { idx: 5, text: 'ليلى: هندسياً مؤشرات CWV والـ Schema وSite Audit عند 100%! 🛡️' },
     { idx: 4, text: 'كريم: خط النشر شغال بأقصى سرعة والسايت ماب وIndexNow متزامنين! ⚡' },
     { idx: 2, text: 'ياسمين: اصطدت تكتلات كلمات جديدة في منطقة Striking Distance! 📈' },
@@ -1293,7 +1668,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     { idx: 7, text: 'نور: دعمت المقالات بفقرات Direct Answer لرفع اقتباسات Perplexity! 🧠' },
     { idx: 3, text: 'عمر: ضاعفت تدفق الـ Internal PageRank للصفحات المحققة للظهور! 🔗' },
     { idx: 6, text: 'فارس: حصص الرياض وجدة والقاهرة ودبي مضبوطة إقليمياً بدقة! 📍' },
-    { idx: 8, text: 'زياد: سجلات الرقابة وذاكرة المالك في D1 موثقة ومحمية 100%! 🔒' },
+    { idx: 8, text: 'زياد: سجلات الرقابة ودرع حماية D1 في OAUTH_KV موثقة ومحمية 100%! 🔒' },
   ];
 
   function createBubble(x: number, y: number, z: number, text: string, color: string) {
@@ -1313,7 +1688,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       bx.font = 'bold 12px Tajawal, Cairo, sans-serif';
       bx.fillStyle = color;
       bx.textAlign = 'center';
-      bx.fillText(text, 170, 34);
+      bx.fillText(text.slice(0, 62), 170, 34);
     }
     const btex = new THREE.CanvasTexture(bc);
     btex.minFilter = THREE.LinearFilter;
@@ -1356,6 +1731,9 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       b.sprite.material.opacity = Math.max(0, b.life / 4.0);
       if (b.life <= 0) {
         office.remove(b.sprite);
+        if (b.sprite.material.map) {
+          b.sprite.material.map.dispose();
+        }
         b.sprite.material.dispose();
         chatBubbles.splice(i, 1);
       }
@@ -1363,21 +1741,156 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // WALKING & PATROL ENGINE (All 9 Agents Active with Live Overhead Status!)
+  // WALKING, A* PATHWAY NAVIGATION & PEER-TO-PEER TASK HANDOVER ENGINE
   // ═══════════════════════════════════════════════════
   const walkDestinations = [
     { x: 2, z: 7.5, label: '🚶 يتفقد الممر الجنوبي' },
     { x: -10, z: 0, label: '💧 يتوجه لمبرد المياه' },
     { x: -2, z: -7, label: '🪟 يراجع المؤشرات عند النافذة' },
-    { x: 4, z: 5, label: '🚶 يتحرك لتنسيق مهمة' },
+    { x: 11.0, z: 4.2, label: '🖥️ يفحص جدار السيرفرات للمنصات الـ 8' },
     { x: -6, z: 7, label: '🚶 جولة تفقدية في القسم' },
     { x: 3, z: 0, label: '🤝 ينسق مهمة سريعة بالوسط' },
-    { x: 8, z: 6.0, label: '🛡️ يتفقد بوابة الاستقبال والأمان' },
+    { x: 8, z: 5.5, label: '🛡️ يتفقد بوابة الاستقبال والأمان' },
     { x: 10.5, z: 6, label: '☕ استراحة قصيرة في الصالة' },
   ];
 
+  function animateWalkerLimbs(walker: THREE.Group, speedFactor = 1) {
+    const t = performance.now() * 0.012 * speedFactor;
+    walker.children.forEach((c: any) => {
+      if (c.userData && c.userData.isLeg) {
+        c.position.z = Math.sin(t + c.userData.phase) * 0.085;
+      }
+      if (c.userData && c.userData.isWalkerArm) {
+        c.rotation.x = Math.sin(t + c.userData.phase) * 0.38;
+      }
+    });
+  }
+
+  function resetWalkerLimbs(walker: THREE.Group) {
+    walker.children.forEach((c: any) => {
+      if (c.userData && c.userData.isLeg) c.position.z = 0;
+      if (c.userData && c.userData.isWalkerArm) c.rotation.x = 0;
+    });
+  }
+
+  function advanceAlongPathQueue(ad: any, delta: number, moveSpeed = 2.25): boolean {
+    if (!ad.pathQueue || ad.pathQueue.length === 0) {
+      if (!ad.walkTarget) return true;
+      ad.pathQueue = [ad.walkTarget];
+    }
+    const target = ad.pathQueue[0];
+    const dx = target.x - ad.walker.position.x;
+    const dz = target.z - ad.walker.position.z;
+    const dist = Math.sqrt(dx * dx + dz * dz);
+    if (dist < 0.22) {
+      ad.pathQueue.shift();
+      if (ad.pathQueue.length === 0) {
+        ad.walker.position.set(target.x, 0, target.z);
+        return true;
+      }
+      return false;
+    }
+    const step = Math.min(dist, moveSpeed * delta);
+    const nx = dx / dist;
+    const nz = dz / dist;
+    ad.walker.position.x += nx * step;
+    ad.walker.position.z += nz * step;
+    ad.walker.rotation.y = Math.atan2(nx, nz);
+    animateWalkerLimbs(ad.walker, moveSpeed / 1.6);
+    ad.label.position.set(ad.walker.position.x, 1.4, ad.walker.position.z);
+    return false;
+  }
+
+  function triggerAgentTaskHandoverWalk(fromIdx: number, toIdx: number, taskLabel: string) {
+    if (inMeeting) return;
+    const sender = agentData[fromIdx];
+    const receiver = agentData[toIdx];
+    if (!sender || !receiver) return;
+
+    // Always fire a 3D glowing data packet arc between their desks immediately!
+    spawn3DDataPulseBetweenDesks(fromIdx, toIdx, sender.agent.color);
+
+    // If sender is sitting at their desk, have them physically walk to receiver's desk along A* path
+    if (sender.state === 'sitting') {
+      sender.state = 'walking_handover_to_peer';
+      sender.sittingChar.visible = false;
+      sender.walker.visible = true;
+      sender.walker.position.set(sender.home.x, 0, sender.home.z);
+      const targetPos = { x: receiver.home.x + 0.55, z: receiver.home.z + 0.25 };
+      sender.pathQueue = findSmoothPath(sender.home.x, sender.home.z, targetPos.x, targetPos.z);
+      sender.walkTarget = targetPos;
+      sender.walkDestinationLabel = `⚡ يسلم مهمة لـ ${receiver.agent.name.split(' ')[0]}: ${taskLabel.slice(0, 28)}`;
+      sender.handoverPeerIdx = toIdx;
+      sender.handoverTaskLabel = taskLabel;
+      sender.walkPause = 0;
+      sender.renderLabelCanvas(sender.liveProgressPct || 88, sender.walkDestinationLabel);
+    }
+  }
+
   function updateWalkers(delta: number) {
-    agentData.forEach((ad) => {
+    const totalSeats = activeAgentsList.length;
+    agentData.forEach((ad, idx) => {
+      // 1. Walking along A* Path to Meeting Room Chair (Zero Teleportation!)
+      if (ad.state === 'walking_to_meeting_chair') {
+        const arrived = advanceAlongPathQueue(ad, delta, 2.85);
+        if (arrived) {
+          const seat = meetSeats[idx] || meetSeats[0];
+          ad.state = 'meeting';
+          ad.walker.visible = false;
+          resetWalkerLimbs(ad.walker);
+          if (meetChars[idx]) {
+            meetChars[idx].visible = true;
+          }
+          ad.label.position.set(seat.x, 1.85, seat.z);
+          ad.renderLabelCanvas(100, `🎙️ جالس على مقعده #${idx + 1} (${totalSeats} كراسي)`);
+        }
+        return;
+      }
+
+      // 2. Walking along A* Path from Meeting Room Chair back to Desk
+      if (ad.state === 'walking_from_meeting_to_desk') {
+        const arrived = advanceAlongPathQueue(ad, delta, 2.65);
+        if (arrived) {
+          ad.state = 'sitting';
+          ad.walker.visible = false;
+          resetWalkerLimbs(ad.walker);
+          ad.sittingChar.visible = true;
+          ad.label.position.set(ad.home.x, 1.85, ad.home.z);
+          ad.timer = 10 + rng.r(0, 16);
+          const pct = ad.liveProgressPct || 85;
+          const badge = ad.liveBadgeAr || ad.badgeOptions?.[0] || '⚡ ينفذ مهامه الحية';
+          ad.renderLabelCanvas(pct, `${badge} (${pct}%)`);
+        }
+        return;
+      }
+
+      // 3. Peer-to-Peer Task Handover Walk between Agent Desks
+      if (ad.state === 'walking_handover_to_peer') {
+        const arrived = advanceAlongPathQueue(ad, delta, 2.35);
+        if (arrived) {
+          if (ad.walkPause === 0) {
+            resetWalkerLimbs(ad.walker);
+            const peer = agentData[ad.handoverPeerIdx ?? 0];
+            const peerName = peer?.agent?.name?.split(' ')[0] || 'زميله';
+            createBubble(
+              ad.walker.position.x,
+              1.5,
+              ad.walker.position.z,
+              `🤝 تسليم مهمة لـ ${peerName}: ${String(ad.handoverTaskLabel || '').slice(0, 38)}`,
+              ad.agent.hex
+            );
+            ad.renderLabelCanvas(ad.liveProgressPct || 90, `🤝 يسلم المخرجات إلى ${peerName}`);
+          }
+          ad.walkPause += delta;
+          if (ad.walkPause > 2.4) {
+            ad.state = 'walking_back';
+            ad.pathQueue = findSmoothPath(ad.walker.position.x, ad.walker.position.z, ad.home.x, ad.home.z);
+            ad.renderLabelCanvas(ad.liveProgressPct || 92, `🚶 يعود لمكتبه بعد تسليم المهمة (${ad.liveProgressPct || 92}%)`);
+          }
+        }
+        return;
+      }
+
       if (ad.state === 'sitting') {
         ad.timer -= delta;
         if (ad.timer <= 0) {
@@ -1387,91 +1900,57 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
           ad.walker.position.set(ad.home.x, 0, ad.home.z);
 
           let dest: { x: number; z: number; label?: string };
-          if (ad.agent.id === 8 && rng.n() > 0.4) {
+          if (ad.agent.id === 8 && rng.n() > 0.35) {
             if (rng.n() > 0.5) {
-              dest = { x: 8, z: 6.0, label: '🛡️ يفحص بوابة الاستقبال ولوجز D1' };
+              dest = { x: 11.0, z: 4.2, label: '🖥️ يفحص جدار المنصات الـ 8 ودرع D1' };
             } else {
-              const peerDesk = rng.pick(desks);
-              dest = { x: peerDesk.x, z: peerDesk.z, label: '🔍 يراجع جودة المخرجات مع زميله' };
+              const peerIdx = rng.i(0, Math.min(8, desks.length - 1));
+              const peerDesk = desks[peerIdx];
+              spawn3DDataPulseBetweenDesks(ad.agent.id, peerIdx, ad.agent.color);
+              dest = { x: peerDesk.x + 0.5, z: peerDesk.z + 0.3, label: '🔍 يراجع جودة المخرجات مع زميله' };
             }
           } else {
             dest = rng.pick(walkDestinations);
           }
 
-          ad.walkTarget = { x: dest.x + rng.r(-0.4, 0.4), z: dest.z + rng.r(-0.4, 0.4) };
+          const targetX = dest.x + rng.r(-0.3, 0.3);
+          const targetZ = dest.z + rng.r(-0.3, 0.3);
+          ad.walkTarget = { x: targetX, z: targetZ };
+          ad.pathQueue = findSmoothPath(ad.home.x, ad.home.z, targetX, targetZ);
           ad.walkDestinationLabel = dest.label || '🚶 يتحرك داخل المكتب';
           ad.walkPause = 0;
           ad.renderLabelCanvas(ad.liveProgressPct || 80, ad.walkDestinationLabel);
         }
       } else if (ad.state === 'walking_out') {
-        const dx = ad.walkTarget.x - ad.walker.position.x;
-        const dz = ad.walkTarget.z - ad.walker.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < 0.25) {
+        const arrived = advanceAlongPathQueue(ad, delta, 1.85);
+        if (arrived) {
           if (ad.walkPause === 0) {
+            resetWalkerLimbs(ad.walker);
             ad.renderLabelCanvas(
               ad.liveProgressPct || 85,
               ad.walkDestinationLabel.replace('يتوجه', 'في استراحة عند').replace('يتحرك', 'ينسق الآن')
             );
           }
           ad.walkPause += delta;
-          if (ad.walkPause > 3 + rng.r(0, 3)) {
+          if (ad.walkPause > 2.8 + rng.r(0, 2.5)) {
             ad.state = 'walking_back';
-            ad.renderLabelCanvas(ad.liveProgressPct || 88, `🚶 يعود لمكتبه لاستئناف المهمة (${ad.liveProgressPct || 88}%)`);
+            ad.pathQueue = findSmoothPath(ad.walker.position.x, ad.walker.position.z, ad.home.x, ad.home.z);
+            ad.renderLabelCanvas(ad.liveProgressPct || 88, `🚶 يعود لمكتبه عبر الممر (${ad.liveProgressPct || 88}%)`);
           }
-        } else {
-          const speed = 1.6 * delta;
-          const nx = dx / dist, nz = dz / dist;
-          ad.walker.position.x += nx * speed;
-          ad.walker.position.z += nz * speed;
-          ad.walker.rotation.y = Math.atan2(nx, nz);
-
-          const t = performance.now() * 0.01;
-          ad.walker.children.forEach((c: any) => {
-            if (c.userData && c.userData.isLeg) {
-              c.position.z = Math.sin(t + c.userData.phase) * 0.08;
-            }
-            if (c.userData && c.userData.isWalkerArm) {
-              c.rotation.x = Math.sin(t + c.userData.phase) * 0.35;
-            }
-          });
         }
-        ad.label.position.set(ad.walker.position.x, 1.4, ad.walker.position.z);
       } else if (ad.state === 'walking_back') {
-        const dx = ad.home.x - ad.walker.position.x;
-        const dz = ad.home.z - ad.walker.position.z;
-        const dist = Math.sqrt(dx * dx + dz * dz);
-        if (dist < 0.25) {
+        const arrived = advanceAlongPathQueue(ad, delta, 1.95);
+        if (arrived) {
           ad.state = 'sitting';
           ad.walker.visible = false;
+          resetWalkerLimbs(ad.walker);
           ad.sittingChar.visible = true;
           ad.label.position.set(ad.home.x, 1.85, ad.home.z);
-          ad.timer = 10 + rng.r(0, 18);
-          ad.walker.children.forEach((c: any) => {
-            if (c.userData && c.userData.isLeg) c.position.z = 0;
-            if (c.userData && c.userData.isWalkerArm) c.rotation.x = 0;
-          });
+          ad.timer = 12 + rng.r(0, 18);
           const pct = ad.liveProgressPct || 85;
           const badge = ad.liveBadgeAr || ad.badgeOptions?.[0] || '⚡ ينفذ مهامه الحية';
           ad.renderLabelCanvas(pct, `${badge} (${pct}%)`);
-        } else {
-          const speed = 1.6 * delta;
-          const nx = dx / dist, nz = dz / dist;
-          ad.walker.position.x += nx * speed;
-          ad.walker.position.z += nz * speed;
-          ad.walker.rotation.y = Math.atan2(nx, nz);
-
-          const t = performance.now() * 0.01;
-          ad.walker.children.forEach((c: any) => {
-            if (c.userData && c.userData.isLeg) {
-              c.position.z = Math.sin(t + c.userData.phase) * 0.08;
-            }
-            if (c.userData && c.userData.isWalkerArm) {
-              c.rotation.x = Math.sin(t + c.userData.phase) * 0.35;
-            }
-          });
         }
-        ad.label.position.set(ad.walker.position.x, 1.4, ad.walker.position.z);
       }
     });
   }
@@ -1488,7 +1967,6 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
 
   function generateUniqueAgentMorphologyAndSpawn(nomination: any, newIndex: number): VorderAgentConfig {
     const seed = typeof nomination?.seedIndex === 'number' ? nomination.seedIndex : newIndex;
-    // Golden Angle (137.508 deg) guarantees zero color collision with the 9 core agents or other trainees
     const goldenHue = (seed * 137.508 + 28) % 360;
     const primaryTone = hslToHexColor(goldenHue, 88, 56);
     const shirtTone = hslToHexColor((goldenHue + 18) % 360, 68, 32);
@@ -1577,6 +2055,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
 
     // 2. Call Function 2: Expand meeting room, extend conference table & add new chair
     expandMeetingRoomAndAddChair(activeAgentsList.length);
+    rebuildNavGridObstacles();
 
     // 3. Register in live meeting & office dialogues
     const shortName = newAgent.name.split(' ')[0];
@@ -1588,19 +2067,20 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       `🚀 ${newAgent.name} (${newAgent.role}) يعمل من مكتبه الجديد رقم #${newIndex + 1} ويدعم مؤشرات D1`
     );
 
-    // 4. If currently in a meeting, immediately seat the new agent at their new chair
+    // 4. If currently in a meeting, walk the new agent along the A* path to their new chair!
     if (inMeeting) {
       const seat = meetSeats[newIndex] || meetSeats[0];
       const ad = agentData[newIndex];
       if (ad) {
-        ad.walker.visible = false;
         ad.sittingChar.visible = false;
-        ad.state = 'meeting';
-        ad.label.position.set(seat.x, 1.85, seat.z);
-        ad.renderLabelCanvas(100, `🎙️ اجتماع الطاولة المستديرة (${activeAgentsList.length} كراسي)`);
-      }
-      if (meetChars[newIndex]) {
-        meetChars[newIndex].visible = true;
+        ad.walker.visible = true;
+        ad.walker.position.set(ad.home.x, 0, ad.home.z);
+        ad.pathQueue = [
+          ...findSmoothPath(ad.home.x, ad.home.z, MRX, 0.35),
+          { x: seat.x, z: seat.z },
+        ];
+        ad.state = 'walking_to_meeting_chair';
+        ad.renderLabelCanvas(95, `🚶 يتوجه لمقعده الجديد #${newIndex + 1} في غرفة الاجتماعات`);
       }
     } else {
       const deskCoord = desks[newIndex] || { x: 0, z: 0 };
@@ -1634,7 +2114,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   }
 
   // ═══════════════════════════════════════════════════
-  // DYNAMIC N-AGENT MEETING ROOM ENGINE (Supports 9+ Chairs & Live Break Dialogue)
+  // DYNAMIC N-AGENT MEETING ROOM ENGINE (Pathfinding Walk through Doorway to Assigned Chair!)
   // ═══════════════════════════════════════════════════
   let inMeeting = false;
   let manualMeetingOverride: boolean | null = null;
@@ -1646,37 +2126,66 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     if (active && !inMeeting) {
       inMeeting = true;
       if (onMeetingChange) onMeetingChange(true);
+      // Do NOT teleport! Have every agent stand up from their desk/current position and walk through the South doorway to their assigned chair!
       meetChars.forEach((c) => {
-        if (c) c.visible = true;
+        if (c) c.visible = false;
       });
       agentData.forEach((ad, idx) => {
         const seat = meetSeats[idx] || meetSeats[0];
-        ad.walker.visible = false;
+        const startX = ad.walker.visible ? ad.walker.position.x : ad.home.x;
+        const startZ = ad.walker.visible ? ad.walker.position.z : ad.home.z;
         ad.sittingChar.visible = false;
-        ad.state = 'meeting';
-        ad.label.position.set(seat.x, 1.85, seat.z);
-        ad.renderLabelCanvas(100, `🎙️ اجتماع الطاولة المستديرة (${totalSeats} كراسي)`);
+        ad.walker.visible = true;
+        ad.walker.position.set(startX, 0, startZ);
+
+        // Route via meeting room South doorway (MRX, 0.45) then to the approach point behind their chair
+        const doorwayX = MRX + ((idx % 3) - 1) * 0.32;
+        const doorwayZ = 0.45;
+        const pathToDoor = findSmoothPath(startX, startZ, doorwayX, doorwayZ);
+        const insideDoorPt = { x: doorwayX, z: -0.65 };
+        const chairApproachPt = {
+          x: seat.isHead ? seat.x - 0.35 : seat.x,
+          z: seat.isHead ? seat.z : seat.z + (seat.z < MRZ ? -0.35 : 0.35),
+        };
+        ad.pathQueue = [
+          ...pathToDoor,
+          insideDoorPt,
+          chairApproachPt,
+          { x: seat.x, z: seat.z },
+        ];
+        ad.state = 'walking_to_meeting_chair';
+        ad.renderLabelCanvas(96, `🚶 يتوجه عبر الممر لمقعده #${idx + 1} في غرفة الاجتماعات`);
       });
       const firstLine = meetingBreakDialogues[0];
       const firstSeat = meetSeats[firstLine.idx] || meetSeats[0];
       const firstAg = activeAgentsList[firstLine.idx] || activeAgentsList[0];
       createBubble(firstSeat.x, 1.55, firstSeat.z, firstLine.text, firstAg.hex);
       meetingSpeakerPointer = 1;
-      meetingChatTimer = 3.2;
+      meetingChatTimer = 3.6;
     } else if (!active && inMeeting) {
       inMeeting = false;
       if (onMeetingChange) onMeetingChange(false);
+      // Stand up from meeting chairs and walk back through the doorway to each agent's desk!
       meetChars.forEach((c) => {
         if (c) c.visible = false;
       });
-      agentData.forEach((ad) => {
-        ad.state = 'sitting';
-        ad.sittingChar.visible = true;
-        ad.label.position.set(ad.home.x, 1.85, ad.home.z);
-        ad.timer = 5 + rng.r(0, 10);
-        const pct = ad.liveProgressPct || 85;
-        const badge = ad.liveBadgeAr || ad.badgeOptions?.[0] || '⚡ ينفذ مهامه الحية';
-        ad.renderLabelCanvas(pct, `${badge} (${pct}%)`);
+      agentData.forEach((ad, idx) => {
+        const seat = meetSeats[idx] || meetSeats[0];
+        const startX = ad.state === 'meeting' ? seat.x : ad.walker.position.x;
+        const startZ = ad.state === 'meeting' ? seat.z : ad.walker.position.z;
+        ad.sittingChar.visible = false;
+        ad.walker.visible = true;
+        ad.walker.position.set(startX, 0, startZ);
+
+        const doorwayX = MRX + ((idx % 3) - 1) * 0.32;
+        const pathBack = findSmoothPath(doorwayX, 0.55, ad.home.x, ad.home.z);
+        ad.pathQueue = [
+          { x: doorwayX, z: -0.55 },
+          { x: doorwayX, z: 0.55 },
+          ...pathBack,
+        ];
+        ad.state = 'walking_from_meeting_to_desk';
+        ad.renderLabelCanvas(ad.liveProgressPct || 88, `🚶 يعود من غرفة الاجتماعات إلى مكتبه #${idx + 1}`);
       });
     }
   }
@@ -1707,7 +2216,13 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   // SCREEN ANIMATIONS (Live Data Drawing on Curved Screens)
   // ═══════════════════════════════════════════════════
   let frame = 0;
+  let livePublishedCount = 688;
+  let liveGscImpressions = 48;
+  let liveKeywordsCount = 2084;
+  let lastHandoverTimestampProcessed = '';
+
   function drawScreen(s: any) {
+    if (!s) return;
     const { ctx: c, canvas: cv, type, hex, agent } = s;
     const w = cv.width, h = cv.height;
     c.fillStyle = '#0D1117';
@@ -1726,7 +2241,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       c.fill();
       c.globalAlpha = 1;
       c.font = 'bold 8px sans-serif';
-      c.fillText('VORDER AI // 38 GSC', 12, 48);
+      c.fillText(`VORDER AI // ${liveGscImpressions} GSC`, 10, 48);
       for (let i = 0; i < 6; i++) {
         const y = (54 + i * 5 + Math.floor(t * 3)) % h;
         c.globalAlpha = 0.2 + Math.sin(i + t) * 0.1;
@@ -1751,10 +2266,11 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     } else if (type === 'terminal') {
       c.font = '6px monospace';
       c.fillStyle = hex;
+      const syncBanner = `D1_SYNC: ${livePublishedCount}=${livePublishedCount}=${livePublishedCount} ZERO LOSS;`;
       for (let i = 0; i < 12; i++) {
         const y = (8 + i * 6 + Math.floor(t * 5)) % (h + 10);
         c.globalAlpha = 0.3 + (i % 3) * 0.15;
-        c.fillText('D1_SYNC: 661=661=661 ZERO LOSS;'.substr(Math.floor(t * 2 + i * 5) % 25, 22), 4, y);
+        c.fillText(syncBanner.substr(Math.floor(t * 2 + i * 5) % 25, 22), 4, y);
       }
       if (Math.sin(t * 4) > 0) {
         c.globalAlpha = 0.8;
@@ -1789,27 +2305,27 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       c.fillStyle = hex;
       c.globalAlpha = 0.8;
       c.fillText('Blog = Sitemap = D1', 10, 38);
-      c.fillText(`Article #${Math.floor(t * 3) % 661 + 1}/661`, 10, 50);
+      c.fillText(`Article #${Math.floor(t * 3) % Math.max(1, livePublishedCount) + 1}/${livePublishedCount}`, 10, 50);
       c.fillStyle = '#00E676';
-      c.fillText('✓ 661=661=661 Sync', 10, 64);
+      c.fillText(`✓ ${livePublishedCount}=${livePublishedCount}=${livePublishedCount} Sync`, 10, 64);
     } else if (type === 'docs') {
       c.fillStyle = 'rgba(255,255,255,.08)';
       c.fillRect(8, 8, w - 16, h - 16);
       c.font = '6px monospace';
       c.fillStyle = hex;
       c.globalAlpha = 0.6;
-      ['# Expert Research', '', '> Consent Mode v2', '  +301 Redirects OK', '', '## Site Audit 100%', '- 0 Warnings'].forEach((l, i) => c.fillText(l, 14, 20 + i * 7));
+      ['# Expert Research', '', '> Consent Mode v2', '  +301 Redirects OK', '', '## Site Audit 100%', `- ${liveKeywordsCount} Keywords`].forEach((l, i) => c.fillText(l, 14, 20 + i * 7));
     } else if (type === 'bugs') {
       c.font = '6px monospace';
       if (agent.id === 8) {
         c.fillStyle = hex;
         c.fillText('WATCHDOG 360 // QA HOST', 6, 12);
-        [['✓ SITE AUDIT: 100%', '#00E676'], ['✓ D1 SYNC: 661=661', hex], ['✓ WARNINGS: 0', '#00E676'], ['✓ 301 REDIRECT: 30', hex]].forEach(([txt, cl], i) => {
+        [['✓ SITE AUDIT: 100%', '#00E676'], [`✓ D1 SYNC: ${livePublishedCount}=${livePublishedCount}`, hex], ['✓ WARNINGS: 0', '#00E676'], ['✓ 8/8 PLATFORMS OK', hex]].forEach(([txt, cl], i) => {
           c.fillStyle = cl;
           c.fillText(txt, 6, 26 + i * 12);
         });
       } else {
-        [['● AUDIT 100%', hex], ['● 0 WARNINGS', '#00E676'], ['● 661 SYNCED', hex], ['● 301 ACTIVE', '#00E676']].forEach(([txt, cl], i) => {
+        [['● AUDIT 100%', hex], ['● 0 WARNINGS', '#00E676'], [`● ${livePublishedCount} SYNCED`, hex], ['● 8/8 PLUGGED', '#00E676']].forEach(([txt, cl], i) => {
           c.fillStyle = cl;
           c.fillText(txt, 10, 14 + i * 14);
         });
@@ -1840,15 +2356,15 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     const cycleMin = m % 30;
     const totalSeats = activeAgentsList.length;
     if (manualMeetingOverride || cycleMin >= 25) {
-      return `🎙️ اجتماع الطاولة المستديرة الحي (${totalSeats} وكلاء على ${totalSeats} كراسي — مراجعة الـ 38 ظهوراً واعتماد القرارات)`;
+      return `🎙️ اجتماع الطاولة المستديرة الحي (${totalSeats} وكلاء على ${totalSeats} كراسي — مراجعة الـ ${liveGscImpressions} ظهوراً واعتماد القرارات)`;
     }
     if (cycleMin >= 22 && cycleMin < 25) {
       return '☕ استراحة قصيرة وتبادل نقاشات سريعة بين الوكلاء قبل اجتماع الطاولة المستديرة';
     }
     const activeWalkers = agentData.filter((a) => a.state !== 'sitting' && a.state !== 'meeting');
-    if (activeWalkers.length > 0 && statusRotationTick % 3 === 1) {
+    if (activeWalkers.length > 0 && statusRotationTick % 2 === 0) {
       const w = activeWalkers[statusRotationTick % activeWalkers.length];
-      return `${w.agent.name}: ${w.walkDestinationLabel || 'يتحرك لتنسيق مهمة داخل المكتب'} · باقي الفريق (${totalSeats} وكلاء) ينفذ المهام`;
+      return `${w.agent.name}: ${w.walkDestinationLabel || 'يتحرك في مسار ذكي لتنسيق مهمة داخل المكتب'} · باقي الفريق (${totalSeats} وكلاء) ينفذ المهام`;
     }
     return liveOfficeActivities[statusRotationTick % liveOfficeActivities.length];
   };
@@ -1860,15 +2376,22 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     const totalSeats = activeAgentsList.length;
 
     agentData.forEach((ad, idx) => {
+      if (
+        ad.state === 'walking_to_meeting_chair' ||
+        ad.state === 'walking_from_meeting_to_desk' ||
+        ad.state === 'walking_handover_to_peer' ||
+        ad.state === 'walking_out' ||
+        ad.state === 'walking_back'
+      ) {
+        return;
+      }
       if (isMeet || ad.state === 'meeting') {
         ad.renderLabelCanvas(100, `🎙️ اجتماع الطاولة المستديرة (${totalSeats} كراسي)`);
-      } else if (ad.state === 'walking_out' || ad.state === 'walking_back') {
-        return;
       } else if (isBreak) {
         const rem = Math.max(1, Math.ceil(25 - cycleMin));
         ad.renderLabelCanvas(100, `☕ استراحة قصيرة (${rem}د للاجتماع)`);
       } else {
-        const pct = ad.liveProgressPct || (30 + ((idx * 13 + min * 3) % 68));
+        const pct = ad.liveProgressPct || (65 + ((idx * 7) % 30));
         const badge =
           ad.liveBadgeAr ||
           ad.badgeOptions?.[Math.floor((statusRotationTick + idx) / 2) % ad.badgeOptions.length] ||
@@ -1965,35 +2488,40 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   renderer.domElement.addEventListener('click', handlePointerDownRaycast);
 
   // ═══════════════════════════════════════════════════
-  // RENDER & ANIMATION LOOP (With Procedural Typing, Live Progress Bars & Dynamic Status)
+  // RENDER & ANIMATION LOOP (With Procedural Typing, 3D Data Pulses, A* Walks & Staggered GPU Screens)
   // ═══════════════════════════════════════════════════
   let animId: number;
   const clock = new THREE.Clock();
   let timeTickAccumulator = 0;
-  let progressTickAccumulator = 0;
+  let pulseSpawnAccumulator = 0;
+
+  // Draw all screens once initially
+  screenData.forEach(drawScreen);
 
   function animate() {
     animId = requestAnimationFrame(animate);
+    if (typeof document !== 'undefined' && document.hidden) return;
+
     const delta = Math.min(clock.getDelta(), 0.05);
     const elapsed = clock.getElapsedTime();
     frame++;
 
-    progressTickAccumulator += delta;
-    if (progressTickAccumulator >= 1.2) {
-      progressTickAccumulator = 0;
-      agentData.forEach((ad, idx) => {
-        const nextPct = (ad.liveProgressPct || 40) + 1 + (idx % 2);
-        if (nextPct >= 99) {
-          ad.liveProgressPct = 22 + ((idx * 9) % 25);
-          if (ad.badgeOptions && ad.badgeOptions.length > 0) {
-            const currIdx = ad.badgeOptions.indexOf(ad.liveBadgeAr);
-            ad.liveBadgeAr = ad.badgeOptions[(currIdx + 1) % ad.badgeOptions.length];
-          }
-        } else {
-          ad.liveProgressPct = nextPct;
-        }
-      });
-      refreshAgentOverheadLabels(timeOfDay);
+    // Periodic organic data pulse between collaborating agents when working at desks
+    pulseSpawnAccumulator += delta;
+    if (pulseSpawnAccumulator >= 6.5 && !inMeeting) {
+      pulseSpawnAccumulator = 0;
+      const pairs = [
+        [1, 4], // Yasmine (GSC) -> Nour (GEO)
+        [4, 3], // Nour (GEO) -> Karim (CMS)
+        [3, 5], // Karim (CMS) -> Omar (PageRank)
+        [0, 2], // Tariq -> Sara (ROAS)
+        [7, 8], // Laila (CWV) -> Ziad (Watchdog)
+      ];
+      const [fromIdx, toIdx] = pairs[Math.floor(elapsed) % pairs.length];
+      const fromAg = activeAgentsList[fromIdx];
+      if (fromAg) {
+        spawn3DDataPulseBetweenDesks(fromIdx, toIdx, parseInt(fromAg.hex.replace('#', ''), 16));
+      }
     }
 
     timeTickAccumulator += delta;
@@ -2009,8 +2537,13 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       updCam();
     }
 
-    screenData.forEach(drawScreen);
+    // Stagger curved monitor canvas redraws (1 monitor per frame instead of all 9+ every frame)
+    if (screenData.length > 0) {
+      drawScreen(screenData[frame % screenData.length]);
+    }
+
     updateWalkers(delta);
+    update3DDataPulses(delta);
     checkConversations();
     updateMeetingConversation(delta);
     updateBubbles(delta);
@@ -2062,12 +2595,39 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     spawnAgentWorkstationWithPC,
     expandMeetingRoomAndAddChair,
     generateUniqueAgentMorphologyAndSpawn,
+    triggerAgentTaskHandoverWalk,
+    spawn3DDataPulseBetweenDesks,
+    flyToServerWall: () => {
+      tgt.set(11.4, 1.5, 4.2);
+      sph.radius = 12.5;
+      sph.theta = -Math.PI / 6;
+      sph.phi = Math.PI / 3.2;
+      updCam();
+    },
     getActiveAgents: () => activeAgentsList,
     updateLiveTelemetry: (payload: {
       publishedCount?: number;
       gscImpressions?: number;
       keywordsCount?: number;
       approvedExpansionAgents?: any[];
+      platformRacksStatus?: Array<{
+        id: string;
+        label?: string;
+        status: 'LIVE' | 'KV_CACHE' | 'UNLINKED' | string;
+        metricText?: string;
+        ledHex?: string;
+      }>;
+      recentPipelineHandovers?: Array<{
+        fromAgentIndex: number;
+        toAgentIndex: number;
+        taskSummaryAr: string;
+        timestamp?: string;
+      }>;
+      dialogue?: Array<{
+        speakerId?: string;
+        speakerName?: string;
+        messageAr?: string;
+      }>;
       agentsLiveTelemetry?: Array<{
         agentIndex: number;
         statusBadgeAr: string;
@@ -2078,13 +2638,58 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       if (Array.isArray(payload.approvedExpansionAgents)) {
         syncApprovedExpansionAgents(payload.approvedExpansionAgents);
       }
+      if (payload.publishedCount) livePublishedCount = payload.publishedCount;
+      if (payload.gscImpressions) liveGscImpressions = payload.gscImpressions;
+      if (payload.keywordsCount) liveKeywordsCount = payload.keywordsCount;
+
       if (payload.publishedCount || payload.gscImpressions || payload.keywordsCount) {
         drawWhiteboard(
-          payload.publishedCount || 661,
-          payload.gscImpressions || 38,
-          payload.keywordsCount || 1775,
+          livePublishedCount,
+          liveGscImpressions,
+          liveKeywordsCount,
           activeAgentsList.length
         );
+      }
+      if (Array.isArray(payload.platformRacksStatus) && payload.platformRacksStatus.length > 0) {
+        update8PlatformServerRacks(payload.platformRacksStatus as any);
+      }
+      if (Array.isArray(payload.dialogue) && payload.dialogue.length > 0) {
+        const mappedTurns = payload.dialogue
+          .filter((d: any) => d && (d.messageAr || d.text))
+          .map((d: any, idx) => {
+            const rawSpeaker = String(d.speakerName || d.agentName || '').replace(/^[^\u0600-\u06FFa-zA-Z0-9]+\s*/, '').trim();
+            const firstWord = rawSpeaker.split(' ')[0] || '';
+            const msgText = String(d.messageAr || d.text || '').trim();
+            const foundIdx = activeAgentsList.findIndex(
+              (ag) =>
+                (d.agentId && ag.nominationId === d.agentId) ||
+                (firstWord && ag.name.includes(firstWord))
+            );
+            const resolvedIdx = foundIdx >= 0 ? foundIdx : idx % activeAgentsList.length;
+            const speakerShort = activeAgentsList[resolvedIdx]?.name.split(' ')[0] || firstWord || 'وكيل';
+            return {
+              idx: resolvedIdx,
+              text: `${speakerShort}: ${msgText.slice(0, 72)}`,
+            };
+          });
+        if (mappedTurns.length >= 1) {
+          meetingBreakDialogues = mappedTurns;
+          const latestTurn = mappedTurns[mappedTurns.length - 1];
+          const deskCoord = desks[latestTurn.idx];
+          const ag = activeAgentsList[latestTurn.idx];
+          if (deskCoord && ag && !inMeeting && chatBubbles.length < 3) {
+            createBubble(deskCoord.x, 1.55, deskCoord.z + 0.35, latestTurn.text, ag.hex);
+          }
+        }
+      }
+      if (Array.isArray(payload.recentPipelineHandovers) && payload.recentPipelineHandovers.length > 0) {
+        const latest: any = payload.recentPipelineHandovers[0];
+        const taskSummary = String(latest.taskLabel || latest.taskSummaryAr || 'تسليم مخرجات الحملة');
+        const sig = `${latest.fromAgentIndex}->${latest.toAgentIndex}:${taskSummary}`;
+        if (sig !== lastHandoverTimestampProcessed && !inMeeting) {
+          lastHandoverTimestampProcessed = sig;
+          triggerAgentTaskHandoverWalk(latest.fromAgentIndex, latest.toAgentIndex, taskSummary);
+        }
       }
       if (Array.isArray(payload.agentsLiveTelemetry)) {
         payload.agentsLiveTelemetry.forEach((item) => {
@@ -2151,6 +2756,68 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       tgt.set(pos.x, 1.5, pos.z);
       sph.radius = 16;
       updCam();
+    },
+    getSpatialAuditSnapshot: () => {
+      const westWallX = Number((MRX - currentRoomHalfX).toFixed(2));
+      let hasDeskCollision = false;
+      for (let i = 0; i < desks.length; i++) {
+        const d1 = desks[i];
+        if (!d1) continue;
+        if (d1.z <= MRZ + currentRoomHalfZ + 0.4 && d1.x + 0.75 >= westWallX - 0.1) {
+          hasDeskCollision = true;
+        }
+        for (let j = i + 1; j < desks.length; j++) {
+          const d2 = desks[j];
+          if (!d2) continue;
+          const dist = Math.hypot(d1.x - d2.x, d1.z - d2.z);
+          if (dist < 1.6) hasDeskCollision = true;
+        }
+      }
+      return {
+        officeDimensions: {
+          floorWidth: 26,
+          floorDepth: 20,
+          wallHeight: 4,
+          meetingRoomCenter: { x: MRX, z: MRZ },
+          meetingRoomHalfExtents: { halfX: currentRoomHalfX, halfZ: currentRoomHalfZ },
+          meetingRoomWestWallX: westWallX,
+        },
+        totalAgentsCount: activeAgentsList.length,
+        desksCount: desks.length,
+        meetingChairsCount: meetSeats.length,
+        inMeeting,
+        zeroDeskWallCollisions: !hasDeskCollision,
+        activeBubblesCount: chatBubbles.length,
+        activeDataPulsesCount: activeDataPulses.length,
+        serverRacksCount: serverRackUnits.length,
+        desks: desks.map((d, idx) => ({
+          slotIndex: idx,
+          x: d.x,
+          z: d.z,
+          agentName: activeAgentsList[idx]?.name || '',
+          role: activeAgentsList[idx]?.role || '',
+          isExpansion: idx >= 9,
+        })),
+        meetingChairs: meetSeats.map((s, idx) => ({
+          seatIndex: idx,
+          x: Number(s.x.toFixed(2)),
+          z: Number(s.z.toFixed(2)),
+          isHead: s.isHead,
+          assignedAgent: activeAgentsList[idx]?.name || '',
+        })),
+        agentsState: agentData.map((ad, idx) => ({
+          index: idx,
+          name: ad.agent.name,
+          role: ad.agent.role,
+          isExpansionTrainee: Boolean(ad.agent.isExpansionTrainee),
+          state: ad.state,
+          position: ad.walker.visible
+            ? { x: Number(ad.walker.position.x.toFixed(2)), z: Number(ad.walker.position.z.toFixed(2)) }
+            : { x: ad.home.x, z: ad.home.z },
+          badge: ad.liveBadgeAr,
+          progressPct: ad.liveProgressPct,
+        })),
+      };
     },
     destroy: () => {
       cancelAnimationFrame(animId);

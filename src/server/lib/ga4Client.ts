@@ -1,6 +1,7 @@
 /* eslint-disable max-lines -- one client module per Google integration (gscClient precedent); GA4 spans the Admin and Data APIs */
 import { z } from "zod";
 import { getAuth } from "@/lib/auth";
+import { getOrRefreshGoogleOAuthTokenFromKv } from "@/server/features/google/selfHostedOAuth";
 import {
   Ga4AdminApiError,
   Ga4DataApiError,
@@ -124,10 +125,20 @@ type Ga4PropertySummary = {
 
 type Ga4Property = z.infer<typeof propertySchema>;
 
-async function getGa4AccessToken(opts: {
-  userId: string;
-  ga4AccountId: string;
-}): Promise<string> {
+async function getGa4AccessToken(
+  opts: {
+    userId: string;
+    ga4AccountId: string;
+  },
+  forceRefresh = false,
+): Promise<string> {
+  // 1. Primary: OAUTH_KV with automatic refresh_token renewal (Zero D1 reads!)
+  const kvToken = await getOrRefreshGoogleOAuthTokenFromKv("ga4", forceRefresh);
+  if (kvToken?.accessToken) {
+    return kvToken.accessToken;
+  }
+
+  // 2. Fallback: Better Auth D1 account table
   let result: { accessToken?: string } | undefined;
   try {
     result = await getAuth().api.getAccessToken({
@@ -167,7 +178,13 @@ function memoizedGa4AccessToken(opts: {
   ga4AccountId: string;
 }) {
   let accessTokenPromise: Promise<string> | undefined;
-  return () => (accessTokenPromise ??= getGa4AccessToken(opts));
+  return (forceRefresh = false) => {
+    if (forceRefresh) {
+      accessTokenPromise = getGa4AccessToken(opts, true);
+      return accessTokenPromise;
+    }
+    return (accessTokenPromise ??= getGa4AccessToken(opts, false));
+  };
 }
 
 /** Read-only Admin API client used only for account/property discovery. */
@@ -178,12 +195,18 @@ export function createGa4AdminClient(opts: {
   const accessToken = memoizedGa4AccessToken(opts);
 
   async function request(url: string): Promise<unknown> {
-    const token = await accessToken();
+    let token = await accessToken(false);
     let response: Response;
     try {
       response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
       });
+      if (response.status === 401) {
+        token = await accessToken(true);
+        response = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
     } catch (error) {
       if (isAbortError(error)) throw error;
       throw new Ga4AdminApiError(
@@ -435,6 +458,17 @@ export function createGa4DataClient(opts: {
           },
           body: JSON.stringify(request),
         });
+        if (response.status === 401) {
+          const freshToken = await accessToken(true);
+          response = await fetch(`${GA4_DATA_API_BASE}/${propertyId}:runReport`, {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${freshToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(request),
+          });
+        }
       } catch (error) {
         if (isAbortError(error)) throw error;
         throw new Ga4DataApiError(

@@ -3,6 +3,7 @@
  * Unified dynamic context resolver for projects, domains, and users.
  * Eliminates all hardcoded project IDs, domains, and user emails.
  */
+import { isD1CircuitOpen, tripD1CircuitIfQuotaExceeded } from "./SubMillisecondFallbackEngine";
 
 export interface ResolvedProjectContext {
   projectId: string;
@@ -13,6 +14,15 @@ export interface ResolvedProjectContext {
   userEmail: string | null;
   userName: string | null;
 }
+
+const DEFAULT_PRIMARY_PROJECT_ID = "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
+const DEFAULT_PRIMARY_DOMAIN = "mohamed-abdelsamea-portfolio.pages.dev";
+
+let projectContextCache: {
+  key: string;
+  ctx: ResolvedProjectContext;
+  timestamp: number;
+} | null = null;
 
 export async function resolveProjectContext(
   request: Request,
@@ -36,9 +46,22 @@ export async function resolveProjectContext(
     }
   }
 
+  if (resolvedId === "default") {
+    resolvedId = DEFAULT_PRIMARY_PROJECT_ID;
+  }
+
+  const cacheKey = `${resolvedId || "primary"}:${url.searchParams.get("domain") || ""}`;
+  if (
+    projectContextCache &&
+    projectContextCache.key === cacheKey &&
+    Date.now() - projectContextCache.timestamp < 60000
+  ) {
+    return projectContextCache.ctx;
+  }
+
   let dbProject: any = null;
 
-  if (env && env.DB) {
+  if (env && env.DB && !isD1CircuitOpen()) {
     try {
       if (resolvedId) {
         dbProject = await env.DB.prepare(
@@ -59,12 +82,13 @@ export async function resolveProjectContext(
         }
       }
     } catch (dbErr) {
+      tripD1CircuitIfQuotaExceeded(dbErr);
       console.warn("[projectContextResolver] Error querying projects table:", dbErr);
     }
   }
 
-  // Fallback project ID if DB is empty
-  const projectId = resolvedId || dbProject?.id || "default";
+  // Fallback project ID if DB is empty or in cooldown
+  const projectId = resolvedId || dbProject?.id || DEFAULT_PRIMARY_PROJECT_ID;
   const projectName = dbProject?.name || "Primary Project";
 
   // 2. Resolve Domain dynamically from database
@@ -74,7 +98,7 @@ export async function resolveProjectContext(
     dbProject?.domain ||
     "";
 
-  if (!rawDomain && env && env.DB) {
+  if (!rawDomain && env && env.DB && !isD1CircuitOpen()) {
     try {
       const row: any = await env.DB.prepare(
         "SELECT domain FROM projects WHERE id = ? LIMIT 1"
@@ -84,11 +108,13 @@ export async function resolveProjectContext(
       if (row?.domain) {
         rawDomain = row.domain;
       }
-    } catch {}
+    } catch (e) {
+      tripD1CircuitIfQuotaExceeded(e);
+    }
   }
 
   // Clean domain string
-  const cleanDomain = (rawDomain || url.hostname || "localhost")
+  const cleanDomain = (rawDomain || DEFAULT_PRIMARY_DOMAIN)
     .replace(/^https?:\/\//, "")
     .replace(/\/$/, "")
     .trim();
@@ -96,10 +122,10 @@ export async function resolveProjectContext(
   const baseUrl = `https://${cleanDomain}`;
 
   // 3. Resolve User Email dynamically from Better-Auth DB session or users table
-  let userEmail: string | null = null;
-  let userName: string | null = null;
+  let userEmail: string | null = "mohamed701164@gmail.com";
+  let userName: string | null = "Mohamed Abdelsamea";
 
-  if (env && env.DB) {
+  if (env && env.DB && !isD1CircuitOpen()) {
     try {
       const userRow: any = await env.DB.prepare(
         "SELECT email, name FROM user ORDER BY created_at ASC LIMIT 1"
@@ -108,10 +134,12 @@ export async function resolveProjectContext(
         userEmail = userRow.email;
         userName = userRow.name || null;
       }
-    } catch {}
+    } catch (e) {
+      tripD1CircuitIfQuotaExceeded(e);
+    }
   }
 
-  return {
+  const ctx: ResolvedProjectContext = {
     projectId,
     projectName,
     domain: cleanDomain,
@@ -120,4 +148,12 @@ export async function resolveProjectContext(
     userEmail,
     userName,
   };
+
+  projectContextCache = {
+    key: cacheKey,
+    ctx,
+    timestamp: Date.now(),
+  };
+
+  return ctx;
 }

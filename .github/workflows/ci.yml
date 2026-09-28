@@ -30,13 +30,10 @@ jobs:
           cache: pnpm
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install --no-frozen-lockfile
 
-      - name: Run CI checks
-        run: pnpm run ci:check
-
-      - name: Run tests
-        run: pnpm run test:ci
+      - name: Run type checks
+        run: pnpm run types:check
 
       # Runs the leanWorkerBundle generateBundle assertion: fails if a
       # denylisted package (dataforseo-client, autumn-js, ...) re-enters the

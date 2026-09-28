@@ -46,6 +46,13 @@ interface ForwardedMessagePayload {
   actionType: "clarify" | "correct" | "approve";
 }
 
+interface SuggestedActionChip {
+  id: string;
+  label: string;
+  prompt: string;
+  category?: "execute" | "brainstorm" | "audit";
+}
+
 interface MeetingMessage {
   id: string;
   sessionId?: string;
@@ -62,6 +69,12 @@ interface MeetingMessage {
   tariqApproved?: boolean;
   time: string;
   text: string;
+  suggestedActions?: SuggestedActionChip[];
+  executedAction?: {
+    executed: boolean;
+    actionType: string;
+    summaryAr: string;
+  } | null;
 }
 
 interface TargetCountryAllocation {
@@ -176,7 +189,7 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     tierLabelAr: "المستوى 1: القيادة العليا",
     emoji: "👑",
     primaryModel: "gemini-2.5-pro",
-    fallbackModel: "gemini-3.1-pro",
+    fallbackModel: "gemini-2.5-flash",
     platforms: ["GSC", "GA4", "Google Ads", "Supabase", "GitHub", "Vercel", "Gemini", "Cloudflare"],
     specialtyAr: "القيادة العليا، طلب المتابعة من الوكلاء الـ 8، واعتماد خطط الحملات وتسريع العرض ودول النشر",
     badgeColor: "bg-purple-500/15 text-purple-600 dark:text-purple-300 border-purple-500/30",
@@ -190,7 +203,7 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     tierLabelAr: "المستوى 2: قيادة الحملات",
     emoji: "🎯",
     primaryModel: "gemini-2.5-flash",
-    fallbackModel: "gemini-3.5-flash-lite",
+    fallbackModel: "gemini-2.0-flash",
     platforms: ["Google Search Console", "Google Analytics 4", "Google Ads"],
     specialtyAr: "هندسة الحملات الأورجانيك والمدفوعة بالذكاء الاصطناعي ومراقبة الـ CTR والـ ROAS وتوجيه التعديلات",
     badgeColor: "bg-rose-500/15 text-rose-600 dark:text-rose-300 border-rose-500/30",
@@ -204,42 +217,14 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     tierLabelAr: "المستوى 2: الاستخبارات الدلالية",
     emoji: "🔍",
     primaryModel: "gemini-2.5-flash",
-    fallbackModel: "gemini-3.5-flash-lite",
+    fallbackModel: "gemini-2.5-flash-lite",
     platforms: ["Google Search Console", "Google Ads Keyword Planner"],
-    specialtyAr: "حصاد الكلمات الذهبية يومياً وتحليل الـ 38 ظهور في كونسول وبناء الخرائط الدلالية",
+    specialtyAr: "حصاد الكلمات الذهبية يومياً وتحليل الـ 48 ظهوراً في كونسول وبناء الخرائط الدلالية",
     badgeColor: "bg-emerald-500/15 text-emerald-600 dark:text-emerald-300 border-emerald-500/30",
   },
   {
-    id: "vorder-karim",
-    buttonIndex: 4,
-    nameAr: "كريم الدسوقي",
-    roleAr: "كبير محرري المحتوى ومسؤول النشر الفوري",
-    tier: 3,
-    tierLabelAr: "المستوى 3: الإنتاج والنشر",
-    emoji: "✍️",
-    primaryModel: "gemini-2.5-pro",
-    fallbackModel: "gemini-3.8-flash",
-    platforms: ["GitHub", "Vercel", "GSC Indexing", "IndexNow"],
-    specialtyAr: "كتابة المقالات بالذكاء الاصطناعي وتعبئة طابور الـ 100 مقال ونشرها في المدونة والسايت ماب فوراً",
-    badgeColor: "bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/30",
-  },
-  {
-    id: "vorder-nour",
-    buttonIndex: 5,
-    nameAr: "نور المرشدي",
-    roleAr: "خبيرة محركات الإجابة الذكية (GEO) والتحويل (CRO)",
-    tier: 3,
-    tierLabelAr: "المستوى 3: GEO & CRO",
-    emoji: "🧠",
-    primaryModel: "deep-research-pro-preview-12-2025",
-    fallbackModel: "gemini-2.5-pro",
-    platforms: ["Google Analytics 4", "Gemini AI Studio"],
-    specialtyAr: "تصدر اقتباسات ChatGPT وPerplexity وGemini وتحسين معدلات التحويل في صفحات الهبوط",
-    badgeColor: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300 border-fuchsia-500/30",
-  },
-  {
     id: "vorder-omar",
-    buttonIndex: 6,
+    buttonIndex: 4,
     nameAr: "عمر الفاروق",
     roleAr: "قائد العلاقات الرقمية والباك لينكس وGitHub",
     tier: 3,
@@ -252,32 +237,60 @@ export const UNIFIED_9_AGENTS_HIERARCHY: UnifiedHierarchyAgent[] = [
     badgeColor: "bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 border-indigo-500/30",
   },
   {
-    id: "vorder-faris",
-    buttonIndex: 7,
-    nameAr: "فارس النجار",
-    roleAr: "قائد السيو المحليودول النشر وخرائط جوجل",
+    id: "vorder-karim",
+    buttonIndex: 5,
+    nameAr: "كريم الدسوقي",
+    roleAr: "كبير محرري المحتوى ومسؤول النشر الفوري",
     tier: 3,
-    tierLabelAr: "المستوى 3: السيو المحلي والدول",
-    emoji: "📍",
-    primaryModel: "gemini-2.5-flash",
-    fallbackModel: "gemini-3.7-flash",
-    platforms: ["Cloudflare", "Google Maps / GBP", "GSC"],
-    specialtyAr: "التحكم في حصص دول النشر (السعودية، مصر، الإمارات، الكويت، قطر) وتوليد صفحات التغطية الإقليمية",
-    badgeColor: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30",
+    tierLabelAr: "المستوى 3: الإنتاج والنشر",
+    emoji: "✍️",
+    primaryModel: "gemini-2.5-pro",
+    fallbackModel: "gemini-2.5-flash",
+    platforms: ["GitHub", "Vercel", "GSC Indexing", "IndexNow"],
+    specialtyAr: "كتابة المقالات بالذكاء الاصطناعي وتعبئة طابور الـ 100 مقال ونشرها في المدونة والسايت ماب فوراً",
+    badgeColor: "bg-sky-500/15 text-sky-600 dark:text-sky-300 border-sky-500/30",
   },
   {
     id: "vorder-layla",
-    buttonIndex: 8,
+    buttonIndex: 6,
     nameAr: "ليلى الألفي",
     roleAr: "مهندسة السيو التقني والـ Schema وسرعة الأداء",
     tier: 4,
     tierLabelAr: "المستوى 4: الهندسة التقنية",
     emoji: "⚙️",
     primaryModel: "gemini-2.5-flash-lite",
-    fallbackModel: "gemini-3.1-flash-lite",
+    fallbackModel: "gemini-2.0-flash-lite",
     platforms: ["Google Search Console", "Vercel", "GitHub"],
     specialtyAr: "حقن أكواد JSON-LD Schema المناسبة لكل حملة ومراقبة مؤشرات Core Web Vitals و100% Site Audit",
     badgeColor: "bg-teal-500/15 text-teal-600 dark:text-teal-300 border-teal-500/30",
+  },
+  {
+    id: "vorder-faris",
+    buttonIndex: 7,
+    nameAr: "فارس النجار",
+    roleAr: "قائد السيو المحلي ودول النشر وخرائط جوجل",
+    tier: 3,
+    tierLabelAr: "المستوى 3: السيو المحلي والدول",
+    emoji: "📍",
+    primaryModel: "gemini-2.5-flash",
+    fallbackModel: "gemini-2.0-flash",
+    platforms: ["Cloudflare", "Google Maps / GBP", "GSC"],
+    specialtyAr: "التحكم في حصص دول النشر (السعودية، مصر، الإمارات، الكويت، قطر) وتوليد صفحات التغطية الإقليمية",
+    badgeColor: "bg-orange-500/15 text-orange-600 dark:text-orange-300 border-orange-500/30",
+  },
+  {
+    id: "vorder-nour",
+    buttonIndex: 8,
+    nameAr: "نور المرشدي",
+    roleAr: "خبيرة محركات الإجابة الذكية (GEO) والتحويل (CRO)",
+    tier: 3,
+    tierLabelAr: "المستوى 3: GEO & CRO",
+    emoji: "🧠",
+    primaryModel: "gemini-2.5-pro",
+    fallbackModel: "gemini-2.5-flash",
+    platforms: ["Google Analytics 4", "Gemini AI Studio"],
+    specialtyAr: "تصدر اقتباسات ChatGPT وPerplexity وGemini وتحسين معدلات التحويل في صفحات الهبوط",
+    badgeColor: "bg-fuchsia-500/15 text-fuchsia-600 dark:text-fuchsia-300 border-fuchsia-500/30",
   },
   {
     id: "vorder-ziad",
@@ -320,7 +333,7 @@ export function VorderMeetingChamberModal({
   const [selectedTarget, setSelectedTarget] = useState<string>("ALL_TEAM");
   const [secondsRemaining, setSecondsRemaining] = useState<number>(480);
   const [totalMessagesCount, setTotalMessagesCount] = useState<number>(0);
-  const [chatWindowLimit, setChatWindowLimit] = useState<number>(250);
+  const [chatWindowLimit, setChatWindowLimit] = useState<number>(600);
 
   // 100% Dynamic Learned Memory States (Zero Hardcoded Initial Strings)
   const [learnedLikes, setLearnedLikes] = useState<LearnedRuleItem[]>([]);
@@ -367,31 +380,62 @@ export function VorderMeetingChamberModal({
     setLearnedRules(normalizeRuleArray(tm.bindingRules, "binding_rule"));
   };
 
+  const fetchAutomationJson = async (path: string, init?: RequestInit): Promise<any> => {
+    const attempt = async (url: string) => {
+      const res = await fetch(url, init);
+      const rawText = await res.text();
+      if (!res.ok || !rawText.trim()) {
+        throw new Error(`HTTP ${res.status}`);
+      }
+      return JSON.parse(rawText);
+    };
+    try {
+      return await attempt(path);
+    } catch {
+      return await attempt(`https://open-seo.abdelsameaa.workers.dev${path}`);
+    }
+  };
+
   const fetchMeeting = async (silent: boolean = false, customLimit?: number) => {
-    const activeLimit = customLimit || chatWindowLimit || 250;
+    const activeLimit = customLimit || chatWindowLimit || 380;
     if (!silent && !meetingData) {
       setIsLoading(true);
     }
     try {
       const cacheBuster = Date.now();
-      const [res, nomRes] = await Promise.all([
-        fetch(`/api/automation/agent-meetings?limit=${activeLimit}&t=${cacheBuster}`, {
+      const [json, nomJson] = await Promise.all([
+        fetchAutomationJson(`/api/automation/agent-meetings?limit=${activeLimit}&t=${cacheBuster}`, {
           cache: "no-store",
         }),
-        fetch(`/api/automation/agent-nominations?t=${cacheBuster}`, {
+        fetchAutomationJson(`/api/automation/agent-nominations?t=${cacheBuster}`, {
           cache: "no-store",
         }).catch(() => null),
       ]);
-      if (!res.ok) throw new Error("فشل جلب تفاصيل الاجتماع");
-      const json = (await res.json()) as any;
-      if (nomRes && nomRes.ok) {
-        const nomJson = (await nomRes.json()) as any;
-        if (Array.isArray(nomJson?.nominations)) {
-          setNominationsList(nomJson.nominations);
-        }
+      if (nomJson && Array.isArray(nomJson?.nominations)) {
+        setNominationsList(nomJson.nominations);
       }
       if (json.meeting) {
-        setMeetingData(json.meeting);
+        setMeetingData((prev) => {
+          if (!prev || !Array.isArray(prev.dialogue) || prev.dialogue.length === 0) {
+            return json.meeting;
+          }
+          const incoming: MeetingMessage[] = Array.isArray(json.meeting.dialogue)
+            ? json.meeting.dialogue
+            : [];
+          const incomingIds = new Set(incoming.map((m) => m.id));
+          const incomingTexts = new Set(
+            incoming.map((m) => `${m.senderType || m.agentId}::${(m.text || "").trim().slice(0, 140)}`),
+          );
+          const preservedLocal = prev.dialogue.filter((m) => {
+            if (incomingIds.has(m.id)) return false;
+            const sig = `${m.senderType || m.agentId}::${(m.text || "").trim().slice(0, 140)}`;
+            return !incomingTexts.has(sig);
+          });
+          return {
+            ...json.meeting,
+            dialogue: [...incoming, ...preservedLocal],
+          };
+        });
         const trueTotal =
           Number(json.totalMessagesCount) ||
           Number(json.meeting.totalMessagesCount) ||
@@ -459,11 +503,13 @@ export function VorderMeetingChamberModal({
     return () => clearInterval(interval);
   }, [isOpen, isRunningRoundtable]);
 
+  const lastDialogueMsgId = meetingData?.dialogue?.[meetingData.dialogue.length - 1]?.id || "";
+
   useEffect(() => {
     if (activeTab === "chat" && chatBottomRef.current) {
       chatBottomRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [meetingData?.dialogue?.length, activeTab]);
+  }, [meetingData?.dialogue?.length, lastDialogueMsgId, totalMessagesCount, activeTab]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -507,7 +553,7 @@ export function VorderMeetingChamberModal({
     if (isRunningRoundtable) return;
     setIsRunningRoundtable(true);
     try {
-      const res = await fetch("/api/automation/agent-autonomous-roundtable", {
+      const data = await fetchAutomationJson("/api/automation/agent-autonomous-roundtable", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -517,7 +563,6 @@ export function VorderMeetingChamberModal({
           limit: chatWindowLimit,
         }),
       });
-      const data = (await res.json()) as any;
       if (data.success) {
         if (typeof data.totalMessagesCount === "number" && data.totalMessagesCount > 0) {
           setTotalMessagesCount(data.totalMessagesCount);
@@ -559,12 +604,11 @@ export function VorderMeetingChamberModal({
   const handleResetMemory = async (clearChat: boolean = false) => {
     setIsResettingMemory(true);
     try {
-      const res = await fetch("/api/automation/agent-memory-reset", {
+      const data = await fetchAutomationJson("/api/automation/agent-memory-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ clearChat }),
       });
-      const data = (await res.json()) as any;
       if (data.success) {
         applyTeamMemoryState(data.teamMemory);
         toast.success("🔄 تم تصفير الذاكرة بالكامل! الوكلاء الـ 9 يتعلمون الآن ديناميكياً 100% من توجيهاتك.");
@@ -579,12 +623,11 @@ export function VorderMeetingChamberModal({
 
   const handleDeleteSingleRule = async (ruleId: string) => {
     try {
-      const res = await fetch("/api/automation/agent-memory-reset", {
+      const data = await fetchAutomationJson("/api/automation/agent-memory-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ruleId }),
       });
-      const data = (await res.json()) as any;
       if (data.success && data.teamMemory) {
         applyTeamMemoryState(data.teamMemory);
         toast.success("🗑️ تم حذف القاعدة من ذاكرة الوكلاء");
@@ -604,7 +647,7 @@ export function VorderMeetingChamberModal({
     ];
     const nextVel = order[(order.indexOf(country.impressionVelocity) + 1) % order.length];
     try {
-      const res = await fetch("/api/automation/agent-target-countries", {
+      const data = await fetchAutomationJson("/api/automation/agent-target-countries", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -618,7 +661,6 @@ export function VorderMeetingChamberModal({
           approvedBy: "الباشمهندس محمد عبد السميع + اعتماد طارق العبدلي",
         }),
       });
-      const data = (await res.json()) as any;
       if (data.success && Array.isArray(data.targetCountries)) {
         setTargetCountries(data.targetCountries);
         toast.success(
@@ -635,7 +677,7 @@ export function VorderMeetingChamberModal({
   const handleTriggerHierarchicalFollowUp = async () => {
     setIsSending(true);
     try {
-      const res = await fetch("/api/automation/agent-chat", {
+      const data = await fetchAutomationJson("/api/automation/agent-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -645,7 +687,6 @@ export function VorderMeetingChamberModal({
             "يا طارق، اطلب متابعة هرمية فورية من جميع الوكلاء الـ 8 كلٌ في تخصصه لتحليل الـ 38 ظهور في كونسول وسرعة العرض ودول النشر مع ذكر مصادر الخبراء.",
         }),
       });
-      const data = (await res.json()) as any;
       if (data.replies && Array.isArray(data.replies)) {
         setMeetingData((prev) => {
           if (!prev) return prev;
@@ -664,14 +705,17 @@ export function VorderMeetingChamberModal({
     }
   };
 
-  // Send message to either a specific agent (Buttons 1..9) OR All 9 Agents (Button 10), with optional Forwarded Message
-  const handleSendMessage = async (e?: React.FormEvent) => {
+  // Send message to either a specific agent (Buttons 1..9) OR All 9 Agents (Button 10), with optional Forwarded Message or Quick Action Chip
+  const handleSendMessage = async (e?: React.FormEvent, customPrompt?: string) => {
     if (e) e.preventDefault();
-    if (!userInput.trim() || !meetingData) return;
+    const rawToSend = customPrompt !== undefined ? customPrompt : userInput;
+    if (!rawToSend.trim() || !meetingData) return;
 
-    const userText = userInput.trim();
+    const userText = rawToSend.trim();
     const activeForward = forwardedMsg;
-    setUserInput("");
+    if (customPrompt === undefined) {
+      setUserInput("");
+    }
     setForwardedMsg(null);
     setIsSending(true);
 
@@ -682,11 +726,20 @@ export function VorderMeetingChamberModal({
     });
 
     const targetAgentObj = UNIFIED_9_AGENTS_HIERARCHY.find((a) => a.id === selectedTarget);
+    const matchedNom = nominationsList.find((n) => n.id === selectedTarget);
+    const resolvedTargetName = targetAgentObj?.nameAr || matchedNom?.agentName || "الوكيل";
+    const resolvedTargetRole =
+      targetAgentObj?.roleAr ||
+      (matchedNom as any)?.title ||
+      (matchedNom as any)?.roleAr ||
+      "وكيل توسع متخصص ومعتمد";
+    const resolvedTargetEmoji = targetAgentObj?.emoji || "🚀";
+
     const targetLabel = activeForward
       ? `↪️ فوروارد ومراجعة لرسالة (${activeForward.agentName})`
       : selectedTarget === "ALL_TEAM"
       ? "🌐 موجه للفريق بالكامل (الوكلاء الـ 9 يشاركون كلٌ في تخصصه)"
-      : `${targetAgentObj?.emoji} موجه إلى: ${targetAgentObj?.nameAr} (بقية الوكلاء الـ 8 في وضع الاستماع والتعلم النشط)`;
+      : `${resolvedTargetEmoji} موجه إلى: ${resolvedTargetName} (بقية الوكلاء في وضع الاستماع والتعلم النشط)`;
 
     const userMsg: MeetingMessage = {
       id: `usr_${Date.now()}`,
@@ -708,11 +761,14 @@ export function VorderMeetingChamberModal({
     });
 
     try {
-      const res = await fetch("/api/automation/agent-chat", {
+      const data = await fetchAutomationJson("/api/automation/agent-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          projectId: "cc58e018-8ef9-4be7-8f3a-2af2bc158d62",
           agentId: selectedTarget,
+          agentName: resolvedTargetName,
+          agentRole: resolvedTargetRole,
           message: userText,
           forwardedMessage: activeForward,
           history: meetingData.dialogue.slice(-10).map((d) => ({
@@ -722,7 +778,6 @@ export function VorderMeetingChamberModal({
           })),
         }),
       });
-      const data = (await res.json()) as any;
 
       if (data.teamMemory) {
         applyTeamMemoryState(data.teamMemory);
@@ -739,7 +794,7 @@ export function VorderMeetingChamberModal({
 
       if (data.newlyLearnedRule) {
         toast.success(
-          `🧠 استمع الوكلاء الـ 9 وتعلموا ديناميكياً من كلامك: "${data.newlyLearnedRule.text}"`
+          `🧠 استمع الوكلاء وتعلموا ديناميكياً من كلامك: "${data.newlyLearnedRule.text}"`
         );
       }
 
@@ -756,26 +811,36 @@ export function VorderMeetingChamberModal({
       }
 
       if (data.replies && Array.isArray(data.replies)) {
+        const enrichedReplies = data.replies.map((r: any, idx: number) => ({
+          ...r,
+          suggestedActions: r.suggestedActions || (idx === 0 ? data.suggestedActions : undefined),
+          executedAction: r.executedAction || (idx === 0 ? data.executedAction : undefined),
+        }));
         setMeetingData((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
-            dialogue: [...prev.dialogue, ...data.replies],
+            dialogue: [...prev.dialogue, ...enrichedReplies],
           };
         });
       } else if (data.reply) {
-        const agentMeta = targetAgentObj || UNIFIED_9_AGENTS_HIERARCHY[0];
         const replyMsg: MeetingMessage = {
           id: `resp_${Date.now()}`,
-          agentId: agentMeta.id,
-          agentName: `${agentMeta.emoji} ${agentMeta.nameAr}`,
-          role: `${agentMeta.roleAr} (${agentMeta.tierLabelAr})`,
-          phase: `استماع وتعلم نشط من الـ 8 الآخرين`,
-          modelUsed: data.modelUsed || agentMeta.primaryModel,
+          agentId: targetAgentObj ? targetAgentObj.id : selectedTarget,
+          agentName: targetAgentObj
+            ? `${targetAgentObj.emoji} ${targetAgentObj.nameAr}`
+            : `🚀 ${data.agentName || resolvedTargetName}`,
+          role: targetAgentObj
+            ? `${targetAgentObj.roleAr} (${targetAgentObj.tierLabelAr})`
+            : data.agentRole || `${resolvedTargetRole} (متدرب توسع معتمد #10+)`,
+          phase: `استماع وتعلم نشط من الفريق`,
+          modelUsed: data.modelUsed || targetAgentObj?.primaryModel || "gemini-2.5-flash",
           handoverFrom: data.handoverFrom,
           learnedRuleBadge: data.newlyLearnedRule?.text,
           forwardedFrom: activeForward,
           tariqApproved: true,
+          suggestedActions: data.suggestedActions,
+          executedAction: data.executedAction,
           time: new Date().toLocaleTimeString("ar-EG", {
             hour: "2-digit",
             minute: "2-digit",
@@ -827,7 +892,7 @@ export function VorderMeetingChamberModal({
                   غرفة الاجتماعات الذاتية والشات الجماعي الدائم للوكلاء الـ 9 (حفظ 100% في D1 + سحب لليمين للفوروارد)
                 </h2>
                 <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  38 ظهور GSC • 105 مصدر خبراء • اعتماد طارق الإلزامي
+                  {meetingData?.consolidatedReport?.gscImpressions || 48} ظهور GSC • 105 مصدر خبراء • اعتماد طارق الإلزامي
                 </span>
               </div>
               <p className="text-[11px] text-[var(--apple-text-secondary)] mt-0.5">
@@ -837,6 +902,43 @@ export function VorderMeetingChamberModal({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
+            {/* Live Google AI Studio Model Switcher */}
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 text-xs">
+              <Cpu className="size-3.5 text-fuchsia-500 shrink-0" />
+              <span className="text-[10px] font-bold text-fuchsia-700 dark:text-fuchsia-300 hidden sm:inline">
+                محرك AI Studio:
+              </span>
+              <select
+                aria-label="مبدل موديلات Google AI Studio"
+                defaultValue="gemini-3.8-flash"
+                onChange={async (e) => {
+                  const chosenModel = e.target.value;
+                  try {
+                    await fetch("/api/integrations/select", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        projectId: "cc58e018-8ef9-4be7-8f3a-2af2bc158d62",
+                        platform: "google_ai_studio",
+                        id: chosenModel,
+                        name: chosenModel,
+                      }),
+                    });
+                    toast.success(`⚡ تم تبديل نموذج Google AI Studio النشط إلى: ${chosenModel}`);
+                  } catch {
+                    toast.error("تعذر حفظ تبديل النموذج");
+                  }
+                }}
+                className="bg-transparent font-mono text-[11px] font-black text-fuchsia-700 dark:text-fuchsia-200 focus:outline-none cursor-pointer"
+              >
+                <option value="gemini-3.8-flash" className="bg-zinc-900 text-white">gemini-3.8-flash</option>
+                <option value="gemini-3.5-flash" className="bg-zinc-900 text-white">gemini-3.5-flash</option>
+                <option value="gemini-3.5-flash-lite" className="bg-zinc-900 text-white">gemini-3.5-flash-lite</option>
+                <option value="gemini-3.1-flash-lite" className="bg-zinc-900 text-white">gemini-3.1-flash-lite</option>
+                <option value="gemma-4-26b-a4b-it" className="bg-zinc-900 text-white">gemma-4-26b-a4b-it</option>
+              </select>
+            </div>
+
             <button
               type="button"
               disabled={isRunningRoundtable}
@@ -947,7 +1049,7 @@ export function VorderMeetingChamberModal({
               }`}
             >
               <FileSpreadsheet className="size-3.5 text-blue-500" />
-              <span>التقرير الميداني وتحليل الـ 38 ظهور</span>
+              <span>التقرير الميداني وتحليل الـ {meetingData?.consolidatedReport?.gscImpressions || 48} ظهور</span>
             </button>
 
             <button
@@ -1026,13 +1128,13 @@ export function VorderMeetingChamberModal({
                     </div>
                   )}
 
-                  {/* THE 10-BUTTON COMMAND & ACTIVE LISTENING BAR */}
+                  {/* THE 10-BUTTON COMMAND & ACTIVE LISTENING BAR (+ APPROVED EXPANSION TRAINEES #10+) */}
                   <div className="rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] p-2.5 space-y-2 shrink-0">
                     <div className="flex flex-wrap items-center justify-between gap-2 text-[11px]">
                       <div className="flex items-center gap-1.5 font-extrabold text-[var(--apple-text-primary)]">
                         <Ear className="size-3.5 text-[#97233A] dark:text-rose-400" />
                         <span>
-                          الأزرار الـ 10: خاطب وكيلاً محدداً (والـ 8 يستمعون ويتعلمون) أو الفريق بالكامل:
+                          خاطب وكيلاً محدداً (أساسي 1..9 أو متدرب توسع #10+) أو الفريق بالكامل:
                         </span>
                       </div>
                       <span className="inline-flex items-center gap-1 rounded-full bg-fuchsia-500/10 border border-fuchsia-500/30 px-2.5 py-0.5 text-[10px] font-bold text-fuchsia-600 dark:text-fuchsia-300">
@@ -1041,7 +1143,7 @@ export function VorderMeetingChamberModal({
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-                      {/* BUTTON 10: ALL 9 AGENTS ROUNDTABLE */}
+                      {/* BUTTON ALL_TEAM: ALL AGENTS ROUNDTABLE */}
                       <button
                         type="button"
                         onClick={() => setSelectedTarget("ALL_TEAM")}
@@ -1053,14 +1155,14 @@ export function VorderMeetingChamberModal({
                       >
                         <div className="flex items-center gap-1.5 truncate">
                           <span>🌐</span>
-                          <span className="truncate">10. الفريق بالكامل (9 وكلاء)</span>
+                          <span className="truncate">الفريق بالكامل (جماعي)</span>
                         </div>
                         <span className="text-[9px] px-1.5 py-0.2 rounded bg-black/20 shrink-0">
-                          جماعي
+                          الكل
                         </span>
                       </button>
 
-                      {/* BUTTONS 1 TO 9: INDIVIDUAL AGENTS */}
+                      {/* BUTTONS 1 TO 9: INDIVIDUAL CORE AGENTS */}
                       {UNIFIED_9_AGENTS_HIERARCHY.map((ag) => {
                         const isSelected = selectedTarget === ag.id;
                         return (
@@ -1092,6 +1194,36 @@ export function VorderMeetingChamberModal({
                           </button>
                         );
                       })}
+
+                      {/* BUTTONS #10+: APPROVED EXPANSION TRAINEES */}
+                      {nominationsList
+                        .filter((n) => n.status === "approved")
+                        .map((nom, idx) => {
+                          const btnNum = 10 + idx;
+                          const isSelected = selectedTarget === nom.id;
+                          return (
+                            <button
+                              key={nom.id}
+                              type="button"
+                              onClick={() => setSelectedTarget(nom.id)}
+                              className={`flex items-center justify-between gap-1 rounded-xl border px-2.5 py-1.5 text-[11px] font-bold transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-emerald-600 text-white border-emerald-500 shadow-sm"
+                                  : "bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:border-emerald-500"
+                              }`}
+                            >
+                              <div className="flex items-center gap-1 truncate">
+                                <span>🚀</span>
+                                <span className="truncate">
+                                  {btnNum}. {nom.agentName}
+                                </span>
+                              </div>
+                              <span className="text-[9px] px-1 rounded shrink-0 bg-emerald-500/20">
+                                متدرب #{btnNum}
+                              </span>
+                            </button>
+                          );
+                        })}
                     </div>
                   </div>
 
@@ -1104,7 +1236,7 @@ export function VorderMeetingChamberModal({
                           تزامن حي كل 15 ثانية
                         </span>
                         <span>
-                          إجمالي الأرشيف المحفوظ في D1:{" "}
+                          إجمالي الأرشيف المحفوظ (D1 + OAUTH_KV):{" "}
                           <strong className="font-mono text-indigo-600 dark:text-indigo-400">
                             {totalMessagesCount || meetingData?.totalMessagesCount || meetingData?.dialogue.length || 0}
                           </strong>{" "}
@@ -1116,7 +1248,7 @@ export function VorderMeetingChamberModal({
                         <button
                           type="button"
                           onClick={() => {
-                            const nextLimit = Math.min(1000, Math.max(500, totalMessagesCount + 50));
+                            const nextLimit = Math.min(1500, Math.max(800, totalMessagesCount + 100));
                             setChatWindowLimit(nextLimit);
                             void fetchMeeting(false, nextLimit);
                           }}
@@ -1247,10 +1379,43 @@ export function VorderMeetingChamberModal({
                             </div>
                           )}
 
+                          {/* Executed Action Receipt Badge */}
+                          {msg.executedAction?.summaryAr && (
+                            <div className="mt-1.5 flex items-center gap-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/35 px-3 py-1.5 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                              <CheckCircle2 className="size-3.5 shrink-0 text-emerald-500" />
+                              <span>{msg.executedAction.summaryAr}</span>
+                            </div>
+                          )}
+
                           {/* Message Body */}
                           <p className="text-xs sm:text-sm text-[var(--apple-text-primary)] leading-relaxed mt-1 whitespace-pre-line">
                             {msg.text}
                           </p>
+
+                          {/* Interactive Suggested Action Chips */}
+                          {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-2 pt-2 border-t border-[var(--apple-border)]/50">
+                              <span className="text-[10px] font-bold text-[var(--apple-text-secondary)]">
+                                ⚡ إجراءات مقترحة بضغطة واحدة:
+                              </span>
+                              {msg.suggestedActions.map((act) => (
+                                <button
+                                  key={act.id}
+                                  type="button"
+                                  disabled={isSending}
+                                  onClick={() => {
+                                    if (msg.agentId && msg.agentId !== "user" && msg.agentId !== "human-director") {
+                                      setSelectedTarget(msg.agentId);
+                                    }
+                                    void handleSendMessage(undefined, act.prompt);
+                                  }}
+                                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-[10px] font-bold text-indigo-600 dark:text-indigo-300 transition-all cursor-pointer disabled:opacity-50"
+                                >
+                                  <span>{act.label}</span>
+                                </button>
+                              ))}
+                            </div>
+                          )}
 
                           {/* Citations Badges */}
                           {msg.citations && msg.citations.length > 0 && (

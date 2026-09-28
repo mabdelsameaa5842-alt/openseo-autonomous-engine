@@ -160,8 +160,6 @@ async function handleFetch(
   env: Env,
   ctx: ExecutionContext,
 ): Promise<Response> {
-  ctx.waitUntil(maybeSendSelfHostHeartbeat());
-
   // Non-blocking Edge AI Crawler Interceptor (GPTBot, ClaudeBot, PerplexityBot, etc.)
   const userAgent = request.headers.get("user-agent") || "";
   if (userAgent) {
@@ -197,6 +195,7 @@ async function handleFetch(
   if (
     pathname.startsWith("/api/automation/") ||
     pathname.startsWith("/api/autonomous/") ||
+    pathname === "/api/integrations/select" ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
     pathname === "/api/public/autonomous-articles" ||
@@ -223,6 +222,10 @@ async function handleFetch(
     );
     const autonomousResponse = await dispatchAutonomousRoute(pathname, publicRequest, env);
     if (autonomousResponse) return autonomousResponse;
+  }
+
+  if (pathname === "/api/google-ads/test-permissions") {
+    return handleGoogleAdsTestPermissions(publicRequest, env);
   }
 
   if (pathname === "/api/auth/super-admin/login") {
