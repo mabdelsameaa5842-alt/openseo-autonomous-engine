@@ -89,24 +89,18 @@ export const SUPPORTED_AI_MODELS: SupportedAIModel[] = [
   },
 ];
 
-// Circuit Breaker tracker for models experiencing 429 rate limit
-const modelCooldowns = new Map<string, number>();
+import {
+  reportModelCooldownUnified,
+  isModelInCooldownUnified,
+} from "@/server/features/automation/UnifiedQuotaAndCircuitBroker";
 
 export function reportModelRateLimited(modelId: string, cooldownMs = 60_000): void {
-  const normalized = modelId.toLowerCase();
-  modelCooldowns.set(normalized, Date.now() + cooldownMs);
-  console.warn(`[openrouter] Model ${normalized} marked rate-limited until ${new Date(Date.now() + cooldownMs).toISOString()}`);
+  reportModelCooldownUnified(modelId, cooldownMs);
+  console.warn(`[openrouter] Model ${modelId} marked rate-limited in UnifiedQuotaBroker for ${cooldownMs}ms`);
 }
 
 export function isModelRateLimited(modelId: string): boolean {
-  const normalized = modelId.toLowerCase();
-  const cooldownUntil = modelCooldowns.get(normalized);
-  if (!cooldownUntil) return false;
-  if (Date.now() >= cooldownUntil) {
-    modelCooldowns.delete(normalized);
-    return false;
-  }
-  return true;
+  return isModelInCooldownUnified(modelId);
 }
 
 export function normalizeModelId(rawModel?: string): string {

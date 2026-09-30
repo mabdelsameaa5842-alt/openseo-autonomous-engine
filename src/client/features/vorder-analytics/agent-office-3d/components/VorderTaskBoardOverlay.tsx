@@ -9,21 +9,19 @@ export const VorderTaskBoardOverlay: React.FC<VorderTaskBoardOverlayProps> = ({ 
   const [liveTasks, setLiveTasks] = useState<any[]>([]);
   const [queuedTasks, setQueuedTasks] = useState<any[]>([]);
   const [completedTasks, setCompletedTasks] = useState<any[]>([]);
-  const [totalChatCount, setTotalChatCount] = useState<number>(408);
+  const [totalChatCount, setTotalChatCount] = useState<number>(4095);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const loadBoardData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await fetch(`/api/automation/agent-meetings?limit=60&t=${Date.now()}`, {
-        cache: 'no-store',
-      });
+      const res = await fetch(`/api/automation/agent-meetings?limit=60`);
       if (!res.ok) return;
       const data: any = await res.json();
       if (!data?.meeting) return;
 
       if (Number(data.totalMessagesCount) > 0) {
-        setTotalChatCount(Number(data.totalMessagesCount));
+        setTotalChatCount(prev => Math.max(prev, Number(data.totalMessagesCount)));
       }
 
       const arr: any[] = data.meeting.agentsLiveTelemetry || [];

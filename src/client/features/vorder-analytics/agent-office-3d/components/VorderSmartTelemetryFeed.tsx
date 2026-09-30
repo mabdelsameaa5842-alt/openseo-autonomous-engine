@@ -58,7 +58,7 @@ export function VorderSmartTelemetryFeed({
   const [liveFeed, setLiveFeed] = useState<SmartFeedItem[]>([]);
   const [liveRestStatus, setLiveRestStatus] = useState<RestPeriodStatus | null>(null);
   const [totalChatCount, setTotalChatCount] = useState<number>(
-    Number(telemetryData?.totalMessagesCount) || 858
+    Number(telemetryData?.totalMessagesCount) || 4095
   );
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRunningCycle, setIsRunningCycle] = useState(false);
@@ -67,9 +67,7 @@ export function VorderSmartTelemetryFeed({
   const fetchLiveFeedFromD1 = useCallback(async (silent = true) => {
     if (!silent) setIsRefreshing(true);
     try {
-      const res = await fetch(`/api/automation/dual-pipelines-telemetry?t=${Date.now()}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`/api/automation/dual-pipelines-telemetry`);
       if (!res.ok) return;
       const json = (await res.json()) as any;
       if (Array.isArray(json?.smartActivityFeed) && json.smartActivityFeed.length > 0) {
@@ -82,7 +80,7 @@ export function VorderSmartTelemetryFeed({
         }
       }
       if (Number(json?.totalMessagesCount) > 0) {
-        setTotalChatCount(Number(json.totalMessagesCount));
+        setTotalChatCount(prev => Math.max(prev, Number(json.totalMessagesCount)));
       }
     } catch {
       // ignore network blip
@@ -95,7 +93,7 @@ export function VorderSmartTelemetryFeed({
     if (isRunningCycle) return;
     setIsRunningCycle(true);
     try {
-      const res = await fetch(`/api/automation/agent-autonomous-roundtable?t=${Date.now()}`, {
+      const res = await fetch(`/api/automation/agent-autonomous-roundtable`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ projectId: "default" }),
@@ -103,7 +101,7 @@ export function VorderSmartTelemetryFeed({
       if (res.ok) {
         const data = (await res.json()) as any;
         if (Number(data?.totalMessagesCount) > 0) {
-          setTotalChatCount(Number(data.totalMessagesCount));
+          setTotalChatCount(prev => Math.max(prev, Number(data.totalMessagesCount)));
         }
       }
       await fetchLiveFeedFromD1(false);

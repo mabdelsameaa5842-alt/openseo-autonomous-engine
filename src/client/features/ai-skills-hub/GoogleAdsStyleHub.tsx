@@ -45,8 +45,7 @@ import { VorderOrganicAdsIcon, GoogleAdsLogo } from "@/client/components/BrandLo
 // Consolidated "Performance Files" Components transferred from vorder-analytics
 import { GeoRadar360Card } from "@/client/features/vorder-analytics/components/GeoRadar360Card";
 import { GscRealtimeIndexingCard } from "@/client/features/vorder-analytics/components/GscRealtimeIndexingCard";
-import { AIModelsQuotaRadar } from "@/client/features/vorder-analytics/components/AIModelsQuotaRadar";
-import { CloudflareQuotaGuardian } from "@/client/features/vorder-analytics/components/CloudflareQuotaGuardian";
+import { UnifiedEcosystemTelemetryHub } from "@/client/features/vorder-analytics/components/UnifiedEcosystemTelemetryHub";
 import { ExecutionHistoryInspector } from "@/client/features/vorder-analytics/components/ExecutionHistoryInspector";
 import { SteppedAiTasksWorkflow } from "@/client/features/vorder-analytics/components/SteppedAiTasksWorkflow";
 import { HarvestedKeywordsExplorer } from "@/client/features/vorder-analytics/components/HarvestedKeywordsExplorer";
@@ -152,14 +151,13 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
     queryKey: ["dualPipelinesTelemetry", projectId],
     queryFn: async () => {
       const res = await fetch(
-        `/api/automation/dual-pipelines-telemetry?projectId=${encodeURIComponent(projectId)}&t=${Date.now()}`,
-        { cache: "no-store" }
+        `/api/automation/dual-pipelines-telemetry?projectId=${encodeURIComponent(projectId)}`
       );
       if (!res.ok) return null;
       return (await res.json()) as any;
     },
-    refetchInterval: 20000,
-    staleTime: 15000,
+    refetchInterval: 25000,
+    staleTime: 20000,
   });
 
   const [cronCountdown, setCronCountdown] = useState<number>(1800);
@@ -204,7 +202,7 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
     telemetryQuery.data?.gscIndexingTelemetry?.d1Published ||
     performanceQuery.data?.metrics?.publishedArticlesCount ||
     Number(typeof window !== "undefined" ? localStorage.getItem("vorder_last_published_count") : 0) ||
-    688;
+    0;
 
   useEffect(() => {
     if (typeof window !== "undefined" && livePublishedCount > 0) {
@@ -939,11 +937,8 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                 </div>
               </div>
 
-              {/* Quota Guardians (Transferred from Performance) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <CloudflareQuotaGuardian isRtl={isRtl} />
-                <AIModelsQuotaRadar isRtl={isRtl} />
-              </div>
+              {/* Unified Apple Design Ecosystem Telemetry Hub (macOS Control Center SSOT) */}
+              <UnifiedEcosystemTelemetryHub isRtl={isRtl} />
             </div>
           )}
 
@@ -994,38 +989,32 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                   </span>
                 </div>
 
-                {/* Interactive AI Models Quota Radar with Dropdown and live quotas */}
-                <AIModelsQuotaRadar isRtl={isRtl} />
+                {/* Unified Apple Design Ecosystem Telemetry Hub (SSOT: D1, KV, AI Radar, & Circuit Broker) */}
+                <UnifiedEcosystemTelemetryHub isRtl={isRtl} />
 
-                {/* Cloudflare Quota Guardian & Deduplication Shield */}
+                {/* Deduplication Semantic Guard */}
                 <div className="mt-6 pt-6 border-t border-[var(--apple-border)]">
-                  <h4 className="text-sm font-bold text-[var(--apple-text-primary)] mb-4">
-                    {isArabic ? "حماية الحصص السحابية ونظام منع التكرار" : "Cloud Quota Protection & Deduplication Guard"}
-                  </h4>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <CloudflareQuotaGuardian isRtl={isRtl} />
-                    <div className="p-5 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-canvas)] space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-xs text-[var(--apple-text-primary)]">
-                          {isArabic ? "نظام الحراسة وعدم التكرار الدلالي" : "Deduplication Semantic Guard"}
-                        </span>
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                          {isArabic ? "نشط (100%)" : "Active (100%)"}
-                        </span>
-                      </div>
-                      <p className="text-[11px] text-[var(--apple-text-secondary)] leading-relaxed">
-                        {isArabic
-                          ? "يقوم حارس التكرار بفحص عناوين ومقتطفات كافة المقالات المنشورة في قاعدة البيانات لمنع أي تضارب أو تنازع دلالي بين الموضوعات."
-                          : "Monitors published content in D1 using vector embeddings to prevent keyword cannibalization."}
-                      </p>
-                      <div className="pt-2 flex items-center justify-between border-t border-[var(--apple-border)] text-[11px]">
-                        <span className="text-[var(--apple-text-secondary)]">
-                          {isArabic ? "التبديل التلقائي التعاقبي في الخلفية:" : "Auto-Failover Cascade:"}
-                        </span>
-                        <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
-                          Gemini 2.0 Flash → Flash-Lite → 1.5 Flash → Antigravity Engine ($0.00)
-                        </span>
-                      </div>
+                  <div className="p-5 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-canvas)] space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-xs text-[var(--apple-text-primary)]">
+                        {isArabic ? "نظام الحراسة وعدم التكرار الدلالي" : "Deduplication Semantic Guard"}
+                      </span>
+                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        {isArabic ? "نشط (100%)" : "Active (100%)"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[var(--apple-text-secondary)] leading-relaxed">
+                      {isArabic
+                        ? "يقوم حارس التكرار بفحص عناوين ومقتطفات كافة المقالات المنشورة في قاعدة البيانات لمنع أي تضارب أو تنازع دلالي بين الموضوعات."
+                        : "Monitors published content in D1 using vector embeddings to prevent keyword cannibalization."}
+                    </p>
+                    <div className="pt-2 flex items-center justify-between border-t border-[var(--apple-border)] text-[11px]">
+                      <span className="text-[var(--apple-text-secondary)]">
+                        {isArabic ? "التبديل التلقائي التعاقبي في الخلفية:" : "Auto-Failover Cascade:"}
+                      </span>
+                      <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                        Gemini 2.0 Flash → Flash-Lite → 1.5 Flash → Antigravity Engine ($0.00)
+                      </span>
                     </div>
                   </div>
                 </div>

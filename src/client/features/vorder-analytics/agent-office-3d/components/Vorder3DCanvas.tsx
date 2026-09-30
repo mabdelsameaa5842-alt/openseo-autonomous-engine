@@ -257,11 +257,17 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [liveTelemetryMap, setLiveTelemetryMap] = useState<Record<number, LiveAgentTelemetry>>(FALLBACK_LIVE_TELEMETRY);
   const [approvedExpansionList, setApprovedExpansionList] = useState<any[]>([]);
-  const [liveSummaryStats, setLiveSummaryStats] = useState({
-    publishedCount: 688,
-    gscImpressions: 48,
-    keywordsCount: 2948,
-    totalMessagesCount: 858,
+  const [liveSummaryStats, setLiveSummaryStats] = useState(() => {
+    let savedPub = 0;
+    try {
+      savedPub = Number(localStorage.getItem('vorder_last_published_count')) || 0;
+    } catch {}
+    return {
+      publishedCount: savedPub,
+      gscImpressions: 0,
+      keywordsCount: 0,
+      totalMessagesCount: 0,
+    };
   });
   const handoverDemoIdxRef = useRef<number>(0);
 
@@ -321,18 +327,17 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
     let mounted = true;
     const fetchLiveTelemetry = async () => {
       try {
-        const res = await fetch(`/api/automation/agent-meetings?limit=40&t=${Date.now()}`, {
-          cache: 'no-store',
-        });
+        const res = await fetch(`/api/automation/agent-meetings?limit=40`);
+        if (res.status === 304) return;
         if (!res.ok) return;
         const data: any = await res.json();
         if (!mounted || !data?.meeting) return;
 
         const rep = data.meeting.consolidatedReport || {};
-        const pubCount = Number(rep.publishedCount) || 688;
-        const gscImp = Number(rep.gscImpressions) || 48;
-        const kwCount = Number(rep.keywordsCount) || 2948;
-        const msgCount = Number(data.totalMessagesCount || data.meeting.totalMessagesCount) || 858;
+        const pubCount = Number(rep.publishedCount) || 0;
+        const gscImp = Number(rep.gscImpressions) || 0;
+        const kwCount = Number(rep.keywordsCount) || 0;
+        const msgCount = Number(data.totalMessagesCount || data.meeting.totalMessagesCount) || 0;
 
         setLiveSummaryStats({
           publishedCount: pubCount,
@@ -391,7 +396,7 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
 
     fetchLiveTelemetry();
     window.addEventListener('vorder-nomination-updated', handleNominationEvent);
-    const pollInterval = setInterval(fetchLiveTelemetry, 8000);
+    const pollInterval = setInterval(fetchLiveTelemetry, 25000);
     return () => {
       mounted = false;
       window.removeEventListener('vorder-nomination-updated', handleNominationEvent);

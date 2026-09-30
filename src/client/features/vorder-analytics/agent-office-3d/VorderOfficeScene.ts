@@ -756,11 +756,11 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   const screenData: any[] = [];
   const agentData: any[] = [];
   const defaultAgentBadges: Record<number, string[]> = {
-    0: ['⚡ يدير العمليات ويعتمد الخطط', '📊 يراجع الـ 48 ظهور في كونسول', '🎯 يوجه حصص دول النشر'],
+    0: ['⚡ يدير العمليات ويعتمد الخطط', '📊 يراقب مؤشرات الظهور في كونسول', '🎯 يوجه حصص دول النشر'],
     1: ['📈 تحلل الـ ROAS في GA4', '🎯 تضبط سرعة العرض TURBO_3X', '💰 تراقب مسارات التحويل CAPI'],
     2: ['🔍 تحصد كلمات Striking Distance', '🧠 تصنف نوايا الباحثين (Intent)', '📊 تحلل فجوات الكلمات بكونسول'],
     3: ['🔗 يبني شبكة الروابط والـ PageRank', '🏛️ يعزز موثوقية الدومين Authority', '⚓ يوزع نصوص الـ Anchor الدلالية'],
-    4: ['🚀 ينشر المقالات ويحدث Sitemap', '📡 يطلق نبضات IndexNow الفورية', '📝 يدير طابور الـ 100 مقال'],
+    4: ['🚀 ينشر المقالات ويحدث Sitemap', '📡 يطلق نبضات IndexNow الفورية', '📝 يدير طابور النشر الاستراتيجي'],
     5: ['⚡ تفحص Core Web Vitals والـ Schema', '🔬 تدقق سرعة الموبايل LCP/CLS', '🛡️ تحرس صحة الموقع 100%'],
     6: ['🌍 يضبط حصص السعودية ومصر والخليج', '📍 يربط المحتوى بمدن الرياض والقاهرة', '🗺️ يحسن ظهور الـ Local 3-Pack'],
     7: ['🤖 تهندس اقتباسات الذكاء الاصطناعي GEO', '✨ تبني خريطة الـ Entities لـ Gemini', '📑 تطور فقرات الإجابة المباشرة'],
@@ -1469,13 +1469,13 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     status: 'LIVE' | 'KV_CACHE' | 'UNLINKED';
     metricText: string;
   }> = [
-    { id: 'gsc', label: '1. Search Console', status: 'LIVE', metricText: '690 URLs • 40 Imp' },
-    { id: 'ga4', label: '2. Analytics GA4', status: 'LIVE', metricText: 'Prop 553404486' },
-    { id: 'google_ads', label: '3. Google Ads API', status: 'LIVE', metricText: '2,084 KW • Active' },
+    { id: 'gsc', label: '1. Search Console', status: 'LIVE', metricText: 'Search Console Live' },
+    { id: 'ga4', label: '2. Analytics GA4', status: 'LIVE', metricText: 'GA4 Analytics Live' },
+    { id: 'google_ads', label: '3. Google Ads API', status: 'LIVE', metricText: 'Keywords Store Live' },
     { id: 'google_ai_studio', label: '4. Gemini 2.5 AI', status: 'LIVE', metricText: '6 Models • OAuth' },
     { id: 'supabase', label: '5. Supabase DB', status: 'LIVE', metricText: 'Vector Sync OK' },
     { id: 'github', label: '6. GitHub CI/CD', status: 'LIVE', metricText: 'Workflows Guarded' },
-    { id: 'vercel', label: '7. Vercel Edge', status: 'LIVE', metricText: '688 Blog Routes' },
+    { id: 'vercel', label: '7. Vercel Edge', status: 'LIVE', metricText: 'Dynamic Blog Routes' },
     { id: 'cloudflare', label: '8. Cloudflare D1+KV', status: 'LIVE', metricText: '5 Indexes • Shield' },
   ];
 
@@ -2216,9 +2216,9 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   // SCREEN ANIMATIONS (Live Data Drawing on Curved Screens)
   // ═══════════════════════════════════════════════════
   let frame = 0;
-  let livePublishedCount = 688;
-  let liveGscImpressions = 48;
-  let liveKeywordsCount = 2084;
+  let livePublishedCount = 0;
+  let liveGscImpressions = 0;
+  let liveKeywordsCount = 0;
   let lastHandoverTimestampProcessed = '';
 
   function drawScreen(s: any) {

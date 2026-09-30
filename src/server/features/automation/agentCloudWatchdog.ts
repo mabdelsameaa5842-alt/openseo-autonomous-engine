@@ -126,7 +126,7 @@ export const INITIAL_NINE_AGENTS: AgentTelemetryProfile[] = [
     connections: {
       aiModels: { primary: "Gemini 2.5 Flash", status: "active", rpmQuota: "15 RPM / 1M TPM", latencyMs: 210 },
       serverInfra: { primary: "Cloudflare D1 Campaigns Store", status: "connected", rowLimit: "5M Read / 100k Write", latencyMs: 18 },
-      googleTrio: { accountName: "GA4 Property 553404486 & Ads", status: "authenticated", details: "CAPI & Consent Mode v2", latencyMs: 145 }
+      googleTrio: { accountName: "GA4 Property 510849000 & Ads", status: "authenticated", details: "CAPI & Consent Mode v2", latencyMs: 145 }
     },
     healthCheck: {
       lastChecked: "منذ دقيقة واحدة",
@@ -143,7 +143,7 @@ export const INITIAL_NINE_AGENTS: AgentTelemetryProfile[] = [
     },
     logs: [
       { timestamp: "18:25:50", level: "INFO", message: "مزامنة مؤشرات الحملات الـ 4 مع Google Search Console وGA4..." },
-      { timestamp: "18:25:51", level: "OK", message: "التحقق من 48 ظهوراً فعلياً عبر 29 صفحة متصدرة." },
+      { timestamp: "18:25:51", level: "OK", message: "التحقق من مؤشرات الظهور واستعلامات الصفحات المتصدرة في GSC." },
       { timestamp: "18:25:51", level: "OK", message: "تسليم توصيات التحويل إلى كريم الدسوقي." }
     ]
   },
@@ -162,7 +162,7 @@ export const INITIAL_NINE_AGENTS: AgentTelemetryProfile[] = [
     activeCampaign: "حملة الاستحواذ العضوي للسوق السعودي والخليجي",
     currentTask: "حصاد الكلمات المفتاحية من منطقة الـ Striking Distance في GSC",
     plainArabicExplanation: "تقوم ياسمين الشريف باصطياد الكلمات المفتاحية الواقعة في المراكز 4-20 في جوجل سيرش كونسول وتصنيف نيتها الشرائية.",
-    expectedOutput: "2,084 كلمة مفتاحية مصنفة دلالياً مع خطة رفع الـ CTR.",
+    expectedOutput: "الكلمات المفتاحية مصنفة دلالياً في مستودع الكلمات مع خطة رفع الـ CTR.",
     executionLatencyMs: 220,
     connections: {
       aiModels: { primary: "Gemini 2.5 Flash", status: "active", rpmQuota: "15 RPM / 1M TPM", latencyMs: 240 },
@@ -202,12 +202,12 @@ export const INITIAL_NINE_AGENTS: AgentTelemetryProfile[] = [
     smokePosition: { x: 620, y: 170 },
     activeCampaign: "حملة الاستحواذ العضوي للسوق السعودي والخليجي",
     currentTask: "بناء عناقيد الروابط الداخلية Contextual Silos وتحديث Sitemap.xml",
-    plainArabicExplanation: "يقوم عمر الفاروق بربط مقالات البورتفوليو بشبكة روابط داخلية دلالية وتحديث خريطة الموقع Sitemap.xml (690 رابطاً).",
-    expectedOutput: "خريطة موقع حية محدثة بـ 690 رابطاً و5 روابط سياقية لكل مقال.",
+    plainArabicExplanation: "يقوم عمر الفاروق بربط مقالات البورتفوليو بشبكة روابط داخلية دلالية وتحديث خريطة الموقع Sitemap.xml.",
+    expectedOutput: "خريطة موقع حية محدثة وروابط سياقية لكل مقال.",
     executionLatencyMs: 185,
     connections: {
       aiModels: { primary: "Gemini 2.5 Flash", status: "active", rpmQuota: "15 RPM / 1M TPM", latencyMs: 200 },
-      serverInfra: { primary: "GitHub & Cloudflare Pages Sitemap", status: "connected", rowLimit: "690 Live URLs", latencyMs: 22 },
+      serverInfra: { primary: "GitHub & Cloudflare Pages Sitemap", status: "connected", rowLimit: "Live Sitemap URLs", latencyMs: 22 },
       googleTrio: { accountName: "Sitemap Protocol Registry", status: "authenticated", details: "Live XML Feed (200 OK)", latencyMs: 80 }
     },
     healthCheck: {
@@ -225,7 +225,7 @@ export const INITIAL_NINE_AGENTS: AgentTelemetryProfile[] = [
     },
     logs: [
       { timestamp: "18:25:54", level: "INFO", message: "بناء 5 روابط داخلية سياقية (Contextual Silo Links)..." },
-      { timestamp: "18:25:56", level: "OK", message: "تحديث خريطة الموقع sitemap.xml بـ 690 رابطاً نشطاً." },
+      { timestamp: "18:25:56", level: "OK", message: "تحديث خريطة الموقع sitemap.xml بالروابط النشطة." },
       { timestamp: "18:25:57", level: "OK", message: "تسليم الهيكل المعماري إلى كريم الدسوقي وزياد عمران." }
     ]
   },
@@ -243,18 +243,18 @@ export const INITIAL_NINE_AGENTS: AgentTelemetryProfile[] = [
     smokePosition: { x: 670, y: 170 },
     activeCampaign: "حملة الاستحواذ العضوي للسوق السعودي والخليجي",
     currentTask: "صياغة ونشر المقالات المرجعية في البورتفوليو وإطلاق إشعارات IndexNow",
-    plainArabicExplanation: "يقوم كريم الدسوقي بتأليف وتحديث مقالات البورتفوليو الحية (688 مقالاً منشوراً) وإشعار محركات البحث عبر IndexNow.",
+    plainArabicExplanation: "يقوم كريم الدسوقي بتأليف وتحديث مقالات البورتفوليو الحية وإشعار محركات البحث عبر IndexNow.",
     expectedOutput: "مقال مرجعي كامل غني بالبيانات مع إشعار أرشفة فوري.",
     executionLatencyMs: 340,
     connections: {
       aiModels: { primary: "Gemini 2.5 Flash", status: "active", rpmQuota: "15 RPM / 1M TPM", latencyMs: 310 },
-      serverInfra: { primary: "Portfolio Publisher & D1 Queue", status: "connected", rowLimit: "688 Published / 100 Queued", latencyMs: 19 },
+      serverInfra: { primary: "Portfolio Publisher & D1 Queue", status: "connected", rowLimit: "Dynamic Pipeline", latencyMs: 19 },
       googleTrio: { accountName: "GSC URL Inspection & IndexNow", status: "authenticated", details: "Instant Ping Active", latencyMs: 115 }
     },
     healthCheck: {
       lastChecked: "منذ دقيقتين",
       isHealthy: true,
-      statusMessage: "خط إنتاج المقالات نشط (688 مقالاً منشوراً + 100 في الطابور)",
+      statusMessage: "خط إنتاج المقالات نشط والمزامنة مستمرة",
       cacheTtlSeconds: 300
     },
     fallback: {
@@ -509,7 +509,7 @@ export class AgentCloudWatchdogService {
           kv.get("vorder:articles_backup:cc58e018-8ef9-4be7-8f3a-2af2bc158d62"),
           kv.get("vorder:chat_backup:cc58e018-8ef9-4be7-8f3a-2af2bc158d62"),
         ]);
-        const articlesCount = articlesRaw ? (JSON.parse(articlesRaw)?.length || 688) : 688;
+        const articlesCount = articlesRaw ? (JSON.parse(articlesRaw)?.length || 0) : 0;
         const chatCount = chatIdxRaw ? (JSON.parse(chatIdxRaw)?.length || 0) : 0;
         diagnostics.aiStudioConnected = Boolean(aiGrantRaw);
         diagnostics.gscConnected = Boolean(gscGrantRaw);

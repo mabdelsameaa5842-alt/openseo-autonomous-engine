@@ -479,7 +479,7 @@ export class PlatformIntegrationsService {
       const record = await this.readVerifiedRecord(pid, "google_ai_studio");
       if (record) {
         const raw = (record.credentials.apiKey || record.credentials.token || "").trim();
-        if (raw && (raw.startsWith("AIza") || raw.startsWith("ya29."))) {
+        if (raw && (raw.startsWith("AIza") || raw.startsWith("AQ.") || raw.startsWith("ya29."))) {
           const isOAuth = raw.startsWith("ya29.");
           const validModel = record.selectedResourceId || "gemini-2.5-flash";
           return {
@@ -496,7 +496,7 @@ export class PlatformIntegrationsService {
       (typeof env !== "undefined" && (env as any).GEMINI_API_KEY) ||
       (typeof process !== "undefined" && process.env?.GEMINI_API_KEY) ||
       "";
-    if (envKey && envKey.trim().startsWith("AIza")) {
+    if (envKey && (envKey.trim().startsWith("AIza") || envKey.trim().startsWith("AQ."))) {
       const cleaned = envKey.trim();
       return {
         tokenOrKey: cleaned,
@@ -536,7 +536,7 @@ export class PlatformIntegrationsService {
           (typeof env !== "undefined" && (env as any).GEMINI_API_KEY) ||
           (typeof process !== "undefined" && process.env?.GEMINI_API_KEY) ||
           "";
-        if (envCandidate.trim().startsWith("AIza")) {
+        if (envCandidate.trim().startsWith("AIza") || envCandidate.trim().startsWith("AQ.")) {
           apiKey = envCandidate.trim();
         } else {
           const refreshed = await getOrRefreshGoogleOAuthTokenFromKv("google_ai_studio", true);
@@ -546,7 +546,7 @@ export class PlatformIntegrationsService {
         }
       }
       if (!apiKey) {
-        throw new Error("يرجى تسجيل الدخول بحساب Google أو إدخال مفتاح Gemini API Key صالح (يبدأ بـ AIza) من Google AI Studio.");
+        throw new Error("يرجى تسجيل الدخول بحساب Google أو إدخال مفتاح Gemini API Key صالح (يبدأ بـ AIza أو AQ.) من Google AI Studio.");
       }
 
       const isOAuthOrVertex = apiKey.startsWith("ya29.");
@@ -555,7 +555,7 @@ export class PlatformIntegrationsService {
         ? `Google AI OAuth (${apiKey.slice(0, 6)}••••${apiKey.slice(-4)})`
         : `Gemini Key ••••${apiKey.slice(-4)}`;
 
-      if (apiKey.startsWith("AIza")) {
+      if (apiKey.startsWith("AIza") || apiKey.startsWith("AQ.")) {
         const res = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`,
         );
@@ -592,7 +592,7 @@ export class PlatformIntegrationsService {
           }
         } catch {}
       } else {
-        throw new Error("صيغة مفتاح غير صالحة؛ يجب أن يبدأ المفتاح بـ AIza أو يكون توكن OAuth صالحاً (ya29.).");
+        throw new Error("صيغة مفتاح غير صالحة؛ يجب أن يبدأ المفتاح بـ AIza أو AQ. أو يكون توكن OAuth صالحاً (ya29.).");
       }
 
       const record: StoredVerifiedRecord = {
@@ -977,9 +977,10 @@ export class PlatformIntegrationsService {
         record.credentials.token ||
         "";
 
-      if (tokenOrKey.startsWith("AIza") || tokenOrKey.startsWith("ya29.")) {
+      if (tokenOrKey.startsWith("AIza") || tokenOrKey.startsWith("AQ.") || tokenOrKey.startsWith("ya29.")) {
         try {
-          const url = tokenOrKey.startsWith("AIza")
+          const isApiKey = tokenOrKey.startsWith("AIza") || tokenOrKey.startsWith("AQ.");
+          const url = isApiKey
             ? `https://generativelanguage.googleapis.com/v1beta/models?pageSize=100&key=${encodeURIComponent(tokenOrKey)}`
             : `https://generativelanguage.googleapis.com/v1beta/models?pageSize=100`;
           const headers: Record<string, string> = tokenOrKey.startsWith("ya29.")
@@ -1459,7 +1460,7 @@ export class PlatformIntegrationsService {
       if (platform === "google_ai_studio") {
         const activeCred = await this.getActiveGeminiCredential(projectId);
         const tokenOrKey = activeCred?.tokenOrKey || record.credentials.apiKey || record.credentials.token || "";
-        const isBearer = activeCred?.isOAuthBearer ?? !tokenOrKey.startsWith("AIza");
+        const isBearer = activeCred?.isOAuthBearer ?? tokenOrKey.startsWith("ya29.");
         const url = isBearer
           ? "https://generativelanguage.googleapis.com/v1beta/models"
           : `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(tokenOrKey)}`;
@@ -1801,26 +1802,47 @@ export class PlatformIntegrationsService {
           trendData: Array(8).fill(latencyMs),
         };
       }
-    } catch (err) {
+    } catch (err: any) {
       console.warn(`[PlatformIntegrationsService.getLiveDashboardReport] live fetch warning for ${platform}:`, err);
+      const fallbackLatency = Math.max(1, Date.now() - startMs);
+      return {
+        platform,
+        connected: false,
+        selectedResourceId: record.selectedResourceId,
+        selectedResourceName: record.selectedResourceName,
+        connectedByEmail: record.connectedByEmail,
+        accountName: record.accountName,
+        latencyMs: fallbackLatency,
+        primaryMetricLabel: "Connection Status",
+        primaryMetricValue: "Disconnected",
+        secondaryMetricLabel: "API Latency",
+        secondaryMetricValue: `${fallbackLatency}ms`,
+        statusLabel: `Error: ${err?.message ? String(err.message).slice(0, 30) : "Connection Failed"}`,
+        details: {
+          Error: String(err?.message || "Failed to reach live API"),
+          LastAttempt: new Date().toISOString(),
+        },
+        trendData: [0, 0, 0, 0, 0],
+      };
     }
 
     const fallbackLatency = Math.max(1, Date.now() - startMs);
+    const hasValidKey = Boolean(record.credentials?.apiKey || record.credentials?.token || record.selectedResourceId);
     return {
       platform,
-      connected: true,
+      connected: hasValidKey,
       selectedResourceId: record.selectedResourceId,
       selectedResourceName: record.selectedResourceName,
       connectedByEmail: record.connectedByEmail,
       accountName: record.accountName,
       latencyMs: fallbackLatency,
       primaryMetricLabel: "Selected Resource",
-      primaryMetricValue: "Active",
+      primaryMetricValue: hasValidKey ? "Active" : "Unverified",
       secondaryMetricLabel: "API Latency",
       secondaryMetricValue: `${fallbackLatency}ms`,
-      statusLabel: record.selectedResourceName || "Connected",
+      statusLabel: hasValidKey ? (record.selectedResourceName || "Connected") : "Setup Required",
       details: (record.selectedResourceMeta as Record<string, string | number | null>) || {},
-      trendData: [1, 1, 1, 1, 1],
+      trendData: hasValidKey ? [1, 1, 1, 1, 1] : [0, 0, 0, 0, 0],
     };
   }
 

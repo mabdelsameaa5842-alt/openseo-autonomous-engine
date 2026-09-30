@@ -212,8 +212,7 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
     queryFn: async () => {
       const pid = projectId || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
       const res = await fetch(
-        `/api/automation/dual-pipelines-telemetry?projectId=${encodeURIComponent(pid)}&t=${Date.now()}`,
-        { cache: "no-store" }
+        `/api/automation/dual-pipelines-telemetry?projectId=${encodeURIComponent(pid)}`
       );
       if (!res.ok) return null;
       const json = (await res.json()) as any;
@@ -234,13 +233,14 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
 
   const cachedPublishedCount =
     typeof window !== "undefined"
-      ? Number(localStorage.getItem("vorder_last_published_count")) || 688
-      : 688;
+      ? Number(localStorage.getItem("vorder_last_published_count")) || 0
+      : 0;
 
   const liveArticlesCount =
     telemetryQuery.data?.flowisePipeline?.totalPublished ||
     telemetryQuery.data?.summary?.totalArticles ||
-    cachedPublishedCount;
+    cachedPublishedCount ||
+    0;
 
 
   // Group expansion state: all groups start expanded by default

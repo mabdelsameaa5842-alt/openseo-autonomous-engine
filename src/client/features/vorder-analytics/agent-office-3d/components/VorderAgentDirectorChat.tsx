@@ -31,11 +31,11 @@ interface VorderAgentDirectorChatProps {
 
 // Agent-specific initial greetings (Distinct Personalities — Zero Rejected Clichés)
 const AGENT_GREETINGS: Record<string, string> = {
-  'vorder-tariq': 'أهلاً بك يا باشمهندس محمد. أنا طارق العبدلي، المدير التنفيذي وقائد التكتيكات لخلية الوكلاء الـ 9. جميع المنصات الـ 8 متصلة حياً وأمامي الآن تقارير الـ 48 ظهوراً في كونسول.. ما التوجيه التنفيذي الذي نبدأ به؟',
+  'vorder-tariq': 'أهلاً بك يا باشمهندس محمد. أنا طارق العبدلي، المدير التنفيذي وقائد التكتيكات لخلية الوكلاء الـ 9. جميع المنصات الـ 8 متصلة حياً وأمامي الآن تقارير الأداء والظهور اللحظية في كونسول.. ما التوجيه التنفيذي الذي نبدأ به؟',
   'vorder-sara': 'من زاوية العائد والتحويل في GA4 وGoogle Ads، أنا سارة المهندس. أراقب الآن سرعة العرض (TURBO_3X) ومسارات Server-Side CAPI لضمان أعلى ROAS. أي حملة أو سوق نحلله مالياً الآن؟',
   'vorder-yasmine': 'من واقع فحص استعلامات Search Console، أنا ياسمين الشريف، خبيرة حصاد الكلمات وتصنيف النوايا. رصدت تكتلات كلمات قوية في منطقة الـ Striking Distance.. تحب نفتح خريطة الكلمات لأي قطاع؟',
   'vorder-omar': 'على مستوى هندسة الروابط وثقة النطاق، أهلاً بك يا باشمهندس محمد. أنا عمر الفاروق، مسؤول العلاقات الرقمية وتدفق الـ Internal PageRank. تحب نراجع شبكة الروابط الداخلية الداعمة لصفحات الظهور؟',
-  'vorder-karim': 'في خط إنتاج المحتوى وطابور النشر، أنا كريم الدسوقي. المدونة والسايت ماب متطابقان وطابور الـ 100 مقال جاهز مع نبضات IndexNow الفورية. هل نراجع حالة الأرشفة أو نطلق دفعة نشر جديدة؟',
+  'vorder-karim': 'في خط إنتاج المحتوى وطابور النشر، أنا كريم الدسوقي. المدونة والسايت ماب متطابقان وطابور المقالات الاستراتيجية جاهز مع نبضات IndexNow الفورية. هل نراجع حالة الأرشفة أو نطلق دفعة نشر جديدة؟',
   'vorder-layla': 'هندسياً وعلى مستوى مؤشرات Core Web Vitals، أنا ليلى الألفي. صحة الموقع Site Audit عند 100% (0 تحذيرات) وأكواد TechArticle Schema مفعّلة بالكامل. هل نفحص سرعة الأداء أو الكود المصدري؟',
   'vorder-faris': 'إقليمياً وعلى خريطة الأسواق المستهدفة، أنا فارس النجار، خبير السيو المحلي وأسواق السعودية ومصر والخليج. حصص النشر مضبوطة بين الرياض وجدة والقاهرة ودبي.. أي سوق إقليمي نركز عليه الآن؟',
   'vorder-nour': 'فيما يخص محركات الإجابة التوليدية GEO، أنا نور المرشدي. أعمل على تعزيز فقرات الإجابة المباشرة والـ Entities لتصدر اقتباسات ChatGPT وGemini وPerplexity. هل نراجع جاهزية الاقتباس التوليدي؟',
@@ -45,7 +45,7 @@ const AGENT_GREETINGS: Record<string, string> = {
 // Agent-specific quick prompts
 const AGENT_QUICK_PROMPTS: Record<string, string[]> = {
   'vorder-tariq': [
-    'اعرض لي خطة مضاعفة الـ 48 ظهوراً في Search Console',
+    'اعرض لي خطة مضاعفة الظهور والنقرات في Search Console',
     'ما حالة التزام الوكلاء الـ 9 بذاكرة التفضيلات في D1؟',
     'كيف نوزع قوة النشر بين السعودية ومصر والإمارات؟',
     'راجع لي حالة الربط الحي في المنصات الـ 8 الآن',
@@ -63,13 +63,13 @@ const AGENT_QUICK_PROMPTS: Record<string, string[]> = {
     'كيف نرفع نسبة النقر CTR للاستعلامات الحالية؟',
   ],
   'vorder-omar': [
-    'كيف نوزع الـ Internal PageRank لدعم الـ 29 صفحة المحققة للظهور؟',
+    'كيف نوزع الـ Internal PageRank لدعم صفحات منطقة الـ Striking Distance؟',
     'ما خطتك لتنويع نصوص الـ Anchor Text الدلالية؟',
     'كيف نعزز ثقة الدومين (Authority) عبر GitHub والمصادر الموثوقة؟',
     'هل توجد أي صفحات يتيمة (Orphan Pages) في الموقع؟',
   ],
   'vorder-karim': [
-    'ما حالة طابور الـ 100 مقال وتطابق المدونة مع Sitemap.xml؟',
+    'ما حالة طابور المقالات وتطابق المدونة مع Sitemap.xml؟',
     'كيف تسرّع أرشفة المقالات الجديدة عبر بروتوكول IndexNow؟',
     'ما المعايير الهيكلية التي تطبقها في كتابة المقالات التكتيكية؟',
     'كيف تمنع أي تصادم أو تكرار في روابط الـ Slugs؟',
@@ -122,14 +122,14 @@ export const VorderAgentDirectorChat: React.FC<VorderAgentDirectorChatProps> = (
 
   const quickPrompts: string[] = AGENT_QUICK_PROMPTS[agentKey] || [
     `ما مهامك التخصصية كـ ${currentAgent.title} في خلية VORDER؟`,
-    'ما خطتك لدعم الـ 48 ظهوراً في Search Console؟',
+    'ما خطتك لتعظيم الظهور الأورجانيك ورفع الـ CTR في Search Console؟',
     'كيف تتكامل مخرجات مكتبك مع طارق العبدلي وباقي الوكلاء؟',
   ];
 
   // Hydrate recent persisted conversation turns for this agent from D1 / OAUTH_KV
   useEffect(() => {
     let mounted = true;
-    fetch(`/api/automation/agent-meetings?limit=80&t=${Date.now()}`, { cache: 'no-store' })
+    fetch(`/api/automation/agent-meetings?limit=80`)
       .then((r) => (r.ok ? r.json() : null))
       .then((json: any) => {
         if (!mounted || !Array.isArray(json?.meeting?.dialogue)) return;

@@ -16,7 +16,7 @@ export interface ResolvedProjectContext {
 }
 
 const DEFAULT_PRIMARY_PROJECT_ID = "cc58e018-8ef9-4be7-8f3a-2af2bc158d62";
-const DEFAULT_PRIMARY_DOMAIN = "mohamed-abdelsamea-portfolio.pages.dev";
+const DEFAULT_PRIMARY_DOMAIN = "mohamed-abdelsamee-portfolio.vercel.app";
 
 let projectContextCache: {
   key: string;

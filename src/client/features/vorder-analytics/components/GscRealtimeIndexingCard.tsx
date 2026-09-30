@@ -54,11 +54,11 @@ export function GscRealtimeIndexingCard({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
 
-  const d1Published = gscData?.d1Published || 647;
+  const d1Published = gscData?.d1Published || 0;
   const blogPublished = gscData?.blogPublishedArticles || d1Published;
   const sitemapArticles = gscData?.sitemapArticlesCount || d1Published;
   const staticPages = gscData?.staticPagesCount ?? 2;
-  const liveSitemapUrls = gscData?.liveSitemapUrls || sitemapArticles + staticPages;
+  const liveSitemapUrls = gscData?.liveSitemapUrls || (sitemapArticles > 0 ? sitemapArticles + staticPages : 0);
   const sitemapDiscovered = gscData?.sitemapDiscovered || liveSitemapUrls;
   const sitemapLastRead =
     gscData?.sitemapLastRead || new Date().toISOString().slice(0, 10);
@@ -68,7 +68,7 @@ export function GscRealtimeIndexingCard({
   const crawledNotIndexed = gscData?.crawledNotIndexed ?? 0;
   const coverageLastUpdated =
     gscData?.coverageLastUpdated || new Date().toISOString().slice(0, 10);
-  const d1Queued = gscData?.d1Queued ?? 96;
+  const d1Queued = gscData?.d1Queued ?? 0;
   const pendingSweep = Math.max(0, liveSitemapUrls - sitemapDiscovered);
 
   // Total evaluated in GSC indexing report

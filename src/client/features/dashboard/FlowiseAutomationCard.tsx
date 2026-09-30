@@ -91,9 +91,9 @@ export function FlowiseAutomationCard({
   const rawQueued = Number(telemetry?.flowisePipeline?.totalQueued || 0);
   const rawPublished = Number(telemetry?.flowisePipeline?.totalPublished || 0);
 
-  const harvestedKeywords = rawKeywords > 0 ? rawKeywords : 2084;
-  const queuedArticles = rawQueued > 0 ? rawQueued : 100;
-  const publishedArticles = rawPublished > 0 ? rawPublished : 688;
+  const harvestedKeywords = rawKeywords;
+  const queuedArticles = rawQueued;
+  const publishedArticles = rawPublished;
 
   return (
     <CardShell
