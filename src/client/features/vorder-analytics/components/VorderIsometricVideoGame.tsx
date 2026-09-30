@@ -87,6 +87,30 @@ export const VorderIsometricVideoGame: React.FC = () => {
         }
       });
 
+      // Dynamically load any approved expansion agents from API and spawn them
+      fetch('/api/automation/agent-nominations')
+        .then((r) => r.ok ? r.json() : null)
+        .then((data: any) => {
+          if (data?.approvedExpansionAgents && Array.isArray(data.approvedExpansionAgents)) {
+            data.approvedExpansionAgents.forEach((nom: any, nIdx: number) => {
+              const dynIdx = 9 + nIdx;
+              const seatCol = 7 + (nIdx % 3);
+              const seatRow = 8 + Math.floor(nIdx / 3);
+              os.addAgent(dynIdx, dynIdx % 6, 0);
+              const ch = os.characters.get(dynIdx);
+              if (ch) {
+                ch.tileCol = seatCol;
+                ch.tileRow = seatRow;
+                ch.x = seatCol * 16 + 8;
+                ch.y = seatRow * 16 + 8;
+                ch.state = CharacterState.TYPE;
+                ch.dir = Direction.UP;
+              }
+            });
+          }
+        })
+        .catch(() => {});
+
       // Default camera pan: center of office
       const mapW = layout.cols * 16 * 3;
       const mapH = layout.rows * 16 * 3;

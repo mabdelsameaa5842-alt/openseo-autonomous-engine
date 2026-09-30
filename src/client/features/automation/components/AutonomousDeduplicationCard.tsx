@@ -13,7 +13,7 @@ export function AutonomousDeduplicationCard({
   projectId,
   isRtl = true,
   onDeduplicateSuccess,
-  uniqueCount = 471,
+  uniqueCount = 0,
 }: AutonomousDeduplicationCardProps) {
   const [isRunning, setIsRunning] = useState(false);
   const [lastResult, setLastResult] = useState<{

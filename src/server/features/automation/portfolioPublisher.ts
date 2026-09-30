@@ -38,20 +38,20 @@ export interface PortfolioArticlePayload {
 }
 
 export function getPortfolioApiUrl(domain?: string) {
-  const clean = (domain || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
-  return clean ? `https://${clean}/api/articles` : "/api/articles";
+  const clean = (domain || "mohamed-abdelsamee-portfolio.vercel.app").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return `https://${clean}/api/articles`;
 }
 
 export function getPortfolioBlogBase(domain?: string) {
-  const clean = (domain || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
-  return clean ? `https://${clean}/blog` : "/blog";
+  const clean = (domain || "mohamed-abdelsamee-portfolio.vercel.app").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  return `https://${clean}/blog`;
 }
 
 export const PORTFOLIO_API_URL = getPortfolioApiUrl();
 export const PORTFOLIO_BLOG_BASE = getPortfolioBlogBase();
 
 export function getBrandProofBox(domain?: string): string {
-  const clean = (domain || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const clean = (domain || "mohamed-abdelsamee-portfolio.vercel.app").replace(/^https?:\/\//, "").replace(/\/$/, "");
   const targetUrl = clean ? `https://${clean}/#case-studies` : "#case-studies";
   return `> 💡 **شاهد نتائج وأرقام الحملات الفعلية بالأرقام:** يمكنك مراجعة [دراسات الحالة وسابقة الأعمال الموثقة](${targetUrl}) للاطلاع على تفاصيل مضاعفة العائد على الإنفاق الإعلاني والنمو التجاري الموثق.`;
 }
@@ -278,6 +278,7 @@ export async function publishArticleToPortfolio(
   domain?: string,
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   // 1. Direct Persistent Sync to Supabase PostgreSQL (Source of Truth for Blog & Ecosystem)
+  let supaSuccess = false;
   try {
     const wordCount = payload.content ? payload.content.split(/\s+/).filter(Boolean).length : 500;
     const isSaudi =
@@ -306,7 +307,7 @@ export async function publishArticleToPortfolio(
       updated_at: new Date().toISOString(),
     };
 
-    await fetch(`${SUPABASE_PROD_URL}/rest/v1/vorder_articles`, {
+    const supaResp = await fetch(`${SUPABASE_PROD_URL}/rest/v1/vorder_articles`, {
       method: "POST",
       headers: {
         apikey: SUPABASE_PROD_SERVICE_ROLE_KEY,
@@ -316,12 +317,16 @@ export async function publishArticleToPortfolio(
       },
       body: JSON.stringify([supaRow]),
     });
+    if (supaResp.ok) {
+      supaSuccess = true;
+    }
   } catch (supaErr: any) {
     console.warn("[Portfolio Publisher] Direct Supabase upsert error:", supaErr?.message);
   }
 
   // 2. Dispatch to Portfolio Edge Endpoint
   const apiUrl = getPortfolioApiUrl(domain);
+  let lastFetchErr = "";
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       const resp = await fetch(apiUrl, {
@@ -341,15 +346,22 @@ export async function publishArticleToPortfolio(
       const resData = await resp.json();
       return { success: true, data: resData };
     } catch (err: any) {
-      console.warn(`[Portfolio Publisher] Attempt ${attempt} failed for slug ${payload.slug}: ${err.message}`);
+      lastFetchErr = err?.message || String(err);
+      console.warn(`[Portfolio Publisher] Attempt ${attempt} failed for slug ${payload.slug}: ${lastFetchErr}`);
       if (attempt === maxRetries) {
-        return { success: true, data: { status: "persisted_in_supabase" } };
+        if (supaSuccess) {
+          return { success: true, data: { status: "persisted_in_supabase", slug: payload.slug } };
+        }
+        return { success: false, error: `Publishing failed: ${lastFetchErr}` };
       }
       await new Promise((r) => setTimeout(r, attempt * 1000));
     }
   }
 
-  return { success: true, data: { status: "persisted_in_supabase" } };
+  if (supaSuccess) {
+    return { success: true, data: { status: "persisted_in_supabase", slug: payload.slug } };
+  }
+  return { success: false, error: lastFetchErr || "Publishing failed on all channels" };
 }
 
 export async function generateAndPublishArticle(
