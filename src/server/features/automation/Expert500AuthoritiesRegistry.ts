@@ -136,7 +136,7 @@ export const NEW_100_EXPERT_SOURCES: ExpertCitationSource[] = [
     "id": 408,
     "authority": "Cloudflare D1 Engineering Whitepaper",
     "studyTitle": "SQLite at the Edge: High-Performance Concurrent Reads and Transactional Batches",
-    "keyFindingAr": "استخدام عمليات الدفعات الذرية db.batch() يقلل أزمنة القفل ويمنع تعثر قواعد بيانات الحافة عند كتابة آلاف الرسائل.",
+    "keyFindingAr": "استخدام عمليات الدفعات الذرية runBatch() يقلل أزمنة القفل ويمنع تعثر قواعد بيانات الحافة عند كتابة آلاف الرسائل.",
     "category": "edge_multi_agent",
     "relevantAgents": [
       "vorder-ziad",

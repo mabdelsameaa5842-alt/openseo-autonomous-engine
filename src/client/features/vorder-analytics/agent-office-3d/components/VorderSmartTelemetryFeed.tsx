@@ -10,6 +10,9 @@ import {
   CheckCircle2,
   Cpu,
   Zap,
+  Copy,
+  Check,
+  ShieldCheck,
 } from "lucide-react";
 
 export interface SmartFeedItem {
@@ -65,6 +68,53 @@ export function VorderSmartTelemetryFeed({
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRunningCycle, setIsRunningCycle] = useState(false);
   const [countdownSec, setCountdownSec] = useState<number>(480);
+  const [copiedReport, setCopiedReport] = useState(false);
+  const [systemHealth, setSystemHealth] = useState<{
+    overallStatus: "STABLE" | "DEGRADED_BUT_SAFE" | "CRITICAL";
+    totalIncidents: number;
+    activeFallbacks: string[];
+  }>({
+    overallStatus: "STABLE",
+    totalIncidents: 0,
+    activeFallbacks: [],
+  });
+
+  const handleCopyDiagnosticReport = async () => {
+    try {
+      const res = await fetch("/api/automation/developer-diagnostic-report");
+      const text = res.ok
+        ? await res.text()
+        : JSON.stringify(
+            {
+              reportTitle: "OpenSEO VORDER - تقرير تشخيص وصيانة النظام الموجه للمطور",
+              status: systemHealth.overallStatus,
+              totalChatCount,
+              timestamp: new Date().toISOString(),
+              note: "تم استخراج التقرير من الكاش المحلي للواجهة.",
+            },
+            null,
+            2
+          );
+
+      await navigator.clipboard.writeText(text);
+      setCopiedReport(true);
+      setTimeout(() => setCopiedReport(false), 3500);
+    } catch {
+      const fallbackText = JSON.stringify(
+        {
+          reportTitle: "OpenSEO VORDER - تقرير تشخيص وصيانة النظام الموجه للمطور",
+          status: systemHealth.overallStatus,
+          totalChatCount,
+          timestamp: new Date().toISOString(),
+        },
+        null,
+        2
+      );
+      await navigator.clipboard.writeText(fallbackText);
+      setCopiedReport(true);
+      setTimeout(() => setCopiedReport(false), 3500);
+    }
+  };
 
   useEffect(() => {
     if (typeof window !== "undefined" && totalChatCount >= 4105) {
@@ -85,6 +135,9 @@ export function VorderSmartTelemetryFeed({
       const json = (await res.json()) as any;
       if (Array.isArray(json?.smartActivityFeed) && json.smartActivityFeed.length > 0) {
         setLiveFeed(json.smartActivityFeed);
+      }
+      if (json?.healthStatus) {
+        setSystemHealth(json.healthStatus);
       }
       if (json?.restPeriodStatus) {
         setLiveRestStatus(json.restPeriodStatus);
@@ -264,6 +317,55 @@ export function VorderSmartTelemetryFeed({
             className="p-2 rounded-xl border border-[var(--apple-border)] hover:bg-[var(--apple-pill)] text-[var(--apple-text-secondary)] transition-all cursor-pointer"
           >
             {isExpanded ? <ChevronUp className="size-4" /> : <ChevronDown className="size-4" />}
+          </button>
+        </div>
+      </div>
+
+      {/* 1.5 System Stability & One-Click Developer Diagnostic Copy Bar */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2.5 p-3 rounded-xl bg-[var(--apple-bg)] border border-[var(--apple-border)] text-xs">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span
+            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-[11px] ${
+              systemHealth.overallStatus === "STABLE"
+                ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                : systemHealth.overallStatus === "DEGRADED_BUT_SAFE"
+                ? "bg-amber-500/15 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30"
+            }`}
+          >
+            <span className="size-2 rounded-full bg-current animate-pulse" />
+            <span>
+              {systemHealth.overallStatus === "STABLE"
+                ? "🟢 النظام مستقر برمجياً (100% Primary SQL)"
+                : systemHealth.overallStatus === "DEGRADED_BUT_SAFE"
+                ? "🟡 وضع التعافي الذاتي نشط (Fallback متصل • البيانات محمية 100%)"
+                : "🔴 تنبيه استقرار برمجي"}
+            </span>
+          </span>
+          <span className="text-[var(--apple-text-secondary)] text-[11px] hidden sm:inline">
+            {systemHealth.overallStatus === "STABLE"
+              ? "جميع مسارات الـ APIs متصلة بقواعد البيانات الأساسية L1 دون أي تعثر."
+              : `تم تفعيل الفول باك بنجاح لحماية الاستقرار (${systemHealth.activeFallbacks.join("، ") || "D1 Quota Guard"}).`}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={handleCopyDiagnosticReport}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 font-bold text-xs transition-all cursor-pointer active:scale-95 shadow-xs"
+          >
+            {copiedReport ? (
+              <>
+                <Check className="size-3.5 text-emerald-500" />
+                <span className="text-emerald-600 dark:text-emerald-400">تم نسخ تقرير الصيانة بنجاح! 📋</span>
+              </>
+            ) : (
+              <>
+                <Copy className="size-3.5" />
+                <span>نسخ تقرير الصيانة البرمجية للمطور 📋</span>
+              </>
+            )}
           </button>
         </div>
       </div>

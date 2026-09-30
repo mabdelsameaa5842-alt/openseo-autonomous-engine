@@ -9,6 +9,7 @@ import * as sqliteGa4 from "./ga4.schema";
 import * as sqliteGoogleAds from "./google-ads.schema";
 import * as sqliteGsc from "./gsc.schema";
 import * as sqliteTelemetry from "./telemetry.schema";
+import * as sqliteAutonomous from "./autonomous.schema";
 import * as pgApp from "./pg/app.schema";
 import * as pgProjectContext from "./pg/project-context.schema";
 import * as pgAudit from "./pg/audit.schema";
@@ -19,6 +20,7 @@ import * as pgGa4 from "./pg/ga4.schema";
 import * as pgGoogleAds from "./pg/google-ads.schema";
 import * as pgGsc from "./pg/gsc.schema";
 import * as pgTelemetry from "./pg/telemetry.schema";
+import * as pgAutonomous from "./pg/autonomous.schema";
 
 // Canonical schema barrel. Repositories import their tables from here and the
 // provider-aware `db` from "@/db", so each repository is written ONCE for both
@@ -39,7 +41,8 @@ type AppSchema = typeof sqliteApp &
   typeof sqliteGa4 &
   typeof sqliteGoogleAds &
   typeof sqliteGsc &
-  typeof sqliteTelemetry;
+  typeof sqliteTelemetry &
+  typeof sqliteAutonomous;
 
 const runtimeSchema =
   getDatabaseProvider() === "postgres"
@@ -54,6 +57,7 @@ const runtimeSchema =
         ...pgGoogleAds,
         ...pgGsc,
         ...pgTelemetry,
+        ...pgAutonomous,
       }
     : {
         ...sqliteApp,
@@ -66,6 +70,7 @@ const runtimeSchema =
         ...sqliteGoogleAds,
         ...sqliteGsc,
         ...sqliteTelemetry,
+        ...sqliteAutonomous,
       };
 
 // oxlint-disable-next-line typescript/no-unsafe-type-assertion -- guarded by schema-parity.test.ts
@@ -107,4 +112,10 @@ export const {
   googleAdsConnections,
   gscConnections,
   telemetryState,
+  autonomousAgentChatHistory,
+  autonomousAgentLearnedMemory,
+  autonomousProgrammaticLogs,
+  autonomousMarketAllocation,
+  autonomousAgentNominationsV3,
 } = schema;
+

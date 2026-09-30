@@ -38,6 +38,7 @@ import {
   supabaseKvPut,
 } from "./SubMillisecondFallbackEngine";
 import { ALL_1000_EXPERT_SOURCES } from "./Expert1000AuthoritiesRegistry";
+import { AutonomousDiagnosticsService } from "./services/AutonomousDiagnosticsService";
 import { executeAutonomousAgentResearch } from "./AutonomousAgentResearcher";
 import { generateText } from "ai";
 import {
@@ -2540,6 +2541,7 @@ export async function handleDualPipelinesTelemetry(
     success: true,
     projectId,
     totalMessagesCount: totalChatMessagesCount,
+    healthStatus: AutonomousDiagnosticsService.getSystemHealthOverview(),
     engineSettings: { selectedMode: "flowise_only" },
     quotaStatus: {
       isBlocked: d1Blocked,
@@ -10606,6 +10608,7 @@ export async function handleAgentMeetings(
     const fullPayload = {
       success: true,
       totalMessagesCount,
+      healthStatus: AutonomousDiagnosticsService.getSystemHealthOverview(),
       agentsLiveTelemetry,
       platformRacksStatus,
       recentPipelineHandovers,
@@ -10615,6 +10618,7 @@ export async function handleAgentMeetings(
       meeting: {
         ...inMemoryMeetingState,
         totalMessagesCount,
+        healthStatus: AutonomousDiagnosticsService.getSystemHealthOverview(),
         teamMemory,
         latestCheckpoint,
         agentsLiveTelemetry,
@@ -11378,6 +11382,17 @@ export async function dispatchAutonomousRoute(
   request: Request,
   env: Env
 ): Promise<Response | null> {
+  if (pathname === "/api/automation/developer-diagnostic-report") {
+    const { AutonomousDiagnosticsService } = await import("./services/AutonomousDiagnosticsService");
+    const reportJson = AutonomousDiagnosticsService.generateDeveloperDiagnosticReport();
+    return new Response(reportJson, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+      },
+    });
+  }
   if (pathname === "/api/automation/agent-meetings") return handleAgentMeetings(request, env);
   if (pathname === "/api/automation/agent-nominations") return handleAgentNominations(request, env);
   if (pathname === "/api/automation/unified-quota-status") return handleUnifiedQuotaStatus(request, env);

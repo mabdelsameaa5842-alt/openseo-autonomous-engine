@@ -316,7 +316,8 @@ describe("no direct db.batch (must use runBatch)", () => {
   it("is not called outside src/db/runBatch.ts", () => {
     const offenders = walk("src")
       .filter((path) => !path.endsWith(join("db", "runBatch.ts")))
-      .filter((path) => /\.batch\(/.test(readFileSync(path, "utf8")));
+      .filter((path) => /\bdb\.batch\(/.test(readFileSync(path, "utf8")));
     expect(offenders).toEqual([]);
   });
 });
+

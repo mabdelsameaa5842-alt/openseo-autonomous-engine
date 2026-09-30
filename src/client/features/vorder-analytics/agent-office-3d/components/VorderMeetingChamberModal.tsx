@@ -25,6 +25,8 @@ import {
   Zap,
   AlertTriangle,
   ExternalLink,
+  Copy,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -360,6 +362,45 @@ export function VorderMeetingChamberModal({
   const [nominationsList, setNominationsList] = useState<AgentNomination[]>([]);
   const [targetCountries, setTargetCountries] = useState<TargetCountryAllocation[]>([]);
   const [programmaticLogs, setProgrammaticLogs] = useState<ProgrammaticDiagnosticLogEntry[]>([]);
+  const [copiedDiagReport, setCopiedDiagReport] = useState(false);
+
+  const handleCopyDeveloperReport = async () => {
+    try {
+      const res = await fetch("/api/automation/developer-diagnostic-report");
+      const text = res.ok
+        ? await res.text()
+        : JSON.stringify(
+            {
+              reportTitle: "OpenSEO VORDER - تقرير تشخيص وصيانة النظام الموجه للمطور",
+              totalMessagesCount,
+              programmaticLogsCount: programmaticLogs.length,
+              timestamp: new Date().toISOString(),
+              recentLogs: programmaticLogs.slice(0, 10),
+            },
+            null,
+            2
+          );
+      await navigator.clipboard.writeText(text);
+      setCopiedDiagReport(true);
+      setTimeout(() => setCopiedDiagReport(false), 3500);
+      toast.success("تم نسخ تقرير الصيانة البرمجية بنجاح! جاهز للإرسال للمبرمج.");
+    } catch {
+      const fallbackText = JSON.stringify(
+        {
+          reportTitle: "OpenSEO VORDER - تقرير تشخيص وصيانة النظام الموجه للمطور",
+          totalMessagesCount,
+          timestamp: new Date().toISOString(),
+          recentLogs: programmaticLogs.slice(0, 10),
+        },
+        null,
+        2
+      );
+      await navigator.clipboard.writeText(fallbackText);
+      setCopiedDiagReport(true);
+      setTimeout(() => setCopiedDiagReport(false), 3500);
+      toast.success("تم نسخ تقرير الصيانة البرمجية بنجاح! جاهز للإرسال للمبرمج.");
+    }
+  };
 
   // Swipe-Right / Forward Message State
   const [forwardedMsg, setForwardedMsg] = useState<ForwardedMessagePayload | null>(null);
@@ -2114,14 +2155,33 @@ export function VorderMeetingChamberModal({
                         يوثق كل عملية برمجية، اسم الملف والدالة، النموذج المستخدم، زمن التنفيذ بالمللي ثانية، وأي أخطاء أو تفعيل للـ Fallback مع طريقة المعالجة.
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => fetchMeeting(false)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)] text-xs font-bold cursor-pointer"
-                    >
-                      <RefreshCw className="size-3.5" />
-                      <span>تحديث اللوجز</span>
-                    </button>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={handleCopyDeveloperReport}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-xs"
+                      >
+                        {copiedDiagReport ? (
+                          <>
+                            <Check className="size-3.5 text-emerald-500" />
+                            <span className="text-emerald-600 dark:text-emerald-400">تم نسخ تقرير الصيانة بنجاح! 📋</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="size-3.5" />
+                            <span>نسخ تقرير الصيانة للمطور 📋</span>
+                          </>
+                        )}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fetchMeeting(false)}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[var(--apple-card)] border border-[var(--apple-border)] text-xs font-bold cursor-pointer"
+                      >
+                        <RefreshCw className="size-3.5" />
+                        <span>تحديث اللوجز</span>
+                      </button>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
