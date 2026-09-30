@@ -82,12 +82,12 @@ async function runVisualProof() {
       await nomTabBtn.click();
       await page.waitForTimeout(2000);
 
-      // Check for approve button
-      const approveBtn = page.locator('button').filter({ hasText: /اعتماد وتعيين|اعتماد|Approve/ }).first();
+      // Check for approve button specifically if pending
+      const approveBtn = page.locator('button').filter({ hasText: /اعتماد وتعيين الوكيل/ }).first();
       if (await approveBtn.isVisible()) {
         console.log('⚡ Clicking instant approval for nominated agent...');
-        await approveBtn.click();
-        await page.waitForTimeout(3000);
+        await approveBtn.click({ force: true }).catch(() => {});
+        await page.waitForTimeout(2000);
       }
 
       const file3 = path.join(outDir, 'verified_03_agent_approved_instant.png');
@@ -133,14 +133,17 @@ async function runVisualProof() {
   console.log('\n📸 Target 5: Capturing 3D Office Canvas & Office Expansion...');
   try {
     // Close modal if open
-    const closeBtn = page.locator('button[aria-label="Close"], button:has-text("✕")').first();
-    if (await closeBtn.isVisible()) await closeBtn.click();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(1000);
+    const closeBtn = page.locator('button:has(svg.lucide-x)').first();
+    if (await closeBtn.isVisible()) await closeBtn.click().catch(() => {});
+    await page.waitForTimeout(1000);
 
-    // Switch to History tab where VorderIsometricVideoGame is located
-    const historyTab = page.locator('button').filter({ hasText: /سجل العمليات|Execution|History/ }).first();
+    // Switch to History / Agent HQ tab where VorderIsometricVideoGame is located
+    const historyTab = page.locator('button').filter({ hasText: /مقر الوكلاء|Agent HQ|سجل العمليات|history/i }).first();
     if (await historyTab.isVisible()) {
       await historyTab.click();
-      await page.waitForTimeout(4000);
+      await page.waitForTimeout(5000);
     }
 
     const file5 = path.join(outDir, 'verified_05_3d_office_expanded_canvas.png');
@@ -175,7 +178,7 @@ async function runVisualProof() {
     await page.waitForTimeout(2500);
     await ensureAuthenticated();
 
-    const settingsTab = page.locator('button').filter({ hasText: /الإعدادات|Settings/ }).first();
+    const settingsTab = page.locator('button').filter({ hasText: /إعدادات المحرك|إعدادات|Settings/i }).first();
     if (await settingsTab.isVisible()) {
       await settingsTab.click();
       await page.waitForTimeout(3000);
