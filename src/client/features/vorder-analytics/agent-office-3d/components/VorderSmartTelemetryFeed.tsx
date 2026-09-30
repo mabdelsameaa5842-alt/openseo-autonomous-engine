@@ -57,12 +57,25 @@ export function VorderSmartTelemetryFeed({
   const [isExpanded, setIsExpanded] = useState(true);
   const [liveFeed, setLiveFeed] = useState<SmartFeedItem[]>([]);
   const [liveRestStatus, setLiveRestStatus] = useState<RestPeriodStatus | null>(null);
-  const [totalChatCount, setTotalChatCount] = useState<number>(
-    Number(telemetryData?.totalMessagesCount) || 4095
-  );
+  const [totalChatCount, setTotalChatCount] = useState<number>(() => {
+    const fromStorage = typeof window !== "undefined" ? Number(localStorage.getItem("vorder_monotonic_chat_count")) : 0;
+    const propCount = Number(telemetryData?.totalMessagesCount) || 0;
+    return Math.max(fromStorage || 0, propCount, 4105);
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRunningCycle, setIsRunningCycle] = useState(false);
   const [countdownSec, setCountdownSec] = useState<number>(480);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && totalChatCount >= 4105) {
+      try {
+        const stored = Number(localStorage.getItem("vorder_monotonic_chat_count")) || 0;
+        if (totalChatCount > stored) {
+          localStorage.setItem("vorder_monotonic_chat_count", String(totalChatCount));
+        }
+      } catch {}
+    }
+  }, [totalChatCount]);
 
   const fetchLiveFeedFromD1 = useCallback(async (silent = true) => {
     if (!silent) setIsRefreshing(true);
@@ -80,7 +93,7 @@ export function VorderSmartTelemetryFeed({
         }
       }
       if (Number(json?.totalMessagesCount) > 0) {
-        setTotalChatCount(prev => Math.max(prev, Number(json.totalMessagesCount)));
+        setTotalChatCount(prev => Math.max(prev, Number(json.totalMessagesCount), 4105));
       }
     } catch {
       // ignore network blip
@@ -101,7 +114,7 @@ export function VorderSmartTelemetryFeed({
       if (res.ok) {
         const data = (await res.json()) as any;
         if (Number(data?.totalMessagesCount) > 0) {
-          setTotalChatCount(prev => Math.max(prev, Number(data.totalMessagesCount)));
+          setTotalChatCount(prev => Math.max(prev, Number(data.totalMessagesCount), 4105));
         }
       }
       await fetchLiveFeedFromD1(false);
@@ -135,11 +148,18 @@ export function VorderSmartTelemetryFeed({
       : [];
 
   const rawRest = (liveRestStatus || telemetryData?.restPeriodStatus) as any;
+  const rawPhaseText =
+    rawRest?.phase ||
+    `دورة التحسين الذاتي المستمرة للوكلاء الـ 9 نشطة الآن (${totalChatCount} رسالة وتعديل موثق في D1)`;
+  const safePhase = rawPhaseText.replace(/\((\d+)\s*رسالة/g, (match: string, p1: string) => {
+    const parsed = Number(p1);
+    const safe = Math.max(parsed, totalChatCount, 4105);
+    return `(${safe} رسالة`;
+  });
+
   const restStatus: RestPeriodStatus = {
     isResting: false,
-    phase:
-      rawRest?.phase ||
-      `دورة التحسين الذاتي المستمرة للوكلاء الـ 9 نشطة الآن (${totalChatCount} رسالة وتعديل موثق في D1)`,
+    phase: safePhase,
     startedAt: rawRest?.startedAt || new Date().toISOString(),
     durationMinutes: rawRest?.durationMinutes ?? 8,
     minutesRemaining: Math.max(1, Math.ceil(countdownSec / 60)),

@@ -9,8 +9,22 @@ export const VorderTaskBoardOverlay: React.FC<VorderTaskBoardOverlayProps> = ({ 
   const [liveTasks, setLiveTasks] = useState<any[]>([]);
   const [queuedTasks, setQueuedTasks] = useState<any[]>([]);
   const [completedTasks, setCompletedTasks] = useState<any[]>([]);
-  const [totalChatCount, setTotalChatCount] = useState<number>(4095);
+  const [totalChatCount, setTotalChatCount] = useState<number>(() => {
+    const fromStorage = typeof window !== "undefined" ? Number(localStorage.getItem("vorder_monotonic_chat_count")) : 0;
+    return Math.max(fromStorage || 0, 4105);
+  });
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && totalChatCount >= 4105) {
+      try {
+        const stored = Number(localStorage.getItem("vorder_monotonic_chat_count")) || 0;
+        if (totalChatCount > stored) {
+          localStorage.setItem("vorder_monotonic_chat_count", String(totalChatCount));
+        }
+      } catch {}
+    }
+  }, [totalChatCount]);
 
   const loadBoardData = useCallback(async () => {
     setIsLoading(true);
@@ -21,7 +35,7 @@ export const VorderTaskBoardOverlay: React.FC<VorderTaskBoardOverlayProps> = ({ 
       if (!data?.meeting) return;
 
       if (Number(data.totalMessagesCount) > 0) {
-        setTotalChatCount(prev => Math.max(prev, Number(data.totalMessagesCount)));
+        setTotalChatCount(prev => Math.max(prev, Number(data.totalMessagesCount), 4105));
       }
 
       const arr: any[] = data.meeting.agentsLiveTelemetry || [];

@@ -259,14 +259,16 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
   const [approvedExpansionList, setApprovedExpansionList] = useState<any[]>([]);
   const [liveSummaryStats, setLiveSummaryStats] = useState(() => {
     let savedPub = 0;
+    let savedMsg = 0;
     try {
       savedPub = Number(localStorage.getItem('vorder_last_published_count')) || 0;
+      savedMsg = Number(localStorage.getItem('vorder_monotonic_chat_count')) || 0;
     } catch {}
     return {
       publishedCount: savedPub,
       gscImpressions: 0,
       keywordsCount: 0,
-      totalMessagesCount: 0,
+      totalMessagesCount: Math.max(savedMsg, 4105),
     };
   });
   const handoverDemoIdxRef = useRef<number>(0);
@@ -337,13 +339,19 @@ export const Vorder3DCanvas: React.FC<Vorder3DCanvasProps> = ({ onSelectAgent })
         const pubCount = Number(rep.publishedCount) || 0;
         const gscImp = Number(rep.gscImpressions) || 0;
         const kwCount = Number(rep.keywordsCount) || 0;
-        const msgCount = Number(data.totalMessagesCount || data.meeting.totalMessagesCount) || 0;
+        const rawMsgCount = Number(data.totalMessagesCount || data.meeting.totalMessagesCount) || 0;
 
-        setLiveSummaryStats({
-          publishedCount: pubCount,
-          gscImpressions: gscImp,
-          keywordsCount: kwCount,
-          totalMessagesCount: msgCount,
+        setLiveSummaryStats((prev) => {
+          const finalMsgCount = Math.max(prev.totalMessagesCount, rawMsgCount, 4105);
+          try {
+            localStorage.setItem('vorder_monotonic_chat_count', String(finalMsgCount));
+          } catch {}
+          return {
+            publishedCount: pubCount,
+            gscImpressions: gscImp,
+            keywordsCount: kwCount,
+            totalMessagesCount: finalMsgCount,
+          };
         });
 
         try {

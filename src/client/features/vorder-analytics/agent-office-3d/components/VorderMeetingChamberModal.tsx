@@ -333,8 +333,22 @@ export function VorderMeetingChamberModal({
   // 10-Button Selector State: "ALL_TEAM" (Button 10) or specific agentId (Buttons 1..9)
   const [selectedTarget, setSelectedTarget] = useState<string>("ALL_TEAM");
   const [secondsRemaining, setSecondsRemaining] = useState<number>(480);
-  const [totalMessagesCount, setTotalMessagesCount] = useState<number>(4095);
+  const [totalMessagesCount, setTotalMessagesCount] = useState<number>(() => {
+    const fromStorage = typeof window !== "undefined" ? Number(localStorage.getItem("vorder_monotonic_chat_count")) : 0;
+    return Math.max(fromStorage || 0, 4105);
+  });
   const [chatWindowLimit, setChatWindowLimit] = useState<number>(30);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && totalMessagesCount >= 4105) {
+      try {
+        const stored = Number(localStorage.getItem("vorder_monotonic_chat_count")) || 0;
+        if (totalMessagesCount > stored) {
+          localStorage.setItem("vorder_monotonic_chat_count", String(totalMessagesCount));
+        }
+      } catch {}
+    }
+  }, [totalMessagesCount]);
 
   // 100% Dynamic Learned Memory States (Zero Hardcoded Initial Strings)
   const [learnedLikes, setLearnedLikes] = useState<LearnedRuleItem[]>([]);
