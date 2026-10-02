@@ -305,9 +305,86 @@ export function PlatformBrandLogo({
       return <GeminiAiStudioLogo className={className} />;
     case "cloudflare":
       return <CloudflareLogo className={className} />;
+    case "clerk":
+      return <ClerkLogo className={className} />;
+    case "camber":
+      return <CamberLogo className={className} />;
+    case "tavily":
+      return <TavilyLogo className={className} />;
     case "organic_ads":
       return <VorderOrganicAdsIcon className={className} />;
     default:
       return <GeminiAiStudioLogo className={className} />;
   }
+}
+
+/**
+ * 10. Official Clerk Authentication Shield Logo
+ */
+export function ClerkLogo({ className = "size-6" }: BrandLogoProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="24" height="24" rx="6" fill="#6C47FF" />
+      <path
+        d="M12 5.5C8.41 5.5 5.5 8.41 5.5 12C5.5 15.59 8.41 18.5 12 18.5C14.77 18.5 17.13 16.78 18.06 14.36C18.23 13.91 17.88 13.43 17.4 13.43H15.82C15.48 13.43 15.19 13.67 15.08 14C14.54 15.42 13.38 16.36 12 16.36C9.59 16.36 7.64 14.41 7.64 12C7.64 9.59 9.59 7.64 12 7.64C13.38 7.64 14.54 8.58 15.08 10C15.19 10.33 15.48 10.57 15.82 10.57H17.4C17.88 10.57 18.23 10.09 18.06 9.64C17.13 7.22 14.77 5.5 12 5.5Z"
+        fill="#FFFFFF"
+      />
+    </svg>
+  );
+}
+
+/**
+ * 11. Official Camber Agentic Cloud Logo
+ */
+export function CamberLogo({ className = "size-6" }: BrandLogoProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="24" height="24" rx="6" fill="#1D4ED8" />
+      <path
+        d="M7 16.5L12 7.5L17 16.5"
+        stroke="#FFFFFF"
+        strokeWidth="2.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="13" r="2" fill="#60A5FA" />
+      <circle cx="7" cy="16.5" r="1.5" fill="#93C5FD" />
+      <circle cx="17" cy="16.5" r="1.5" fill="#93C5FD" />
+    </svg>
+  );
+}
+
+/**
+ * 12. Official Tavily AI Search Grounding Logo
+ */
+export function TavilyLogo({ className = "size-6" }: BrandLogoProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      aria-hidden="true"
+    >
+      <rect width="24" height="24" rx="6" fill="#0F172A" />
+      <path
+        d="M12 4L13.8 9.2L19 11L13.8 12.8L12 18L10.2 12.8L5 11L10.2 9.2L12 4Z"
+        fill="#10B981"
+      />
+      <circle cx="17.5" cy="6.5" r="1.5" fill="#34D399" />
+      <circle cx="6.5" cy="17.5" r="1.2" fill="#34D399" />
+    </svg>
+  );
 }

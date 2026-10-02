@@ -133,6 +133,10 @@ export function SearchConsoleConnectionCard({
       void queryClient.invalidateQueries({
         queryKey: ["dashboardGscReport", projectId],
       });
+      void queryClient.invalidateQueries({ queryKey: ["unifiedQuotaState"] });
+      void queryClient.invalidateQueries({
+        queryKey: ["dualPipelinesTelemetry", projectId],
+      });
     },
     onError: (error) => toast.error(getStandardErrorMessage(error)),
   });

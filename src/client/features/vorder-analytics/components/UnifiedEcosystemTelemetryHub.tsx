@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { AVAILABLE_MODELS, type AIModelOption } from "@/client/features/sam/components/ModelQuotaBadge";
+import { DynamicConsumptionsTable } from "./DynamicConsumptionsTable";
 
 interface UnifiedEcosystemTelemetryHubProps {
   isRtl?: boolean;
@@ -190,15 +191,19 @@ export const UnifiedEcosystemTelemetryHub: React.FC<UnifiedEcosystemTelemetryHub
 
             <div className="space-y-1.5 my-2">
               <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-white/60 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-white/5">
-                <span className="font-bold text-zinc-800 dark:text-zinc-200">Gemini 2.5 Flash</span>
+                <span className="font-bold text-zinc-800 dark:text-zinc-200">
+                  {telemetry?.aiModels?.activeModelId === "gemini-3.5-flash-lite"
+                    ? "Gemini 3.5 Flash Lite"
+                    : telemetry?.aiModels?.activeModelId || "Gemini 3.5 Flash Lite"}
+                </span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-bold">
-                  {isRtl ? "الأساسي (نشط)" : "Primary Active"}
+                  {isRtl ? "الأساسي (نشط 200 OK)" : "Primary Active (200 OK)"}
                 </span>
               </div>
               <div className="flex items-center justify-between text-[11px] p-2 rounded-xl bg-white/60 dark:bg-zinc-900/60 border border-zinc-200/50 dark:border-white/5">
-                <span className="font-bold text-zinc-800 dark:text-zinc-200">Gemini 2.5 Pro</span>
+                <span className="font-bold text-zinc-800 dark:text-zinc-200">Gemini 3.6 Flash</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-600 font-bold">
-                  {isRtl ? "التحليل العميق" : "Deep Reasoning"}
+                  {isRtl ? "احتياطي فوري" : "Instant Backup"}
                 </span>
               </div>
             </div>
@@ -249,6 +254,15 @@ export const UnifiedEcosystemTelemetryHub: React.FC<UnifiedEcosystemTelemetryHub
           </div>
         </div>
       </div>
+
+      {/* Dynamic 5-Row Consumptions & Operations Rate Table */}
+      <DynamicConsumptionsTable
+        items={telemetry?.consumptionTable || []}
+        isRtl={isRtl}
+        isLoading={isLoading}
+        onRefresh={fetchUnifiedStatus}
+        resetCountdown={timeLeft}
+      />
     </div>
   );
 };

@@ -35,6 +35,14 @@ export interface AgentNomination {
   visualProfileSummary?: string;
   deskSlotLabel?: string;
   meetingSeatLabel?: string;
+  trainingStatus?: "in_training" | "graduated";
+  currentTrainingDay?: number;
+  trainingTotalDays?: number;
+  maturityPct?: number;
+  mentorAgentIds?: string[];
+  mentorNames?: string[];
+  evolvedSystemPrompt?: string;
+  promptEvolutionLog?: Array<{ day: number; title: string; desc: string }>;
 }
 
 interface VorderAgentNominationCardProps {
@@ -48,6 +56,8 @@ export function VorderAgentNominationCard({
 }: VorderAgentNominationCardProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showPromptDetails, setShowPromptDetails] = useState(false);
+  const [showEvolvedPrompt, setShowEvolvedPrompt] = useState(false);
+  const [showEvolutionHistory, setShowEvolutionHistory] = useState(false);
   const [currentStatus, setCurrentStatus] = useState<"pending" | "approved" | "rejected">(
     nomination.status || "pending"
   );
@@ -283,29 +293,135 @@ export function VorderAgentNominationCard({
         </div>
       </div>
 
-      {/* Expandable System Prompt */}
-      <div className="mb-4">
-        <button
-          type="button"
-          onClick={() => setShowPromptDetails(!showPromptDetails)}
-          className="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 hover:underline flex items-center gap-1.5 transition-colors cursor-pointer"
-        >
-          <span>
-            {showPromptDetails
-              ? "إخفاء التعليمات البرمجية المقترحة"
-              : "عرض التعليمات البرمجية المقترحة"}
-          </span>
-          <span dir="ltr" className="inline-block font-mono">
-            (System Prompt)
-          </span>
-          {showPromptDetails ? (
-            <ChevronUp className="size-4" />
-          ) : (
-            <ChevronDown className="size-4" />
-          )}
-        </button>
+      {/* Trainee Apprenticeship Program (10-Day Autonomous Evolution) */}
+      <div className="mb-4 p-4 rounded-2xl bg-indigo-500/[0.04] dark:bg-indigo-950/20 border border-indigo-500/20 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-700 dark:text-indigo-300">
+              <Sparkles className="size-4" />
+            </span>
+            <div>
+              <h5 className="text-xs sm:text-sm font-black text-[var(--apple-text-primary)]">
+                برنامج تأهيل وتطوير المتدربين ذاتياً (10 أيام)
+              </h5>
+              <p className="text-[11px] text-[var(--apple-text-secondary)]">
+                يتحكم الوكلاء الأساسيون في السيستم برومت ويطورونه يومياً للتخرج التلقائي دون تدخل بشري
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2.5 py-1 rounded-full text-xs font-black bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30">
+              اليوم {nomination.currentTrainingDay || 4} من {nomination.trainingTotalDays || 10}
+            </span>
+            <span className="px-2.5 py-1 rounded-full text-xs font-black bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+              {nomination.maturityPct || 45}% جاهزية نضج
+            </span>
+          </div>
+        </div>
+
+        {/* 10-Day Progress Bar */}
+        <div className="space-y-1">
+          <div className="w-full bg-[var(--apple-canvas)] h-2.5 rounded-full overflow-hidden border border-[var(--apple-border)]">
+            <div
+              className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${nomination.maturityPct || 45}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-[10px] text-[var(--apple-text-secondary)] font-semibold px-0.5">
+            <span>اليوم 1: التأسيس والصلاحيات</span>
+            <span className="text-indigo-600 dark:text-indigo-400 font-bold">اليوم 4 الحالي: البحث الحر واللهجة المصرية</span>
+            <span>اليوم 10: التخرج والتعيين التلقائي</span>
+          </div>
+        </div>
+
+        {/* Mentors Badge */}
+        <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
+          <span className="font-extrabold text-[var(--apple-text-secondary)]">الوكلاء المشرفون على تطوير البرومت:</span>
+          {(nomination.mentorNames || ["كريم الدسوقي", "زياد عمران"]).map((mentor, mIdx) => (
+            <span
+              key={mIdx}
+              className="px-2.5 py-0.5 rounded-lg text-xs font-bold bg-[var(--apple-canvas)] text-indigo-700 dark:text-indigo-300 border border-indigo-500/25"
+            >
+              👨‍🏫 {mentor}
+            </span>
+          ))}
+        </div>
+
+        {/* Daily Evolution Log Toggle */}
+        {Array.isArray(nomination.promptEvolutionLog) && nomination.promptEvolutionLog.length > 0 && (
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={() => setShowEvolutionHistory(!showEvolutionHistory)}
+              className="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <span>{showEvolutionHistory ? "إخفاء سجل تطور البرومت اليومي" : "عرض سجل تطور البرومت اليومي (10 أيام)"}</span>
+              {showEvolutionHistory ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+            </button>
+            {showEvolutionHistory && (
+              <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                {nomination.promptEvolutionLog.map((step, sIdx) => (
+                  <div
+                    key={sIdx}
+                    className={`p-2.5 rounded-xl border text-[11px] ${
+                      step.day <= (nomination.currentTrainingDay || 4)
+                        ? "bg-emerald-500/[0.06] border-emerald-500/25 text-emerald-950 dark:text-emerald-200"
+                        : "bg-[var(--apple-canvas)] border-[var(--apple-border)] text-[var(--apple-text-secondary)] opacity-70"
+                    }`}
+                  >
+                    <div className="font-black flex items-center justify-between mb-1">
+                      <span>اليوم {step.day}: {step.title}</span>
+                      {step.day <= (nomination.currentTrainingDay || 4) && (
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-extrabold">✓ تم إنجازه</span>
+                      )}
+                    </div>
+                    <p className="leading-snug">{step.desc}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Evolved vs Initial Prompt Comparison */}
+        <div className="pt-2 border-t border-indigo-500/15 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setShowEvolvedPrompt(!showEvolvedPrompt)}
+            className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <Brain className="size-3.5" />
+            <span>{showEvolvedPrompt ? "إخفاء البرومت المتطور الذكي" : "👁️ عرض السيستم برومت المتطور (اليوم 4)"}</span>
+            {showEvolvedPrompt ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setShowPromptDetails(!showPromptDetails)}
+            className="px-3 py-1.5 rounded-xl bg-[var(--apple-canvas)] hover:bg-[var(--apple-border)]/50 text-[var(--apple-text-primary)] border border-[var(--apple-border)] text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+          >
+            <span>{showPromptDetails ? "إخفاء البرومت الأولي (اليوم 1)" : "عرض البرومت الأولي المبدئي"}</span>
+            {showPromptDetails ? <ChevronUp className="size-3.5" /> : <ChevronDown className="size-3.5" />}
+          </button>
+        </div>
+
+        {/* Evolved Prompt Box */}
+        {showEvolvedPrompt && (
+          <div className="p-3.5 rounded-xl bg-[var(--apple-canvas)] border-2 border-indigo-500/30 text-xs font-mono font-semibold text-[var(--apple-text-primary)] leading-relaxed whitespace-pre-wrap">
+            <div className="text-[11px] font-bold text-indigo-600 dark:text-indigo-400 font-sans mb-2 flex items-center justify-between">
+              <span>🚀 السيستم برومت الموسع والمتطور ذاتياً بواسطة الوكلاء المشرفين:</span>
+              <span className="px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-600 font-mono text-[10px]">Google Grounding + Egyptian Dialect Active</span>
+            </div>
+            {nomination.evolvedSystemPrompt || nomination.proposedSystemPrompt}
+          </div>
+        )}
+
+        {/* Initial Prompt Box */}
         {showPromptDetails && (
-          <div className="mt-2.5 p-3.5 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] text-xs font-mono font-semibold text-[var(--apple-text-primary)] leading-relaxed">
+          <div className="p-3.5 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] text-xs font-mono font-semibold text-[var(--apple-text-secondary)] leading-relaxed whitespace-pre-wrap">
+            <div className="text-[11px] font-bold text-[var(--apple-text-secondary)] font-sans mb-1">
+              📝 المسودة الأولية البسيطة (اليوم 1 قبل التطوير):
+            </div>
             {nomination.proposedSystemPrompt}
           </div>
         )}

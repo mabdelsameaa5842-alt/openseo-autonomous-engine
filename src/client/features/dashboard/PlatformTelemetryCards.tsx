@@ -58,6 +58,27 @@ const DASHBOARD_CARD_META: Record<
     subtitleAr: "حالة النطاقات واستجابة الشبكة الحية",
     hash: "cloudflare",
   },
+  clerk: {
+    titleEn: "Clerk Auth Shield",
+    titleAr: "درع Clerk للأمان",
+    subtitleEn: "Edge JWT sessions & 10,000 MAU quota",
+    subtitleAr: "توثيق الجلسات وسعة المستخدمين الحية",
+    hash: "clerk",
+  },
+  camber: {
+    titleEn: "Camber Cloud Compute",
+    titleAr: "خادم Camber للوكلاء",
+    subtitleEn: "Agentic MCP node & 40 CPU hours",
+    subtitleAr: "خادم الوكلاء و 40 ساعة تشغيل سحابي",
+    hash: "camber",
+  },
+  tavily: {
+    titleEn: "Tavily Search Grounding",
+    titleAr: "محرك Tavily للسيرب",
+    subtitleEn: "Live Google / web fact checking & 1,000 quota",
+    subtitleAr: "البحث الحي وتدقيق السيرب 100%",
+    hash: "tavily",
+  },
 };
 
 export function PlatformDashboardCard({

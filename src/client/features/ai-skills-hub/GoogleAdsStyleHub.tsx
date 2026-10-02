@@ -341,7 +341,7 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
     icon: React.ComponentType<{ className?: string }>;
   }> = [
     { id: "overview", label: isArabic ? "نظرة عامة" : "Overview", icon: LayoutDashboard },
-    { id: "campaigns", label: isArabic ? "الحملات العضوية والمدفوعة" : "Organic & Paid Campaigns", icon: VorderOrganicAdsIcon },
+    { id: "campaigns", label: isArabic ? "الحملات العضوية" : "Organic Campaigns", icon: VorderOrganicAdsIcon },
     { id: "clusters", label: isArabic ? "المجموعات الدلالية" : "Topic Clusters", icon: Layers },
     { id: "articles", label: isArabic ? "المقالات التكتيكية" : "Tactical Articles", icon: FileText },
     { id: "keywords", label: isArabic ? "استعلامات البحث والحصاد" : "Search Terms & Harvesting", icon: Search },
@@ -359,7 +359,7 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
       {/* 1. Inner Secondary Sidebar (Sub-Rail) — Collapsible & Compact */}
       <aside
         className={`${
-          isSubRailCollapsed ? "w-16 px-2" : "w-56 px-3"
+          isSubRailCollapsed ? "w-16 px-2" : "w-60 px-3"
         } shrink-0 bg-[var(--apple-card)] border-r border-[var(--apple-border)] hidden md:flex flex-col justify-between py-3 transition-all duration-200 z-10 ${
           isRtl ? "border-l border-r-0" : ""
         }`}
@@ -378,7 +378,7 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                     <bdi dir="ltr">VORDER Organic Ads</bdi>
                   </span>
                   <span className="text-[10px] text-[var(--apple-text-secondary)] font-medium truncate">
-                    {isArabic ? "الإعلانات الأورجانيك والمدفوعة" : "Autonomous Ads Hub"}
+                    {isArabic ? "الحملات العضوية الأورجانيك" : "Autonomous Organic Hub"}
                   </span>
                 </div>
               )}
@@ -401,7 +401,7 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
               setShowCampaignBuilder(true);
               toast.info(isArabic ? "تم فتح المُعِد الذكي للحملات بالذكاء الاصطناعي" : "AI Campaign Architect opened");
             }}
-            title={isArabic ? "إعداد حملة ذكية (أورجانيك / مدفوعة)" : "AI Architect Campaign"}
+            title={isArabic ? "إعداد حملة ذكية (أورجانيك)" : "AI Architect Campaign"}
             className={`w-full flex items-center justify-center gap-2 py-2 ${
               isSubRailCollapsed ? "px-2" : "px-3"
             } rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#97233A] to-[#6E1729] dark:from-[#B8324D] dark:to-[#97233A] hover:opacity-95 shadow-sm transition-all duration-150 active:scale-95 cursor-pointer`}

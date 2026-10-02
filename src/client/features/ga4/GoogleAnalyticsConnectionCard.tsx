@@ -83,6 +83,10 @@ export function GoogleAnalyticsConnectionCard({
     void queryClient.invalidateQueries({
       queryKey: ["dashboardGa4Report", projectId],
     });
+    void queryClient.invalidateQueries({ queryKey: ["unifiedQuotaState"] });
+    void queryClient.invalidateQueries({
+      queryKey: ["dualPipelinesTelemetry", projectId],
+    });
   };
   const setPropertyMutation = useMutation({
     mutationFn: (selected: Ga4PropertySelection) =>

@@ -299,11 +299,11 @@ export function OrganicAdsCampaignBuilderStepper({
             <h2 className="text-base font-bold text-[var(--apple-text-primary)]">
               {isEdit
                 ? isArabic
-                  ? "تعديل الحملة العضوية والمدفوعة وإعادة ضبط الاستهداف"
-                  : "Edit Organic & Paid Campaign Targeting"
+                  ? "تعديل الحملة العضوية وإعادة ضبط الاستهداف"
+                  : "Edit Organic Campaign Targeting"
                 : isArabic
-                ? "مُعِدّ ومهندس الحملات الذكي (أورجانيك سيو + إعلانات جوجل المدفوعة)"
-                : "VORDER AI Campaign Architect (Organic SEO + Google Ads)"}
+                ? "مُعِدّ ومهندس الحملات الذكي (أورجانيك سيو)"
+                : "VORDER AI Campaign Architect (Pure Organic SEO)"}
             </h2>
             <p className="text-xs text-[var(--apple-text-secondary)]">
               {isEdit

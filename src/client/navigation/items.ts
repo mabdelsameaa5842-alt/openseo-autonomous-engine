@@ -10,6 +10,7 @@ import {
   Megaphone,
   MessageSquare,
   Search,
+  Settings,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
@@ -25,6 +26,16 @@ const projectNavItems = [
     // Without exact matching, the index path is a prefix of every project
     // route and the Dashboard item would render active everywhere.
     activeOptions: { exact: true, includeSearch: false },
+  },
+  {
+    to: "/p/$projectId/sam" as const,
+    label: "SAM AI Chat",
+    icon: MessageSquare,
+  },
+  {
+    to: "/p/$projectId/settings" as const,
+    label: "Project Settings",
+    icon: Settings,
   },
   {
     to: "/p/$projectId/keywords" as const,
@@ -110,12 +121,21 @@ export function getProjectNavGroups(projectId: string) {
   return [
     {
       label: "Overview",
-      items: [byPath("/p/$projectId")],
+      items: [
+        byPath("/p/$projectId"),
+        byPath("/p/$projectId/sam"),
+      ],
     },
     {
       label: "Growth & Performance",
       items: [
         byPath("/p/$projectId/skills-hub"),
+      ],
+    },
+    {
+      label: "Settings",
+      items: [
+        byPath("/p/$projectId/settings"),
       ],
     },
   ];

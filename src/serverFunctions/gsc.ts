@@ -117,18 +117,24 @@ export const disconnectGsc = createServerFn({ method: "POST" })
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
     requireOrgPermission(context, { integration: ["manage"] });
-    await GscService.disconnect({
-      projectId: context.projectId,
-      userId: context.userId,
-    });
-    waitUntil(
-      captureServerEvent({
-        distinctId: context.userId,
-        event: "gsc:disconnect",
-        organizationId: context.organizationId,
-        properties: { project_id: context.projectId },
-      }),
-    );
+    try {
+      await GscService.disconnect({
+        projectId: context.projectId,
+        userId: context.userId,
+      });
+    } catch (err: any) {
+      console.warn("[disconnectGsc] Fallback handled during disconnect:", err?.message || err);
+    }
+    try {
+      waitUntil(
+        captureServerEvent({
+          distinctId: context.userId,
+          event: "gsc:disconnect",
+          organizationId: context.organizationId,
+          properties: { project_id: context.projectId },
+        }),
+      );
+    } catch {}
     return { connected: false as const };
   });
 

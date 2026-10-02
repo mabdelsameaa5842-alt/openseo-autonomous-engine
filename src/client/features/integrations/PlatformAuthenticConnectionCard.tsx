@@ -11,6 +11,9 @@ import {
   VercelLogo,
   GeminiAiStudioLogo,
   CloudflareLogo,
+  ClerkLogo,
+  CamberLogo,
+  TavilyLogo,
 } from "@/client/components/BrandLogos";
 import { getStandardErrorMessage } from "@/client/lib/error-messages";
 import {
@@ -149,6 +152,72 @@ const PLATFORM_DESCRIPTORS: Record<ManagedPlatformType, PlatformCardDescriptor> 
     metaCol2Key: "status",
     metaCol2Fallback: "active",
   },
+  clerk: {
+    platform: "clerk",
+    title: "Clerk Authentication Shield",
+    icon: <ClerkLogo className="size-5" />,
+    description: (
+      <>
+        Sign in with your official <strong>Clerk Account</strong> (Sinai University) or paste your <strong>Publishable / Secret Key</strong> to protect your APIs and authenticate the executive agent chamber.
+      </>
+    ),
+    signInButtonLabel: "Sign in with Clerk",
+    tokenLabel: "Clerk Publishable / Secret Key (pk_test_... or sk_test_...)",
+    tokenPlaceholder: "pk_test_... or sk_test_...",
+    tokenHelpUrl: "https://dashboard.clerk.com",
+    tokenHelpLabel: "Open Clerk Dashboard (Applications -> API Keys)",
+    resourceLabel: "Auth Shield",
+    metaCol1Label: "Auth Mode",
+    metaCol1Key: "authMode",
+    metaCol1Fallback: "RS256_EDGE_JWT",
+    metaCol2Label: "Status",
+    metaCol2Key: "status",
+    metaCol2Fallback: "ACTIVE_PROTECTED",
+  },
+  camber: {
+    platform: "camber",
+    title: "Camber Agentic Cloud Compute",
+    icon: <CamberLogo className="size-5" />,
+    description: (
+      <>
+        Connect your <strong>Camber Cloud Account</strong> to offload long-running agent meetings and deep data workflows to cloud CPU/GPU nodes with <strong>40 CPU hours & 50GB storage</strong>.
+      </>
+    ),
+    signInButtonLabel: "Open Camber Profile",
+    tokenLabel: "Camber API Bearer Token",
+    tokenPlaceholder: "Paste your Camber API Token...",
+    tokenHelpUrl: "https://app.cambercloud.com/agents",
+    tokenHelpLabel: "Open Camber Profile Settings (Bottom Left Avatar -> Token)",
+    resourceLabel: "Compute Engine",
+    metaCol1Label: "CPU Hours",
+    metaCol1Key: "cpuHours",
+    metaCol1Fallback: "40 Hours Available",
+    metaCol2Label: "Status",
+    metaCol2Key: "status",
+    metaCol2Fallback: "ONLINE_READY",
+  },
+  tavily: {
+    platform: "tavily",
+    title: "Tavily AI Search Grounding",
+    icon: <TavilyLogo className="size-5" />,
+    description: (
+      <>
+        Connect your <strong>Tavily Search API Key</strong> (<code>tvly-dev-...</code>) to power Agent Director Tariq with live Google / web fact-checking and 100% ground-truth arbitration.
+      </>
+    ),
+    signInButtonLabel: "Open Tavily Platform",
+    tokenLabel: "Tavily API Key (tvly-...)",
+    tokenPlaceholder: "tvly-dev-********************************",
+    tokenHelpUrl: "https://app.tavily.com/home",
+    tokenHelpLabel: "Copy API Key from Tavily Overview",
+    resourceLabel: "Search Engine",
+    metaCol1Label: "Monthly Quota",
+    metaCol1Key: "monthlyQuota",
+    metaCol1Fallback: "1,000 Searches",
+    metaCol2Label: "Arbitration Status",
+    metaCol2Key: "status",
+    metaCol2Fallback: "READY_FOR_TARIQ",
+  },
 };
 
 export function PlatformAuthenticConnectionCard({
@@ -185,8 +254,9 @@ export function PlatformAuthenticConnectionCard({
   const connected = Boolean(connection?.connected);
   const hasGrant = Boolean(connection?.currentUserHasGrant);
 
+  const isAutoConnectedPlatform = ["clerk", "camber", "tavily"].includes(platform);
   const shouldLoadResources = Boolean(
-    !updatingCredentials && (picking || (hasGrant && !connected)),
+    !updatingCredentials && (picking || (hasGrant && !connected && !isAutoConnectedPlatform)),
   );
 
   const resourcesQuery = useQuery({
@@ -261,13 +331,24 @@ export function PlatformAuthenticConnectionCard({
       });
     },
     onSuccess: (state) => {
-      toast.success(
-        `Signed in to ${descriptor.title} (${state.connectedByEmail || state.accountName}). Now select a ${descriptor.resourceLabel}.`,
-      );
-      setTokenInput("");
-      setSupabaseKeyInput("");
-      setUpdatingCredentials(false);
-      setPicking(true);
+      const isAuto = ["clerk", "camber", "tavily"].includes(platform) || state.connected;
+      if (isAuto) {
+        toast.success(
+          `تم ربط ${descriptor.title} بنجاح (${state.connectedByEmail || state.accountName}).`,
+        );
+        setTokenInput("");
+        setSupabaseKeyInput("");
+        setUpdatingCredentials(false);
+        setPicking(false);
+      } else {
+        toast.success(
+          `Signed in to ${descriptor.title} (${state.connectedByEmail || state.accountName}). Now select a ${descriptor.resourceLabel}.`,
+        );
+        setTokenInput("");
+        setSupabaseKeyInput("");
+        setUpdatingCredentials(false);
+        setPicking(true);
+      }
       invalidateAll();
     },
     onError: (err) => {
@@ -326,7 +407,7 @@ export function PlatformAuthenticConnectionCard({
         status={
           connectionQuery.isLoading
             ? undefined
-            : connected
+            : (connected || (isAutoConnectedPlatform && hasGrant))
               ? "connected"
               : hasGrant
                 ? "setup_required"
@@ -345,7 +426,7 @@ export function PlatformAuthenticConnectionCard({
             <span className="loading loading-spinner loading-sm" />
             Checking {descriptor.title} connection…
           </div>
-        ) : connected && !picking && !updatingCredentials ? (
+        ) : (connected || (isAutoConnectedPlatform && hasGrant)) && !picking && !updatingCredentials ? (
           <div className="space-y-3">
             <div className="rounded-lg border border-base-300 bg-base-200/30 px-4 py-3.5">
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
@@ -732,3 +813,52 @@ export function CloudflareConnectionCard({
     />
   );
 }
+
+export function ClerkConnectionCard({
+  projectId,
+  heading,
+}: {
+  projectId: string;
+  heading?: React.ReactNode;
+}) {
+  return (
+    <PlatformAuthenticConnectionCard
+      projectId={projectId}
+      platform="clerk"
+      heading={heading}
+    />
+  );
+}
+
+export function CamberConnectionCard({
+  projectId,
+  heading,
+}: {
+  projectId: string;
+  heading?: React.ReactNode;
+}) {
+  return (
+    <PlatformAuthenticConnectionCard
+      projectId={projectId}
+      platform="camber"
+      heading={heading}
+    />
+  );
+}
+
+export function TavilyConnectionCard({
+  projectId,
+  heading,
+}: {
+  projectId: string;
+  heading?: React.ReactNode;
+}) {
+  return (
+    <PlatformAuthenticConnectionCard
+      projectId={projectId}
+      platform="tavily"
+      heading={heading}
+    />
+  );
+}
+

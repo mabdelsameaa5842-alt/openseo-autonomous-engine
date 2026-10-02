@@ -27,6 +27,9 @@ const managedPlatformEnum = z.enum([
   "vercel",
   "google_ai_studio",
   "cloudflare",
+  "clerk",
+  "camber",
+  "tavily",
 ]);
 
 const platformEnum = z.enum([
@@ -38,6 +41,9 @@ const platformEnum = z.enum([
   "vercel",
   "google_ai_studio",
   "cloudflare",
+  "clerk",
+  "camber",
+  "tavily",
 ]);
 
 const platformQuerySchema = projectScopedSchema.extend({

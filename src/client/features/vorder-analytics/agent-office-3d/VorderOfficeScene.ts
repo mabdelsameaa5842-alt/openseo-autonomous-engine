@@ -292,8 +292,8 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
   let isPan = false;
   let pointerDownPos = { x: 0, y: 0 };
   let prev = { x: 0, y: 0 };
-  const sph = { theta: Math.PI / 5.2, phi: Math.PI / 4.2, radius: 31 };
-  const tgt = new THREE.Vector3(-1.5, 1.5, 1.2);
+  const sph = { theta: 0.0, phi: Math.PI / 3.8, radius: 31.5 };
+  const tgt = new THREE.Vector3(-1.0, 1.3, 0.5);
   let autoRot = false;
   let autoTmr: any = null;
 
@@ -2717,10 +2717,10 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
         sph.phi = Math.PI / 3.8;
         updCam();
       } else {
-        tgt.set(-1.5, 1.5, 1.2);
-        sph.radius = 31;
-        sph.theta = Math.PI / 5.2;
-        sph.phi = Math.PI / 4.2;
+        tgt.set(-1.0, 1.3, 0.5);
+        sph.radius = 31.5;
+        sph.theta = 0.0;
+        sph.phi = Math.PI / 3.8;
         updCam();
       }
       if (onStatusUpdate) onStatusUpdate(getArabicStatus(timeOfDay));
@@ -2745,10 +2745,10 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
       updCam();
     },
     resetCamera: () => {
-      tgt.set(-1.5, 1.5, 1.2);
-      sph.radius = 31;
-      sph.theta = Math.PI / 5.2;
-      sph.phi = Math.PI / 4.2;
+      tgt.set(-1.0, 1.3, 0.5);
+      sph.radius = 31.5;
+      sph.theta = 0.0;
+      sph.phi = Math.PI / 3.8;
       updCam();
     },
     flyToAgent: (agentId: number) => {

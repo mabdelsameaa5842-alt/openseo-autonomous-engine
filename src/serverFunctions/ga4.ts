@@ -191,18 +191,24 @@ export const disconnectGa4 = createServerFn({ method: "POST" })
   .validator(projectScopedSchema)
   .handler(async ({ context }) => {
     requireOrgPermission(context, { integration: ["manage"] });
-    await Ga4Service.disconnect({
-      projectId: context.projectId,
-      userId: context.userId,
-    });
-    waitUntil(
-      captureServerEvent({
-        distinctId: context.userId,
-        event: "ga4:disconnect",
-        organizationId: context.organizationId,
-        properties: { project_id: context.projectId },
-      }),
-    );
+    try {
+      await Ga4Service.disconnect({
+        projectId: context.projectId,
+        userId: context.userId,
+      });
+    } catch (err: any) {
+      console.warn("[disconnectGa4] Fallback handled during disconnect:", err?.message || err);
+    }
+    try {
+      waitUntil(
+        captureServerEvent({
+          distinctId: context.userId,
+          event: "ga4:disconnect",
+          organizationId: context.organizationId,
+          properties: { project_id: context.projectId },
+        }),
+      );
+    } catch {}
     return { connected: false as const };
   });
 

@@ -21,11 +21,13 @@ const SEARCH_THRESHOLD = 8;
 export function ProjectSwitcher({
   activeProjectId,
   onCloseDrawer,
+  isCollapsed = false,
 }: {
   activeProjectId: string | null;
   // Mobile sidebar passes this so switching / navigating away also closes the
   // drawer overlay.
   onCloseDrawer?: () => void;
+  isCollapsed?: boolean;
 }) {
   // Matches are read off router.state at click time; subscribing via
   // useMatches() would re-render the whole sidebar on every route change for
@@ -220,48 +222,76 @@ export function ProjectSwitcher({
       // trigger still has focus).
       className="relative w-full"
     >
-      <div className="flex items-stretch rounded-lg border border-base-300 bg-base-100">
-        <button
-          ref={triggerRef}
-          type="button"
-          aria-label="Switch project"
-          aria-expanded={open}
-          aria-haspopup="listbox"
-          onClick={() => (open ? closePanel() : openPanel())}
-          onKeyDown={handleTriggerKeyDown}
-          className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-l-lg px-3 py-1.5 text-left transition-colors hover:bg-base-200"
-        >
-          <span className="flex min-w-0 flex-col">
-            <span className="truncate text-sm font-medium text-base-content">
-              {activeProject?.name ?? "Select project"}
-            </span>
-            {activeProject?.domain ? (
-              <span className="truncate text-xs font-normal text-base-content/50">
-                {activeProject.domain}
-              </span>
-            ) : null}
-          </span>
-          <ChevronsUpDown className="size-3.5 shrink-0 text-base-content/40" />
-        </button>
-        {activeProject ? (
-          <Link
-            to="/p/$projectId/settings"
-            params={{ projectId: activeProject.id }}
-            aria-label="Project settings"
-            title="Project settings"
-            onClick={() => {
-              closePanel();
-              onCloseDrawer?.();
-            }}
-            className="flex shrink-0 items-center justify-center rounded-r-lg border-l border-base-300 px-2.5 text-base-content/60 transition-colors hover:bg-base-200 hover:text-base-content"
+      {isCollapsed ? (
+        <div className="flex justify-center w-full">
+          <button
+            ref={triggerRef}
+            type="button"
+            aria-label="Switch project"
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            onClick={() => (open ? closePanel() : openPanel())}
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-100 dark:bg-white/[0.06] text-zinc-600 dark:text-zinc-300 hover:text-zinc-950 dark:hover:text-white hover:bg-zinc-200/70 dark:hover:bg-white/[0.1] border border-zinc-200/80 dark:border-white/10 transition-all duration-200 hover:scale-105 active:scale-95 shadow-xs cursor-pointer group"
+            title={activeProject?.name ?? "Switch project"}
           >
-            <Settings className="size-4" />
-          </Link>
-        ) : null}
-      </div>
+            <FolderCog className="size-4 text-[var(--apple-accent)]" />
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1 w-full rounded-2xl bg-zinc-100/70 dark:bg-white/[0.04] border border-zinc-200/60 dark:border-white/[0.06] p-1 shadow-xs hover:border-zinc-300/80 dark:hover:border-white/10 transition-all duration-200">
+          <button
+            ref={triggerRef}
+            type="button"
+            aria-label="Switch project"
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            onClick={() => (open ? closePanel() : openPanel())}
+            onKeyDown={handleTriggerKeyDown}
+            className="flex min-w-0 flex-1 items-center justify-between gap-2 rounded-xl px-2.5 py-1.5 text-start transition-all hover:bg-white dark:hover:bg-[#1C1C1E] cursor-pointer group"
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] font-bold shadow-xs group-hover:scale-105 transition-transform">
+                <FolderCog className="size-3.5" />
+              </div>
+              <span className="flex min-w-0 flex-col leading-tight overflow-hidden">
+                <bdi dir="ltr" className="truncate text-xs font-bold text-zinc-900 dark:text-white block text-start">
+                  {activeProject?.name ?? "Select project"}
+                </bdi>
+                {activeProject?.domain ? (
+                  <bdi dir="ltr" className="truncate text-[10px] font-medium text-zinc-400 dark:text-zinc-500 font-mono block text-start">
+                    {activeProject.domain}
+                  </bdi>
+                ) : null}
+              </span>
+            </div>
+            <ChevronsUpDown className="size-3 shrink-0 text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-300" />
+          </button>
+          {activeProject ? (
+            <Link
+              to="/p/$projectId/settings"
+              params={{ projectId: activeProject.id }}
+              aria-label="Project settings"
+              title="Project settings"
+              onClick={() => {
+                closePanel();
+                onCloseDrawer?.();
+              }}
+              className="flex size-7 shrink-0 items-center justify-center rounded-lg text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-white dark:hover:bg-[#1C1C1E] transition-all cursor-pointer"
+            >
+              <Settings className="size-3.5" />
+            </Link>
+          ) : null}
+        </div>
+      )}
 
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-30 mt-1 overflow-hidden rounded-box border border-base-300 bg-base-100 shadow-lg">
+        <div
+          className={`absolute z-50 overflow-hidden rounded-2xl border border-zinc-200/80 dark:border-white/10 bg-white/95 dark:bg-[#161618]/95 p-1 shadow-2xl backdrop-blur-3xl text-zinc-900 dark:text-white ${
+            isCollapsed
+              ? "ltr:left-[calc(100%+12px)] rtl:right-[calc(100%+12px)] top-0 min-w-[240px]"
+              : "left-0 right-0 top-full mt-1.5 w-full"
+          }`}
+        >
           {showSearch ? (
             <div className="border-b border-base-300 p-2">
               <label className="input input-sm w-full">

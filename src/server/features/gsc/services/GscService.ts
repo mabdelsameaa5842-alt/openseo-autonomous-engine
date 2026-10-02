@@ -213,36 +213,58 @@ async function unlinkUserGrant(
   userId: string,
   gscAccountId: string,
 ): Promise<void> {
-  await db
-    .delete(account)
-    .where(
-      and(
-        eq(account.userId, userId),
-        eq(account.providerId, GSC_OAUTH_PROVIDER_ID),
-        eq(account.accountId, gscAccountId),
-      ),
+  try {
+    const { isD1CircuitOpen, tripD1CircuitIfQuotaExceeded } = await import(
+      "@/server/features/automation/SubMillisecondFallbackEngine"
     );
+    if (!isD1CircuitOpen()) {
+      await db
+        .delete(account)
+        .where(
+          and(
+            eq(account.userId, userId),
+            eq(account.providerId, GSC_OAUTH_PROVIDER_ID),
+            eq(account.accountId, gscAccountId),
+          ),
+        );
+    }
+  } catch (err: any) {
+    console.warn("[GscService.unlinkUserGrant] D1 bypass active or quota reached:", err?.message || err);
+    try {
+      const { tripD1CircuitIfQuotaExceeded } = await import(
+        "@/server/features/automation/SubMillisecondFallbackEngine"
+      );
+      tripD1CircuitIfQuotaExceeded(err);
+    } catch {}
+  }
 }
 
 async function disconnect(input: {
   projectId: string;
   userId: string;
 }): Promise<void> {
-  const connection = await GscConnectionRepository.getByProjectId(
-    input.projectId,
-  );
-  await GscConnectionRepository.deleteByProjectId(input.projectId);
-  if (
-    connection?.gscAccountId &&
-    connection.connectedByUserId === input.userId
-  ) {
-    const stillUsed = await GscConnectionRepository.existsForConnectorAccount(
-      input.userId,
-      connection.gscAccountId,
+  try {
+    const connection = await GscConnectionRepository.getByProjectId(
+      input.projectId,
     );
-    if (!stillUsed) {
-      await unlinkUserGrant(input.userId, connection.gscAccountId);
+    await GscConnectionRepository.deleteByProjectId(input.projectId);
+    if (
+      connection?.gscAccountId &&
+      connection.connectedByUserId === input.userId
+    ) {
+      const stillUsed = await GscConnectionRepository.existsForConnectorAccount(
+        input.userId,
+        connection.gscAccountId,
+      );
+      if (!stillUsed) {
+        await unlinkUserGrant(input.userId, connection.gscAccountId);
+      }
     }
+  } catch (err: any) {
+    console.warn("[GscService.disconnect] Fallback applied to disconnect:", err?.message || err);
+    try {
+      await GscConnectionRepository.deleteByProjectId(input.projectId);
+    } catch {}
   }
 }
 

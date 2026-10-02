@@ -182,7 +182,7 @@ export function VorderSmartTelemetryFeed({
     fetchLiveFeedFromD1(true);
     const interval = setInterval(() => {
       fetchLiveFeedFromD1(true);
-    }, 15000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [fetchLiveFeedFromD1]);
 

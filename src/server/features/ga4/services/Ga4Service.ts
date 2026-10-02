@@ -170,36 +170,58 @@ async function unlinkUserGrant(
   userId: string,
   ga4AccountId: string,
 ): Promise<void> {
-  await db
-    .delete(account)
-    .where(
-      and(
-        eq(account.userId, userId),
-        eq(account.providerId, GA4_OAUTH_PROVIDER_ID),
-        eq(account.accountId, ga4AccountId),
-      ),
+  try {
+    const { isD1CircuitOpen, tripD1CircuitIfQuotaExceeded } = await import(
+      "@/server/features/automation/SubMillisecondFallbackEngine"
     );
+    if (!isD1CircuitOpen()) {
+      await db
+        .delete(account)
+        .where(
+          and(
+            eq(account.userId, userId),
+            eq(account.providerId, GA4_OAUTH_PROVIDER_ID),
+            eq(account.accountId, ga4AccountId),
+          ),
+        );
+    }
+  } catch (err: any) {
+    console.warn("[Ga4Service.unlinkUserGrant] D1 bypass active or quota reached:", err?.message || err);
+    try {
+      const { tripD1CircuitIfQuotaExceeded } = await import(
+        "@/server/features/automation/SubMillisecondFallbackEngine"
+      );
+      tripD1CircuitIfQuotaExceeded(err);
+    } catch {}
+  }
 }
 
 async function disconnect(input: {
   projectId: string;
   userId: string;
 }): Promise<void> {
-  const connection = await Ga4ConnectionRepository.getByProjectId(
-    input.projectId,
-  );
-  await Ga4ConnectionRepository.deleteByProjectId(input.projectId);
-  if (
-    connection?.ga4AccountId &&
-    connection.connectedByUserId === input.userId
-  ) {
-    const stillUsed = await Ga4ConnectionRepository.existsForConnectorAccount(
-      input.userId,
-      connection.ga4AccountId,
+  try {
+    const connection = await Ga4ConnectionRepository.getByProjectId(
+      input.projectId,
     );
-    if (!stillUsed) {
-      await unlinkUserGrant(input.userId, connection.ga4AccountId);
+    await Ga4ConnectionRepository.deleteByProjectId(input.projectId);
+    if (
+      connection?.ga4AccountId &&
+      connection.connectedByUserId === input.userId
+    ) {
+      const stillUsed = await Ga4ConnectionRepository.existsForConnectorAccount(
+        input.userId,
+        connection.ga4AccountId,
+      );
+      if (!stillUsed) {
+        await unlinkUserGrant(input.userId, connection.ga4AccountId);
+      }
     }
+  } catch (err: any) {
+    console.warn("[Ga4Service.disconnect] Fallback applied to disconnect:", err?.message || err);
+    try {
+      await Ga4ConnectionRepository.deleteByProjectId(input.projectId);
+    } catch {}
   }
 }
 

@@ -36,7 +36,6 @@ import {
   getProjectNavGroups,
 } from "@/client/navigation/items";
 import { ProjectSwitcher } from "@/client/features/projects/ProjectSwitcher";
-import { SamSidebarPanel } from "@/client/features/sam/SamSidebarPanel";
 import { ThemePreferenceMenuItems } from "@/client/components/ThemePreferenceMenuItems";
 import { closeDropdown } from "@/client/lib/dropdown";
 import { signOutAndRedirect, useSession } from "@/lib/auth-client";
@@ -48,6 +47,7 @@ import { useI18n } from "@/client/lib/i18n";
 const GROUP_LABEL_KEYS: Record<string, string> = {
   Overview: "nav.overview",
   "Growth & Performance": "nav.growth_performance",
+  Settings: "nav.project_settings",
   "My Site": "nav.my_site",
   Research: "nav.research",
   Connect: "nav.connect",
@@ -55,6 +55,7 @@ const GROUP_LABEL_KEYS: Record<string, string> = {
 
 const ITEM_LABEL_KEYS: Record<string, string> = {
   Dashboard: "nav.dashboard",
+  "SAM AI Chat": "nav.sam_chat",
   "Keyword Research": "nav.keyword_research",
   "Saved Keywords": "nav.saved_keywords",
   "Rank Tracking": "nav.rank_tracking",
@@ -63,11 +64,12 @@ const ITEM_LABEL_KEYS: Record<string, string> = {
   Backlinks: "nav.backlinks",
   "Site Audit": "nav.site_audit",
   Performance: "nav.roas_performance",
-  "Organic Ads": "nav.skills_hub",
+  "Organic Ads": "nav.organic_ads",
   "AI Strategy & Skills Hub": "nav.skills_hub",
   "Brand Lookup": "nav.brand_lookup",
   "Prompt Explorer": "nav.prompt_explorer",
   "AI & MCP": "nav.ai_mcp",
+  "Project Settings": "nav.project_settings",
 };
 
 // Distinct Apple HIG Group Icons and Accent Badges
@@ -87,8 +89,12 @@ const GROUP_META: Record<
   "Growth & Performance": {
     icon: TrendingUp,
     accentColor: "text-emerald-500 dark:text-emerald-400 bg-emerald-500/10",
-    badgeText: "Real-time",
+    badgeText: "60 FPS",
     badgeColor: "text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border-emerald-500/20",
+  },
+  Settings: {
+    icon: Settings,
+    accentColor: "text-zinc-500 dark:text-zinc-400 bg-zinc-500/10",
   },
   "My Site": {
     icon: ClipboardCheck,
@@ -227,8 +233,8 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
       }
       return json;
     },
-    staleTime: 15000,
-    refetchInterval: 20000,
+    staleTime: 60000,
+    refetchInterval: 60000,
   });
 
   const cachedPublishedCount =
@@ -247,6 +253,7 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
     Overview: true,
     "Growth & Performance": true,
+    Settings: true,
     "My Site": true,
     Research: true,
     Connect: true,
@@ -254,34 +261,6 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
 
   const toggleGroup = (groupName: string) => {
     setExpandedGroups((prev) => ({ ...prev, [groupName]: !prev[groupName] }));
-  };
-
-  // View state: Browse vs Chat
-  const [view, setView] = useState<"browse" | "chat">(
-    onSamRoute ? "chat" : "browse",
-  );
-  useEffect(() => {
-    setView(onSamRoute ? "chat" : "browse");
-  }, [onSamRoute]);
-
-  const openChat = () => {
-    setView("chat");
-    if (!projectId) return;
-    if (!onSamRoute) {
-      void navigate({
-        to: "/p/$projectId/sam",
-        params: { projectId },
-        search: {},
-      });
-      onNavigate?.();
-    }
-  };
-
-  const openBrowse = () => {
-    setView("browse");
-    if (!projectId || !onSamRoute) return;
-    void navigate({ to: "/p/$projectId", params: { projectId } });
-    onNavigate?.();
   };
 
   return (
@@ -360,90 +339,19 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
         )}
       </div>
 
-      {/* Project Switcher Bar */}
-      {!isCollapsed && (
-        <div className="px-3 pt-2.5 pb-1 shrink-0">
+      {/* Project Switcher Workspace Row */}
+      {projectId && (
+        <div className={`pt-2 pb-1 shrink-0 ${isCollapsed ? "px-2" : "px-3"}`}>
           <ProjectSwitcher
             activeProjectId={projectId}
             onCloseDrawer={onClose}
+            isCollapsed={isCollapsed}
           />
         </div>
       )}
 
-      {/* Apple-Style Segmented Control: Browse vs Chat */}
-      {projectId ? (
-        <div className={`py-2 shrink-0 ${isCollapsed ? "px-2" : "px-3"}`}>
-          {isCollapsed ? (
-            <div className="flex flex-col gap-1.5 items-center">
-              <button
-                type="button"
-                onClick={openBrowse}
-                className={`group relative p-2 rounded-xl transition-all duration-200 spring-interaction ${
-                  view === "browse"
-                    ? "bg-[var(--apple-accent-subtle)] text-[var(--apple-accent)] border border-[var(--apple-accent)]/30 active-capsule-glow"
-                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10"
-                }`}
-                aria-label="Browse navigation"
-              >
-                <LayoutGrid className="h-4 w-4" />
-                <div className="pointer-events-none absolute ltr:left-[calc(100%+14px)] rtl:right-[calc(100%+14px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap rounded-2xl border border-zinc-200/80 dark:border-white/10 bg-white/95 dark:bg-[#1C1C1E]/95 px-3 py-1.5 text-xs font-semibold text-zinc-900 dark:text-white shadow-xl backdrop-blur-2xl opacity-0 scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
-                  {t("nav.browse", "Browse")}
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={openChat}
-                className={`group relative p-2 rounded-xl transition-all duration-200 spring-interaction ${
-                  view === "chat"
-                    ? "bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 active-capsule-glow"
-                    : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-100 dark:hover:bg-white/10"
-                }`}
-                aria-label="AI Chat Studio"
-              >
-                <MessageCircle className="h-4 w-4" />
-                <div className="pointer-events-none absolute ltr:left-[calc(100%+14px)] rtl:right-[calc(100%+14px)] top-1/2 -translate-y-1/2 z-50 whitespace-nowrap rounded-2xl border border-zinc-200/80 dark:border-white/10 bg-white/95 dark:bg-[#1C1C1E]/95 px-3 py-1.5 text-xs font-semibold text-zinc-900 dark:text-white shadow-xl backdrop-blur-2xl opacity-0 scale-95 transition-all duration-150 group-hover:opacity-100 group-hover:scale-100">
-                  {t("nav.chat", "Chat Studio")}
-                </div>
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-zinc-200/60 dark:bg-white/[0.06] p-1 border border-zinc-300/40 dark:border-white/[0.06] shadow-inner">
-              <button
-                type="button"
-                onClick={openBrowse}
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-semibold transition-all duration-200 spring-interaction cursor-pointer ${
-                  view === "browse"
-                    ? "bg-white dark:bg-[#1C1C1E] text-zinc-950 dark:text-white shadow-sm"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                }`}
-              >
-                <LayoutGrid className="h-3.5 w-3.5" />
-                <span>{t("nav.browse", "Browse")}</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={openChat}
-                className={`flex items-center justify-center gap-1.5 rounded-xl py-1.5 text-xs font-semibold transition-all duration-200 spring-interaction cursor-pointer ${
-                  view === "chat"
-                    ? "bg-white dark:bg-[#1C1C1E] text-zinc-950 dark:text-white shadow-sm"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white"
-                }`}
-              >
-                <MessageCircle className="h-3.5 w-3.5 text-indigo-500" />
-                <span>{t("nav.chat", "Chat")}</span>
-              </button>
-            </div>
-          )}
-        </div>
-      ) : null}
-
       {/* Main Navigation: Cascading Accordion with 60 FPS Spring Motion */}
-      {view === "chat" && projectId ? (
-        <SamSidebarPanel projectId={projectId} onNavigate={onNavigate} />
-      ) : (
-        <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-1.5 space-y-2.5 no-scrollbar">
+      <nav className="min-h-0 flex-1 overflow-y-auto px-2.5 py-1.5 space-y-2.5 no-scrollbar">
           {navGroups.map((group) => {
             const groupTranslated = t(
               GROUP_LABEL_KEYS[group.label] ?? group.label,
@@ -569,7 +477,6 @@ export function Sidebar({ projectId, onNavigate, onClose }: SidebarProps) {
             );
           })}
         </nav>
-      )}
 
       {/* Bottom Live System Telemetry Card */}
       {!isCollapsed && (

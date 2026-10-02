@@ -413,15 +413,18 @@ export async function generateAndPublishArticle(
 4. أدرج قائمة تحقق تطبيقية (Checklist) و3 أسئلة شائعة (FAQ) بإجابات علمية دقيقة مرتبطة بموضوع المقال.
 5. ابدأ مباشرة بالمحتوى دون أي عبارات تمهيدية خارج المقال.`;
 
+    const publishingAgentId = (item as any)?.author_agent_id || "vorder-karim";
+    const publishingAgentName = (item as any)?.author_agent_name || "كريم الدسوقي";
+
     const aiExec = await executeWithInstantFallback({
       prompt: aiPrompt,
       env,
       projectId: pid,
-      agentId: "vorder-karim",
-      agentName: "كريم الدسوقي",
+      agentId: publishingAgentId,
+      agentName: publishingAgentName,
       operationName: "agent_article_generation",
       moduleFile: "portfolioPublisher.ts:generateAndPublishArticle",
-      preferredModelId: "gemini-2.5-flash",
+      preferredModelId: "gemini-3.5-flash-lite",
     });
 
     if (aiExec?.text && aiExec.text.trim().length > 350) {
@@ -457,8 +460,8 @@ export async function generateAndPublishArticle(
   await recordProgrammaticDiagnosticLog({
     projectId: pid,
     env,
-    agentId: "vorder-karim",
-    agentName: "كريم الدسوقي",
+    agentId: (item as any)?.author_agent_id || "vorder-karim",
+    agentName: (item as any)?.author_agent_name || "كريم الدسوقي",
     moduleFile: "portfolioPublisher.ts:generateAndPublishArticle",
     operationName: "publish_article_and_sitemap_ping",
     status: publishRes.success ? "SUCCESS" : "FALLBACK_ENGAGED",

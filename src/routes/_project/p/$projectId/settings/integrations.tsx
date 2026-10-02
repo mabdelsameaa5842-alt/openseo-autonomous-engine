@@ -9,6 +9,9 @@ import {
   GitHubConnectionCard,
   VercelConnectionCard,
   CloudflareConnectionCard,
+  ClerkConnectionCard,
+  CamberConnectionCard,
+  TavilyConnectionCard,
 } from "@/client/features/integrations/PlatformAuthenticConnectionCard";
 
 export const Route = createFileRoute(
@@ -112,6 +115,39 @@ function ProjectIntegrationsRoute() {
           heading={
             <h2 className="text-sm font-medium text-base-content/50">
               Flowise AI Autonomous Engine
+            </h2>
+          }
+        />
+      </section>
+
+      <section id="clerk" className="scroll-mt-6 space-y-3">
+        <ClerkConnectionCard
+          projectId={projectId}
+          heading={
+            <h2 className="text-sm font-medium text-base-content/50">
+              Clerk Authentication Shield & JWT Edge Gateway
+            </h2>
+          }
+        />
+      </section>
+
+      <section id="camber" className="scroll-mt-6 space-y-3">
+        <CamberConnectionCard
+          projectId={projectId}
+          heading={
+            <h2 className="text-sm font-medium text-base-content/50">
+              Camber Agentic Cloud Compute (40 CPU Hours / MCP Host)
+            </h2>
+          }
+        />
+      </section>
+
+      <section id="tavily" className="scroll-mt-6 space-y-3">
+        <TavilyConnectionCard
+          projectId={projectId}
+          heading={
+            <h2 className="text-sm font-medium text-base-content/50">
+              Tavily AI Search Grounding (Director Tariq 100% Verification Engine)
             </h2>
           }
         />
