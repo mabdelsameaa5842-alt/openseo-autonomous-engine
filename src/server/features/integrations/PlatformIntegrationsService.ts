@@ -282,93 +282,6 @@ export class PlatformIntegrationsService {
       inMemoryVerifiedStore.set(key, defaultRecord);
       return defaultRecord;
     }
-
-    if (platform === "clerk") {
-      const defaultRecord: StoredVerifiedRecord = {
-        id: `default-${projectId}-clerk`,
-        projectId,
-        platform: "clerk",
-        verifiedByLiveApi: true,
-        status: "connected",
-        credentials: {
-          token: "pk_test_ZnJ1c2gtZG92ZS03OTgxLmNsZXJrLmFjY291bnRzLmRldiQ",
-          apiKey: "pk_test_ZnJ1c2gtZG92ZS03OTgxLmNsZXJrLmFjY291bnRzLmRldiQ",
-        },
-        accountName: "Sinai University (Clerk Shield)",
-        connectedByEmail: "org_3K8gpK3REbaMNvCH2vP14uja7Xf (m.abdelsameaa5842@su.edu.eg)",
-        selectedResourceId: "clerk_default_env",
-        selectedResourceName: "Production Edge Shield",
-        selectedResourceMeta: {
-          orgId: "org_3K8gpK3REbaMNvCH2vP14uja7Xf",
-          mauLimit: 10000,
-          latencyMs: 1.2,
-          authMode: "RS256_EDGE_JWT",
-          status: "ACTIVE_PROTECTED",
-        },
-        connectedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      inMemoryVerifiedStore.set(key, defaultRecord);
-      return defaultRecord;
-    }
-
-    if (platform === "camber") {
-      const defaultRecord: StoredVerifiedRecord = {
-        id: `default-${projectId}-camber`,
-        projectId,
-        platform: "camber",
-        verifiedByLiveApi: true,
-        status: "connected",
-        credentials: {
-          token: "camber_student_token_active",
-          apiKey: "camber_student_token_active",
-        },
-        accountName: "MOHAMED (Camber Student Cloud)",
-        connectedByEmail: "Camber Student Account (40 CPU Hours)",
-        selectedResourceId: "camber_mcp_primary",
-        selectedResourceName: "Camber MCP Engine",
-        selectedResourceMeta: {
-          cpuHours: 40,
-          storageGb: 50,
-          gpuHours: 5,
-          mcpEndpoint: "https://camber-mcp.cambercloud.com/mcp",
-          status: "ONLINE_READY",
-        },
-        connectedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      inMemoryVerifiedStore.set(key, defaultRecord);
-      return defaultRecord;
-    }
-
-    if (platform === "tavily") {
-      const defaultRecord: StoredVerifiedRecord = {
-        id: `default-${projectId}-tavily`,
-        projectId,
-        platform: "tavily",
-        verifiedByLiveApi: true,
-        status: "connected",
-        credentials: {
-          token: "tvly-dev-shared-grounding-key",
-          apiKey: "tvly-dev-shared-grounding-key",
-        },
-        accountName: "Tavily AI Search Grounding",
-        connectedByEmail: "Director Tariq Skeptical Arbitration",
-        selectedResourceId: "tavily_search_api",
-        selectedResourceName: "Tavily Grounded SERP",
-        selectedResourceMeta: {
-          monthlyQuota: 1000,
-          searchDepth: "basic_and_grounded",
-          cacheMode: "SUPABASE_SHARED_POOL",
-          status: "READY_FOR_TARIQ",
-        },
-        connectedAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
-      inMemoryVerifiedStore.set(key, defaultRecord);
-      return defaultRecord;
-    }
-
     return null;
   }
 
@@ -1075,7 +988,8 @@ export class PlatformIntegrationsService {
       if (!token) {
         throw new Error("يرجى إدخال Clerk Publishable Key (pk_test_...) أو Secret Key (sk_test_...) أو توكن الجلسة.");
       }
-      const accountName = "Sinai University (Clerk Shield)";
+      const masked = token.length > 10 ? `${token.slice(0, 8)}••••${token.slice(-4)}` : "Active Key";
+      const accountName = "Clerk Authentication Shield";
       const record: StoredVerifiedRecord = {
         id: crypto.randomUUID(),
         projectId,
@@ -1084,14 +998,14 @@ export class PlatformIntegrationsService {
         status: "connected",
         credentials: { token, apiKey: token },
         accountName,
-        connectedByEmail: `org_3K8gpK3REbaMNvCH2vP14uja7Xf (m.abdelsameaa5842@su.edu.eg)`,
+        connectedByEmail: `Clerk Key (${masked})`,
         selectedResourceId: "clerk_default_env",
         selectedResourceName: "Production Edge Shield",
         selectedResourceMeta: {
-          orgId: "org_3K8gpK3REbaMNvCH2vP14uja7Xf",
+          orgId: "org_clerk_shield",
           mauLimit: 10000,
           latencyMs: 1.2,
-          authMode: "RS256_EDGE_JWT",
+          authMode: token.startsWith("pk_") ? "PUBLIC_JWT" : "SECRET_JWT",
           status: "ACTIVE_PROTECTED",
         },
         connectedAt: now,
@@ -1106,7 +1020,8 @@ export class PlatformIntegrationsService {
       if (!token) {
         throw new Error("يرجى إدخال Camber API Token (من بروفايلك في app.cambercloud.com).");
       }
-      const accountName = "MOHAMED (Camber Student Cloud)";
+      const masked = token.length > 10 ? `${token.slice(0, 6)}••••${token.slice(-4)}` : "Active Token";
+      const accountName = "Camber Agentic Cloud Compute";
       const record: StoredVerifiedRecord = {
         id: crypto.randomUUID(),
         projectId,
@@ -1115,7 +1030,7 @@ export class PlatformIntegrationsService {
         status: "connected",
         credentials: { token, apiKey: token },
         accountName,
-        connectedByEmail: "Camber Student Account (40 CPU Hours)",
+        connectedByEmail: `Camber Token (${masked})`,
         selectedResourceId: "camber_mcp_primary",
         selectedResourceName: "Camber MCP Engine",
         selectedResourceMeta: {
@@ -1137,7 +1052,8 @@ export class PlatformIntegrationsService {
       if (!token) {
         throw new Error("يرجى إدخال Tavily API Key (يبدأ بـ tvly-dev-...).");
       }
-      const accountName = "Tavily Search Engine (SERP Grounding)";
+      const masked = token.length > 10 ? `${token.slice(0, 8)}••••${token.slice(-4)}` : "Active Key";
+      const accountName = "Tavily AI Search Grounding";
       const record: StoredVerifiedRecord = {
         id: crypto.randomUUID(),
         projectId,
@@ -1146,7 +1062,7 @@ export class PlatformIntegrationsService {
         status: "connected",
         credentials: { token, apiKey: token },
         accountName,
-        connectedByEmail: "Mohamed Ahmed Mohamed (Dev Tier)",
+        connectedByEmail: `Tavily API (${masked})`,
         selectedResourceId: "tavily_search_api",
         selectedResourceName: "Tavily Grounded SERP",
         selectedResourceMeta: {
