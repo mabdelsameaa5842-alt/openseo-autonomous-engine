@@ -2443,103 +2443,60 @@ export function VorderMeetingChamberModal({
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    {(meetingData?.peerSurveillanceFeed || [
-                      {
-                        id: "surv_1",
-                        observerAgentId: "vorder-layla",
-                        observerName: "ليلى الألفي (مهندسة الأداء)",
-                        targetAgentId: "vorder-karim",
-                        targetName: "كريم الدسوقي (المحتوى)",
-                        domainAr: "الأداء وسرعة التحميل (Core Web Vitals)",
-                        critiqueTextAr: "يا كريم، المقال الحي الأخير كان فيه صور بصيغة PNG حجمها 1.4MB وده رفع مؤشر LCP لـ 2.8 ثانية. لازم التحويل التلقائي لـ WebP قبل إطلاق نبضات IndexNow!",
-                        actionTakenAr: "تم تفعيل فلتر ضغط WebP التلقائي في خط النشر ونزل LCP لـ 1.1 ثانية.",
-                        statusBadge: "تم التصحيح والاعتماد ✅",
-                        time: "منذ 18 دقيقة",
-                      },
-                      {
-                        id: "surv_2",
-                        observerAgentId: "vorder-sara",
-                        observerName: "سارة المهندس (الحملات و GA4)",
-                        targetAgentId: "vorder-yasmine",
-                        targetName: "ياسمين الشريف (الكلمات)",
-                        domainAr: "الجدوى التجارية ومعدل التحويل (CRO & CAPI)",
-                        critiqueTextAr: "يا ياسمين، الكلمة المقترحة لسوق الرياض حجم بحثها عالي، بس نيتها معلوماتية بحتة ومفيهاش دافع طلب واتساب أو شراء. بقترح نضيف كلمة فيها 'أسعار' أو 'خدمة' لتعظيم الـ ROAS.",
-                        actionTakenAr: "تم تطعيم الكلمة بنيّة تجارية استشارية وربط CAPI Event Match بنجاح.",
-                        statusBadge: "تم التصحيح والاعتماد ✅",
-                        time: "منذ 34 دقيقة",
-                      },
-                      {
-                        id: "surv_3",
-                        observerAgentId: "vorder-ziad",
-                        observerName: "زياد عمران (حارس الجودة)",
-                        targetAgentId: "vorder-omar",
-                        targetName: "عمر الفاروق (الروابط)",
-                        domainAr: "الرقابة الجنائية على تدفق PageRank",
-                        critiqueTextAr: "يا عمر، فحص سجلات D1 أظهر إن المقال الجديد كان هيتولد كصفحة يتيمة بدون روابط داخلية. تم إيقاف الاعتماد لحين حقن 5 روابط سياقية دلالية.",
-                        actionTakenAr: "بنى عمر شبكة Silo سياقية من 5 روابط دلالية وتم توثيق التسليم.",
-                        statusBadge: "تم التحقق الجنائي ✅",
-                        time: "منذ 48 دقيقة",
-                      },
-                      {
-                        id: "surv_4",
-                        observerAgentId: "nom_internal_link_architect",
-                        observerName: "مهندس الروابط الداخلية (متدرب - اليوم 4)",
-                        targetAgentId: "vorder-faris",
-                        targetName: "فارس النجار (السيو المحلي)",
-                        domainAr: "التوزيع الجغرافي والروابط المحلية",
-                        critiqueTextAr: "لاحظت يا باشمهندس فارس إن صفحات الرياض وجدة محتاجة روابط تثبيت متبادلة (Cross-Anchor) لدعم الـ Local 3-Pack في خرائط جوجل السعودية.",
-                        actionTakenAr: "اعتمد فارس المقترح ووجه ياسمين لإدراج كلمات الخرائط في الطابور.",
-                        statusBadge: "مبادرة متدرب معتمدة 💡",
-                        time: "منذ ساعة",
-                      },
-                    ]).map((feed) => (
-                      <div
-                        key={feed.id}
-                        className="p-4 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] space-y-3 flex flex-col justify-between"
-                      >
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
-                              {feed.domainAr}
-                            </span>
-                            <span className="text-[10px] text-[var(--apple-text-secondary)] font-mono">
-                              {feed.time}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-2 text-xs font-black text-[var(--apple-text-primary)]">
-                            <span className="text-indigo-600 dark:text-indigo-400">🕵️ {feed.observerName}</span>
-                            <span className="text-[var(--apple-text-secondary)]">➔</span>
-                            <span className="text-purple-600 dark:text-purple-400">🎯 {feed.targetName}</span>
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] text-xs text-[var(--apple-text-primary)] leading-relaxed">
-                            <span className="font-extrabold text-rose-600 dark:text-rose-400 block mb-1">
-                              💬 النقد والملاحظة المرصودة (لهجة مصرية مهنية):
-                            </span>
-                            {feed.critiqueTextAr}
-                          </div>
-
-                          <div className="p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/25 text-xs text-emerald-950 dark:text-emerald-200 leading-relaxed">
-                            <span className="font-extrabold text-emerald-700 dark:text-emerald-400 block mb-1">
-                              ⚡ الإجراء التصحيحي والتنفيذ البرمجي:
-                            </span>
-                            {feed.actionTakenAr}
-                          </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                      {!meetingData?.peerSurveillanceFeed || meetingData.peerSurveillanceFeed.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-[var(--apple-text-secondary)] col-span-2 bg-[var(--apple-card)] rounded-2xl border border-[var(--apple-border)]">
+                          جاري رصد تقارير المراقبة المتبادلة 360° الحية من سجلات الخادم...
                         </div>
+                      ) : (
+                        meetingData.peerSurveillanceFeed.map((feed) => (
+                          <div
+                            key={feed.id}
+                            className="p-4 rounded-2xl border border-[var(--apple-border)] bg-[var(--apple-card)] space-y-3 flex flex-col justify-between"
+                          >
+                            <div className="space-y-2">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[11px] font-extrabold px-2 py-0.5 rounded-full bg-rose-500/15 text-rose-700 dark:text-rose-300 border border-rose-500/30">
+                                  {feed.domainAr}
+                                </span>
+                                <span className="text-[10px] text-[var(--apple-text-secondary)] font-mono">
+                                  {feed.time}
+                                </span>
+                              </div>
 
-                        <div className="pt-2 border-t border-[var(--apple-border)] flex items-center justify-between text-[11px]">
-                          <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                            {feed.statusBadge}
-                          </span>
-                          <span className="text-[10px] text-[var(--apple-text-secondary)]">
-                            رقابة متبادلة مستمرة (360° Closed Loop)
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                              <div className="flex items-center gap-2 text-xs font-black text-[var(--apple-text-primary)]">
+                                <span className="text-indigo-600 dark:text-indigo-400">🕵️ {feed.observerName}</span>
+                                <span className="text-[var(--apple-text-secondary)]">➔</span>
+                                <span className="text-purple-600 dark:text-purple-400">🎯 {feed.targetName}</span>
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-[var(--apple-canvas)] border border-[var(--apple-border)] text-xs text-[var(--apple-text-primary)] leading-relaxed">
+                                <span className="font-extrabold text-rose-600 dark:text-rose-400 block mb-1">
+                                  💬 النقد والملاحظة المرصودة (لهجة مصرية مهنية):
+                                </span>
+                                {feed.critiqueTextAr}
+                              </div>
+
+                              <div className="p-3 rounded-xl bg-emerald-500/[0.06] border border-emerald-500/25 text-xs text-emerald-950 dark:text-emerald-200 leading-relaxed">
+                                <span className="font-extrabold text-emerald-700 dark:text-emerald-400 block mb-1">
+                                  ⚡ الإجراء التصحيحي والتنفيذ البرمجي:
+                                </span>
+                                {feed.actionTakenAr}
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-[var(--apple-border)] flex items-center justify-between text-[11px]">
+                              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                                {feed.statusBadge}
+                              </span>
+                              <span className="text-[10px] text-[var(--apple-text-secondary)]">
+                                رقابة متبادلة مستمرة (360° Closed Loop)
+                              </span>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                 </div>
               )}
 
@@ -2576,74 +2533,70 @@ export function VorderMeetingChamberModal({
                     </h5>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      {(meetingData?.agentWorkloadMetrics || [
-                        { agentId: "vorder-karim", agentName: "كريم الدسوقي", role: "إنتاج المحتوى والفهرسة", operationsCount: 173, workSharePct: 22, performanceBadgeAr: "🔥 وكيل فائق الاجتهاد والسرعة", performanceCategory: "high", proofSummaryAr: "تم التحقق برمجياً من نشر مقالات المدونة وإطلاق IndexNow." },
-                        { agentId: "vorder-tariq", agentName: "طارق العبدلي", role: "التحكيم التنفيذي والاعتماد", operationsCount: 142, workSharePct: 18, performanceBadgeAr: "🔥 وكيل فائق الاجتهاد والسرعة", performanceCategory: "high", proofSummaryAr: "مراجعة 142 مقترحاً والتحقق بنسبة 100% عبر جوجل." },
-                        { agentId: "vorder-yasmine", agentName: "ياسمين الشريف", role: "حصاد الكلمات والسيرب", operationsCount: 118, workSharePct: 15, performanceBadgeAr: "🔥 وكيل فائق الاجتهاد والسرعة", performanceCategory: "high", proofSummaryAr: "حصاد وتحليل استعلامات كونسول ومناطق Striking Distance." },
-                        { agentId: "vorder-layla", agentName: "ليلى الألفي", role: "الأداء التقني و Schema", operationsCount: 95, workSharePct: 12, performanceBadgeAr: "⚡ أداء تشغيلي مستقر", performanceCategory: "steady", proofSummaryAr: "حقن أكواد JSON-LD ومراقبة Site Audit 100%." },
-                        { agentId: "vorder-sara", agentName: "سارة المهندس", role: "الحملات العضوية و GA4", operationsCount: 88, workSharePct: 11, performanceBadgeAr: "⚡ أداء تشغيلي مستقر", performanceCategory: "steady", proofSummaryAr: "تتبع جودة إشارات CAPI ومحفزات واتساب." },
-                        { agentId: "vorder-ziad", agentName: "زياد عمران", role: "الرقابة الجنائية ومنع التكرار", operationsCount: 78, workSharePct: 10, performanceBadgeAr: "⚡ أداء تشغيلي مستقر", performanceCategory: "steady", proofSummaryAr: "توثيق اللوجز في D1 ومنع تصادم الروابط." },
-                        { agentId: "vorder-omar", agentName: "عمر الفاروق", role: "هندسة الروابط و PageRank", operationsCount: 65, workSharePct: 8, performanceBadgeAr: "⚡ أداء تشغيلي مستقر", performanceCategory: "steady", proofSummaryAr: "بناء شبكات Silo الداخلية للمقالات." },
-                        { agentId: "vorder-nour", agentName: "نور المرشدي", role: "محركات الذكاء الاصطناعي GEO", operationsCount: 42, workSharePct: 5, performanceBadgeAr: "⚠️ متكاسل أو متعثر تشغيلياً", performanceCategory: "sluggish", proofSummaryAr: "يحتاج تكثيف كبسولات الإجابة المباشرة لمقالات الأسبوع." },
-                        { agentId: "vorder-faris", agentName: "فارس النجار", role: "السيو المحلي والخرائط", operationsCount: 38, workSharePct: 5, performanceBadgeAr: "⚠️ متكاسل أو متعثر تشغيلياً", performanceCategory: "sluggish", proofSummaryAr: "مطلوب تسريع صفحات تغطية مدن المنطقة الشرقية." },
-                      ]).map((agMetric) => (
-                        <div
-                          key={agMetric.agentId}
-                          className={`p-3.5 rounded-2xl border transition-all ${
-                            agMetric.performanceCategory === "high"
-                              ? "bg-emerald-500/[0.04] border-emerald-500/30"
-                              : agMetric.performanceCategory === "steady"
-                              ? "bg-[var(--apple-card)] border-[var(--apple-border)]"
-                              : "bg-amber-500/[0.04] border-amber-500/30"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <span className="font-black text-xs text-[var(--apple-text-primary)]">
-                              {agMetric.agentName}
-                            </span>
-                            <span
-                              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
-                                agMetric.performanceCategory === "high"
-                                  ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
-                                  : agMetric.performanceCategory === "steady"
-                                  ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30"
-                                  : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
-                              }`}
-                            >
-                              {agMetric.performanceBadgeAr}
-                            </span>
-                          </div>
-
-                          <div className="text-[11px] text-[var(--apple-text-secondary)] font-medium mb-2">
-                            {agMetric.role}
-                          </div>
-
-                          <div className="space-y-1">
-                            <div className="flex justify-between text-[11px] font-mono">
-                              <span className="text-[var(--apple-text-secondary)]">حصة العمل:</span>
-                              <span className="font-extrabold text-[var(--apple-text-primary)]">
-                                {agMetric.workSharePct}% ({agMetric.operationsCount} عملية)
+                      {!meetingData?.agentWorkloadMetrics || meetingData.agentWorkloadMetrics.length === 0 ? (
+                        <div className="p-8 text-center text-xs text-[var(--apple-text-secondary)] col-span-3 bg-[var(--apple-card)] rounded-2xl border border-[var(--apple-border)]">
+                          جاري احتساب نسب العمل الحقيقية من واقع سجلات العمليات السحابية...
+                        </div>
+                      ) : (
+                        meetingData.agentWorkloadMetrics.map((agMetric) => (
+                          <div
+                            key={agMetric.agentId}
+                            className={`p-3.5 rounded-2xl border transition-all ${
+                              agMetric.performanceCategory === "high"
+                                ? "bg-emerald-500/[0.04] border-emerald-500/30"
+                                : agMetric.performanceCategory === "steady"
+                                ? "bg-[var(--apple-card)] border-[var(--apple-border)]"
+                                : "bg-amber-500/[0.04] border-amber-500/30"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 mb-1.5">
+                              <span className="font-black text-xs text-[var(--apple-text-primary)]">
+                                {agMetric.agentName}
+                              </span>
+                              <span
+                                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${
+                                  agMetric.performanceCategory === "high"
+                                    ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30"
+                                    : agMetric.performanceCategory === "steady"
+                                    ? "bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 border border-indigo-500/30"
+                                    : "bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30"
+                                }`}
+                              >
+                                {agMetric.performanceBadgeAr}
                               </span>
                             </div>
-                            <div className="w-full bg-[var(--apple-canvas)] h-2 rounded-full overflow-hidden border border-[var(--apple-border)]">
-                              <div
-                                className={`h-full rounded-full ${
-                                  agMetric.performanceCategory === "high"
-                                    ? "bg-gradient-to-r from-emerald-500 to-teal-400"
-                                    : agMetric.performanceCategory === "steady"
-                                    ? "bg-gradient-to-r from-indigo-500 to-blue-400"
-                                    : "bg-gradient-to-r from-amber-500 to-orange-400"
-                                }`}
-                                style={{ width: `${Math.min(100, agMetric.workSharePct * 3.5)}%` }}
-                              />
-                            </div>
-                          </div>
 
-                          <p className="text-[10px] text-[var(--apple-text-secondary)] mt-2 leading-relaxed">
-                            {agMetric.proofSummaryAr}
-                          </p>
-                        </div>
-                      ))}
+                            <div className="text-[11px] text-[var(--apple-text-secondary)] font-medium mb-2">
+                              {agMetric.role}
+                            </div>
+
+                            <div className="space-y-1">
+                              <div className="flex justify-between text-[11px] font-mono">
+                                <span className="text-[var(--apple-text-secondary)]">حصة العمل:</span>
+                                <span className="font-extrabold text-[var(--apple-text-primary)]">
+                                  {agMetric.workSharePct}% ({agMetric.operationsCount} عملية)
+                                </span>
+                              </div>
+                              <div className="w-full bg-[var(--apple-canvas)] h-2 rounded-full overflow-hidden border border-[var(--apple-border)]">
+                                <div
+                                  className={`h-full rounded-full ${
+                                    agMetric.performanceCategory === "high"
+                                      ? "bg-gradient-to-r from-emerald-500 to-teal-400"
+                                      : agMetric.performanceCategory === "steady"
+                                      ? "bg-gradient-to-r from-indigo-500 to-blue-400"
+                                      : "bg-gradient-to-r from-amber-500 to-orange-400"
+                                  }`}
+                                  style={{ width: `${Math.min(100, agMetric.workSharePct * 3.5)}%` }}
+                                />
+                              </div>
+                            </div>
+
+                            <p className="text-[10px] text-[var(--apple-text-secondary)] mt-2 leading-relaxed">
+                              {agMetric.proofSummaryAr}
+                            </p>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
 
@@ -2673,56 +2626,55 @@ export function VorderMeetingChamberModal({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-[var(--apple-border)]">
-                          {(meetingData?.verifiedDeliverablesLedger || [
-                            { id: "DELIV-787", agentId: "vorder-karim", agentName: "كريم الدسوقي", taskTypeAr: "نشر وتحديث مقال تجاري E-E-A-T كامل", title: "تطبيق Google Consent Mode v2 في المتاجر", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/google-consent-mode-v2-implementation-guide-2026", metricsSummaryAr: "1,850 كلمة + نبضة IndexNow الفورية", tariqDecision: "✅ معتمد تنفيذي من طارق", verifiedTimestamp: new Date().toISOString() },
-                            { id: "DELIV-786", agentId: "vorder-layla", agentName: "ليلى الألفي", taskTypeAr: "حقن أكواد FAQPage + TechArticle Schema", title: "دليل استرجاع سلات الشراء عبر واتساب", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/whatsapp-cart-recovery-saudi-arabia-2026", metricsSummaryAr: "فحص الكود: 0 تحذيرات • سرعة INP: 82ms", tariqDecision: "✅ معتمد تنفيذي من طارق", verifiedTimestamp: new Date(Date.now() - 18 * 60 * 1000).toISOString() },
-                            { id: "DELIV-785", agentId: "vorder-yasmine", agentName: "ياسمين الشريف", taskTypeAr: "اقتناص استعلام في منطقة Striking Distance", title: "إعدادات Server-Side CAPI لمتاجر سلة وزد", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/meta-capi-server-side-setup-salla-zid-2026", metricsSummaryAr: "حجم بحث: 850/شهر • المركز الحالي: 7", tariqDecision: "✅ معتمد تنفيذي من طارق", verifiedTimestamp: new Date(Date.now() - 36 * 60 * 1000).toISOString() },
-                            { id: "DELIV-784", agentId: "vorder-sara", agentName: "سارة المهندس", taskTypeAr: "ربط محفزات التحويل و Server-Side CAPI", title: "تحسين معدل التحويل CRO لمتاجر الخليج", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/ecommerce-conversion-rate-optimization-guide", metricsSummaryAr: "جودة المطابقة: 9.2/10 • تحويل متوقع: +35%", tariqDecision: "⚠️ معتمد بشروط وتعديلات", verifiedTimestamp: new Date(Date.now() - 54 * 60 * 1000).toISOString() },
-                            { id: "DELIV-783", agentId: "vorder-nour", agentName: "نور المرشدي", taskTypeAr: "حقن كبسولة إجابة مباشرة GEO 54 كلمة", title: "الظهور في إجابات الذكاء الاصطناعي GEO", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/generative-engine-optimization-strategies-2026", metricsSummaryAr: "أبحاث برينستون • جاهزية الاقتباس: 98%", tariqDecision: "✅ معتمد تنفيذي من طارق", verifiedTimestamp: new Date(Date.now() - 72 * 60 * 1000).toISOString() },
-                            { id: "DELIV-782", agentId: "vorder-omar", agentName: "عمر الفاروق", taskTypeAr: "بناء شبكة روابط سياقية داخلية Silo", title: "هندسة الروابط الخلفية الآمنة White-Hat", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/white-hat-link-building-strategies-2026", metricsSummaryAr: "5 روابط دلالية • PageRank Flow نشط", tariqDecision: "✅ معتمد تنفيذي من طارق", verifiedTimestamp: new Date(Date.now() - 90 * 60 * 1000).toISOString() },
-                            { id: "DELIV-781", agentId: "vorder-faris", agentName: "فارس النجار", taskTypeAr: "توطين إشارات السيو المحلي لمدينة الرياض", title: "سيو المتاجر المحلية في الرياض وجدة", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/local-seo-saudi-arabia-riyadh-jeddah", metricsSummaryAr: "تطابق Local 3-Pack لأسواق الخليج", tariqDecision: "✅ معتمد تنفيذي من طارق", verifiedTimestamp: new Date(Date.now() - 108 * 60 * 1000).toISOString() },
-                            { id: "DELIV-780", agentId: "vorder-ziad", agentName: "زياد عمران", taskTypeAr: "توثيق جنائي للعملية وسحب الرابط تلقائياً", title: "مراقبة الأداء ومنع تضارب الكلمات المفتاحية", liveUrl: "https://mohamed-abdelsamea-portfolio.pages.dev/blog/keyword-cannibalization-prevention-audit", metricsSummaryAr: "تم التوثيق في جدول اللوجز وقواعد D1", tariqDecision: "✅ معتمد تنفيذي من طارق", verifiedTimestamp: new Date(Date.now() - 126 * 60 * 1000).toISOString() },
-                          ]).map((deliv) => (
-                            <tr key={deliv.id} className="hover:bg-[var(--apple-canvas)]/30 transition-colors">
-                              <td className="p-3 font-mono font-bold text-indigo-600 dark:text-indigo-400">
-                                {deliv.id}
-                              </td>
-                              <td className="p-3 font-bold text-[var(--apple-text-primary)]">
-                                {deliv.agentName}
-                              </td>
-                              <td className="p-3 text-[var(--apple-text-secondary)]">
-                                {deliv.taskTypeAr}
-                              </td>
-                              <td className="p-3">
-                                <a
-                                  href={deliv.liveUrl}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
-                                >
-                                  <span>{deliv.title}</span>
-                                  <ExternalLink className="size-3 shrink-0" />
-                                </a>
-                              </td>
-                              <td className="p-3 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
-                                {deliv.metricsSummaryAr}
-                              </td>
-                              <td className="p-3 font-bold">
-                                <span
-                                  className={`px-2 py-0.5 rounded-full text-[10px] ${
-                                    deliv.tariqDecision.includes("✅")
-                                      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
-                                      : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
-                                  }`}
-                                >
-                                  {deliv.tariqDecision}
-                                </span>
-                              </td>
-                              <td className="p-3 font-mono text-[10px] text-[var(--apple-text-secondary)]">
-                                {new Date(deliv.verifiedTimestamp).toLocaleTimeString("ar-EG")}
+                          {(!meetingData?.verifiedDeliverablesLedger || meetingData.verifiedDeliverablesLedger.length === 0) ? (
+                            <tr>
+                              <td colSpan={7} className="p-8 text-center text-xs text-[var(--apple-text-secondary)]">
+                                جاري سحب التسليمات وروابط المقالات المعتمدة من قواعد البيانات...
                               </td>
                             </tr>
-                          ))}
+                          ) : (
+                            meetingData.verifiedDeliverablesLedger.map((deliv) => (
+                              <tr key={deliv.id} className="hover:bg-[var(--apple-canvas)]/30 transition-colors">
+                                <td className="p-3 font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                                  {deliv.id}
+                                </td>
+                                <td className="p-3 font-bold text-[var(--apple-text-primary)]">
+                                  {deliv.agentName}
+                                </td>
+                                <td className="p-3 text-[var(--apple-text-secondary)]">
+                                  {deliv.taskTypeAr}
+                                </td>
+                                <td className="p-3">
+                                  <a
+                                    href={deliv.liveUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="font-bold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1"
+                                  >
+                                    <span>{deliv.title}</span>
+                                    <ExternalLink className="size-3 shrink-0" />
+                                  </a>
+                                </td>
+                                <td className="p-3 font-mono text-[11px] text-emerald-600 dark:text-emerald-400">
+                                  {deliv.metricsSummaryAr}
+                                </td>
+                                <td className="p-3 font-bold">
+                                  <span
+                                    className={`px-2 py-0.5 rounded-full text-[10px] ${
+                                      deliv.tariqDecision?.includes("✅")
+                                        ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300"
+                                        : "bg-amber-500/15 text-amber-700 dark:text-amber-300"
+                                    }`}
+                                  >
+                                    {deliv.tariqDecision}
+                                  </span>
+                                </td>
+                                <td className="p-3 font-mono text-[10px] text-[var(--apple-text-secondary)]">
+                                  {deliv.verifiedTimestamp ? new Date(deliv.verifiedTimestamp).toLocaleTimeString("ar-EG") : "—"}
+                                </td>
+                              </tr>
+                            ))
+                          )}
                         </tbody>
                       </table>
                     </div>

@@ -1126,69 +1126,7 @@ export class PlatformIntegrationsService {
   }> {
     const record = await this.readVerifiedRecord(projectId, platform);
     if (!record) {
-      if (platform === "clerk") {
-        return {
-          accountName: "Sinai University (Clerk Shield)",
-          connectedByEmail: "org_3K8gpK3REbaMNvCH2vP14uja7Xf (m.abdelsameaa5842@su.edu.eg)",
-          resources: [
-            {
-              id: "clerk_default_env",
-              name: "Production Edge Shield",
-              subtitle: "Edge RS256 JWT Verification (10,000 MAU)",
-              meta: {
-                orgId: "org_3K8gpK3REbaMNvCH2vP14uja7Xf",
-                mauLimit: 10000,
-                latencyMs: 1.2,
-                authMode: "RS256_EDGE_JWT",
-                status: "ACTIVE_PROTECTED",
-              },
-              isSelected: true,
-            },
-          ],
-        };
-      }
-      if (platform === "camber") {
-        return {
-          accountName: "MOHAMED (Camber Student Cloud)",
-          connectedByEmail: "Camber Student Account (40 CPU Hours)",
-          resources: [
-            {
-              id: "camber_mcp_primary",
-              name: "Camber MCP Engine",
-              subtitle: "40 CPU Hours / 50GB Storage",
-              meta: {
-                cpuHours: 40,
-                storageGb: 50,
-                gpuHours: 5,
-                mcpEndpoint: "https://camber-mcp.cambercloud.com/mcp",
-                status: "ONLINE_READY",
-              },
-              isSelected: true,
-            },
-          ],
-        };
-      }
-      if (platform === "tavily") {
-        return {
-          accountName: "Tavily AI Search Grounding",
-          connectedByEmail: "Director Tariq Skeptical Arbitration",
-          resources: [
-            {
-              id: "tavily_search_api",
-              name: "Tavily Grounded SERP",
-              subtitle: "1,000 monthly search quota",
-              meta: {
-                monthlyQuota: 1000,
-                searchDepth: "basic_and_grounded",
-                cacheMode: "SUPABASE_SHARED_POOL",
-                status: "READY_FOR_TARIQ",
-              },
-              isSelected: true,
-            },
-          ],
-        };
-      }
-      throw new Error("هذا الحساب غير مربوط بعد. يرجى تسجيل الدخول أو التحقق من المفتاح أولاً.");
+      throw new Error(`منصة ${platform} غير مربوطة بعد. يرجى التحقق من المفاتيح وربط الحساب أولاً.`);
     }
 
     if (platform === "google_ai_studio") {
@@ -1587,19 +1525,22 @@ export class PlatformIntegrationsService {
     }
 
     if (platform === "clerk") {
+      const pubKey = record.credentials.publishableKey || record.credentials.apiKey || record.credentials.token || "";
+      const pubKeyMasked = pubKey ? `${pubKey.slice(0, 8)}••••` : "pk_••••";
+      const hasSk = Boolean(record.credentials.secretKey);
       return {
-        accountName: record.accountName,
-        connectedByEmail: record.connectedByEmail,
+        accountName: record.accountName || "Clerk Authentication Shield",
+        connectedByEmail: record.connectedByEmail || pubKeyMasked,
         resources: [
           {
-            id: "clerk_default_env",
-            name: "Production Edge Shield",
-            subtitle: "Edge RS256 JWT Verification (10,000 MAU)",
+            id: record.selectedResourceId || "clerk_default_env",
+            name: record.selectedResourceName || "Production Edge Shield",
+            subtitle: `Edge RS256 JWT Verification (${pubKeyMasked} | ${hasSk ? "Dual-Key Active" : "Public Key Only"})`,
             meta: {
-              orgId: "org_3K8gpK3REbaMNvCH2vP14uja7Xf",
-              mauLimit: 10000,
-              latencyMs: 1.2,
-              authMode: "RS256_EDGE_JWT",
+              ...(record.selectedResourceMeta || {}),
+              publishableKeyMasked: pubKeyMasked,
+              hasSecretKey: hasSk ? "true" : "false",
+              authMode: hasSk ? "DUAL_KEY_ENCRYPTED_JWT" : "RS256_EDGE_JWT",
               status: "ACTIVE_PROTECTED",
             },
             isSelected: true,
@@ -1609,18 +1550,21 @@ export class PlatformIntegrationsService {
     }
 
     if (platform === "camber") {
+      const token = record.credentials.token || record.credentials.apiKey || "";
+      const tokenMasked = token ? `${token.slice(0, 8)}••••` : "camber_••••";
+      const hasExecutionSk = Boolean(record.credentials.secretKey);
       return {
-        accountName: record.accountName,
-        connectedByEmail: record.connectedByEmail,
+        accountName: record.accountName || "Camber Agentic Cloud Compute",
+        connectedByEmail: record.connectedByEmail || tokenMasked,
         resources: [
           {
-            id: "camber_mcp_primary",
-            name: "Camber MCP Engine",
-            subtitle: "40 CPU Hours / 50GB Storage",
+            id: record.selectedResourceId || "camber_mcp_primary",
+            name: record.selectedResourceName || "Camber MCP Engine",
+            subtitle: `MCP Execution Pod (${tokenMasked} | ${hasExecutionSk ? "Secret Key Active" : "Token Only"})`,
             meta: {
-              cpuHours: 40,
-              storageGb: 50,
-              gpuHours: 5,
+              ...(record.selectedResourceMeta || {}),
+              tokenMasked,
+              hasSecretKey: hasExecutionSk ? "true" : "false",
               mcpEndpoint: "https://camber-mcp.cambercloud.com/mcp",
               status: "ONLINE_READY",
             },
@@ -1631,16 +1575,19 @@ export class PlatformIntegrationsService {
     }
 
     if (platform === "tavily") {
+      const key = record.credentials.apiKey || record.credentials.token || "";
+      const tavilyKeyMasked = key ? `${key.slice(0, 8)}••••` : "tvly_••••";
       return {
-        accountName: record.accountName,
-        connectedByEmail: record.connectedByEmail,
+        accountName: record.accountName || "Tavily AI Search Grounding",
+        connectedByEmail: record.connectedByEmail || tavilyKeyMasked,
         resources: [
           {
-            id: "tavily_search_api",
-            name: "Tavily Grounded SERP",
-            subtitle: "1,000 monthly search quota",
+            id: record.selectedResourceId || "tavily_search_api",
+            name: record.selectedResourceName || "Tavily Grounded SERP",
+            subtitle: `Grounded Web Search Engine (${tavilyKeyMasked})`,
             meta: {
-              monthlyQuota: 1000,
+              ...(record.selectedResourceMeta || {}),
+              keyMasked: tavilyKeyMasked,
               searchDepth: "basic_and_grounded",
               cacheMode: "SUPABASE_SHARED_POOL",
               status: "READY_FOR_TARIQ",

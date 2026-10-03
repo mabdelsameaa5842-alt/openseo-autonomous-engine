@@ -266,7 +266,7 @@ export const INITIAL_NINE_AGENTS: AgentTelemetryProfile[] = [
     },
     logs: [
       { timestamp: "18:25:58", level: "INFO", message: "تحديث عنوان ومقدمة المقال لرفع الـ CTR بنسبة 28.4%..." },
-      { timestamp: "18:25:58", level: "OK", message: "نشر التحديث على mohamed-abdelsamea-portfolio.pages.dev." },
+      { timestamp: "18:25:58", level: "OK", message: "نشر التحديث على mohamed-abdelsamee-portfolio.vercel.app." },
       { timestamp: "18:25:59", level: "OK", message: "إرسال إشعار فوري عبر IndexNow وتسليم المسودة إلى نور المرشدي." }
     ]
   },
