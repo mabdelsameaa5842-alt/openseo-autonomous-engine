@@ -60,6 +60,8 @@ const verifyCredentialsSchema = projectScopedSchema.extend({
     accountId: z.string().optional(),
     refreshToken: z.string().optional(),
     useEnvSignIn: z.boolean().optional(),
+    secretKey: z.string().optional(),
+    publishableKey: z.string().optional(),
   }),
 });
 

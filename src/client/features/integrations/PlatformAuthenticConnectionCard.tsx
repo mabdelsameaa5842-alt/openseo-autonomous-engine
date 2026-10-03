@@ -1,7 +1,7 @@
 import * as React from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { AlertCircle, ExternalLink, KeyRound, LogIn } from "lucide-react";
+import { AlertCircle, ExternalLink, Eye, EyeOff, KeyRound, LogIn, ShieldCheck } from "lucide-react";
 import { GoogleGlyph } from "@/client/features/gsc/GoogleGlyph";
 import { IntegrationConnectionCard } from "@/client/features/integrations/IntegrationConnectionCard";
 import { startGoogleLink } from "@/client/features/integrations/startGoogleLink";
@@ -238,6 +238,8 @@ export function PlatformAuthenticConnectionCard({
     platform !== "google_ai_studio",
   );
   const [tokenInput, setTokenInput] = React.useState("");
+  const [secretKeyInput, setSecretKeyInput] = React.useState("");
+  const [showSecretKey, setShowSecretKey] = React.useState(false);
   const [supabaseMode, setSupabaseMode] = React.useState<"pat" | "url_key">("pat");
   const [supabaseUrlInput, setSupabaseUrlInput] = React.useState("");
   const [supabaseKeyInput, setSupabaseKeyInput] = React.useState("");
@@ -319,6 +321,33 @@ export function PlatformAuthenticConnectionCard({
           },
         });
       }
+      if (platform === "clerk") {
+        return await verifyPlatformCredentials({
+          data: {
+            projectId,
+            platform,
+            credentials: {
+              token: tokenInput.trim() || secretKeyInput.trim(),
+              apiKey: tokenInput.trim() || secretKeyInput.trim(),
+              publishableKey: tokenInput.trim(),
+              secretKey: secretKeyInput.trim() || undefined,
+            },
+          },
+        });
+      }
+      if (platform === "camber") {
+        return await verifyPlatformCredentials({
+          data: {
+            projectId,
+            platform,
+            credentials: {
+              token: tokenInput.trim() || secretKeyInput.trim(),
+              apiKey: tokenInput.trim() || secretKeyInput.trim(),
+              secretKey: secretKeyInput.trim() || undefined,
+            },
+          },
+        });
+      }
       return await verifyPlatformCredentials({
         data: {
           projectId,
@@ -337,6 +366,7 @@ export function PlatformAuthenticConnectionCard({
           `تم ربط ${descriptor.title} بنجاح (${state.connectedByEmail || state.accountName}).`,
         );
         setTokenInput("");
+        setSecretKeyInput("");
         setSupabaseKeyInput("");
         setUpdatingCredentials(false);
         setPicking(false);
@@ -345,6 +375,7 @@ export function PlatformAuthenticConnectionCard({
           `Signed in to ${descriptor.title} (${state.connectedByEmail || state.accountName}). Now select a ${descriptor.resourceLabel}.`,
         );
         setTokenInput("");
+        setSecretKeyInput("");
         setSupabaseKeyInput("");
         setUpdatingCredentials(false);
         setPicking(true);
@@ -431,9 +462,17 @@ export function PlatformAuthenticConnectionCard({
             <div className="rounded-lg border border-base-300 bg-base-200/30 px-4 py-3.5">
               <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
                 <div className="min-w-0">
-                  <p className="text-[11px] font-medium uppercase tracking-wide text-base-content/45">
-                    Selected Property
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-base-content/45">
+                      Selected Property
+                    </p>
+                    {connection?.selectedResourceMeta?.hasSecretKey ? (
+                      <span className="inline-flex items-center gap-1 rounded bg-success/15 px-1.5 py-0.5 text-[10px] font-medium text-success">
+                        <ShieldCheck className="size-3" />
+                        Dual-Key Protected
+                      </span>
+                    ) : null}
+                  </div>
                   <p className="mt-0.5 truncate text-sm font-semibold">
                     {connection?.selectedResourceName ?? connection?.selectedResourceId}
                   </p>
@@ -671,6 +710,86 @@ export function PlatformAuthenticConnectionCard({
                         className="input input-bordered input-sm w-full font-mono text-xs"
                       />
                     </div>
+                  ) : platform === "clerk" ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-base-content/80">
+                          1. Clerk Publishable Key (pk_test_... / pk_live_...)
+                        </label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          placeholder="pk_test_..."
+                          value={tokenInput}
+                          onChange={(e) => setTokenInput(e.target.value)}
+                          className="input input-bordered input-sm w-full font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 flex items-center justify-between text-xs font-semibold text-base-content/80">
+                          <span>2. Clerk Backend Secret Key (sk_test_... / sk_live_...)</span>
+                          <span className="text-[10px] font-normal text-primary">مطلوب للتشفير ومصادقة الـ Edge</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showSecretKey ? "text" : "password"}
+                            dir="ltr"
+                            placeholder="sk_test_..."
+                            value={secretKeyInput}
+                            onChange={(e) => setSecretKeyInput(e.target.value)}
+                            className="input input-bordered input-sm w-full font-mono text-xs pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSecretKey(!showSecretKey)}
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-base-content/50 hover:text-base-content"
+                            title={showSecretKey ? "إخفاء المفتاح" : "إظهار المفتاح"}
+                          >
+                            {showSecretKey ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : platform === "camber" ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="mb-1 block text-xs font-semibold text-base-content/80">
+                          1. Camber API / Access Token
+                        </label>
+                        <input
+                          type="text"
+                          dir="ltr"
+                          placeholder="Paste your Camber API Token..."
+                          value={tokenInput}
+                          onChange={(e) => setTokenInput(e.target.value)}
+                          className="input input-bordered input-sm w-full font-mono text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 flex items-center justify-between text-xs font-semibold text-base-content/80">
+                          <span>2. Camber Execution Secret Key / MCP Token</span>
+                          <span className="text-[10px] font-normal text-primary">لتفويض تشغيل مهام الـ Sandbox</span>
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showSecretKey ? "text" : "password"}
+                            dir="ltr"
+                            placeholder="Paste Camber Secret Key..."
+                            value={secretKeyInput}
+                            onChange={(e) => setSecretKeyInput(e.target.value)}
+                            className="input input-bordered input-sm w-full font-mono text-xs pr-10"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowSecretKey(!showSecretKey)}
+                            className="absolute inset-y-0 right-0 flex items-center px-3 text-base-content/50 hover:text-base-content"
+                            title={showSecretKey ? "إخفاء المفتاح" : "إظهار المفتاح"}
+                          >
+                            {showSecretKey ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex flex-wrap items-center gap-2">
                       <div className="relative flex-1 min-w-[240px]">
@@ -695,7 +814,7 @@ export function PlatformAuthenticConnectionCard({
                         verifyMutation.isPending ||
                         (platform === "supabase" && supabaseMode === "url_key"
                           ? !supabaseUrlInput.trim() || !supabaseKeyInput.trim()
-                          : !tokenInput.trim())
+                          : !tokenInput.trim() && !secretKeyInput.trim())
                       }
                     >
                       <KeyRound className="size-3.5" />

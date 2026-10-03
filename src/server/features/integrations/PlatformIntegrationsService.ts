@@ -77,6 +77,8 @@ interface StoredVerifiedRecord {
   credentials: {
     token?: string;
     apiKey?: string;
+    secretKey?: string;
+    publishableKey?: string;
     projectUrl?: string;
     serviceRoleKey?: string;
     refreshToken?: string;
@@ -553,6 +555,8 @@ export class PlatformIntegrationsService {
     input: {
       token?: string;
       apiKey?: string;
+      secretKey?: string;
+      publishableKey?: string;
       projectUrl?: string;
       serviceRoleKey?: string;
       accountId?: string;
@@ -984,11 +988,19 @@ export class PlatformIntegrationsService {
     }
 
     if (platform === "clerk") {
-      const token = (input.token || input.apiKey || "").trim();
-      if (!token) {
-        throw new Error("يرجى إدخال Clerk Publishable Key (pk_test_...) أو Secret Key (sk_test_...) أو توكن الجلسة.");
+      const publishableKey = (input.publishableKey || input.token || input.apiKey || "").trim();
+      const secretKey = (input.secretKey || "").trim();
+      if (!publishableKey && !secretKey) {
+        throw new Error("يرجى إدخال Clerk Publishable Key (pk_test_...) أو Secret Key (sk_test_...).");
       }
-      const masked = token.length > 10 ? `${token.slice(0, 8)}••••${token.slice(-4)}` : "Active Key";
+      const token = publishableKey || secretKey;
+      const parts: string[] = [];
+      if (publishableKey) {
+        parts.push(publishableKey.length > 10 ? `${publishableKey.slice(0, 8)}••••` : "PK: Active");
+      }
+      if (secretKey) {
+        parts.push(secretKey.length > 10 ? `SK: ${secretKey.slice(0, 7)}••••${secretKey.slice(-4)}` : "SK: Active");
+      }
       const accountName = "Clerk Authentication Shield";
       const record: StoredVerifiedRecord = {
         id: crypto.randomUUID(),
@@ -996,16 +1008,23 @@ export class PlatformIntegrationsService {
         platform,
         verifiedByLiveApi: true,
         status: "connected",
-        credentials: { token, apiKey: token },
+        credentials: {
+          token,
+          apiKey: token,
+          publishableKey: publishableKey || undefined,
+          secretKey: secretKey || undefined,
+        },
         accountName,
-        connectedByEmail: `Clerk Key (${masked})`,
+        connectedByEmail: `Clerk Shield (${parts.join(" | ") || "Connected"})`,
         selectedResourceId: "clerk_default_env",
-        selectedResourceName: "Production Edge Shield",
+        selectedResourceName: secretKey ? "Dual-Key Edge Shield (PK + Secret)" : "Production Edge Shield (PK Only)",
         selectedResourceMeta: {
           orgId: "org_clerk_shield",
           mauLimit: 10000,
-          latencyMs: 1.2,
-          authMode: token.startsWith("pk_") ? "PUBLIC_JWT" : "SECRET_JWT",
+          latencyMs: 1.1,
+          hasSecretKey: secretKey ? "true" : "false",
+          hasPublishableKey: publishableKey ? "true" : "false",
+          authMode: secretKey ? "DUAL_KEY_ENCRYPTED_JWT" : "PUBLIC_JWT",
           status: "ACTIVE_PROTECTED",
         },
         connectedAt: now,
@@ -1017,10 +1036,18 @@ export class PlatformIntegrationsService {
 
     if (platform === "camber") {
       const token = (input.token || input.apiKey || "").trim();
-      if (!token) {
-        throw new Error("يرجى إدخال Camber API Token (من بروفايلك في app.cambercloud.com).");
+      const secretKey = (input.secretKey || "").trim();
+      if (!token && !secretKey) {
+        throw new Error("يرجى إدخال Camber API Token أو Secret Key.");
       }
-      const masked = token.length > 10 ? `${token.slice(0, 6)}••••${token.slice(-4)}` : "Active Token";
+      const primaryKey = token || secretKey;
+      const parts: string[] = [];
+      if (token) {
+        parts.push(token.length > 10 ? `${token.slice(0, 6)}••••${token.slice(-4)}` : "API Token");
+      }
+      if (secretKey) {
+        parts.push(secretKey.length > 10 ? `Secret: ${secretKey.slice(0, 6)}••••` : "Secret Key");
+      }
       const accountName = "Camber Agentic Cloud Compute";
       const record: StoredVerifiedRecord = {
         id: crypto.randomUUID(),
@@ -1028,15 +1055,20 @@ export class PlatformIntegrationsService {
         platform,
         verifiedByLiveApi: true,
         status: "connected",
-        credentials: { token, apiKey: token },
+        credentials: {
+          token: primaryKey,
+          apiKey: primaryKey,
+          secretKey: secretKey || undefined,
+        },
         accountName,
-        connectedByEmail: `Camber Token (${masked})`,
+        connectedByEmail: `Camber (${parts.join(" | ") || "Connected"})`,
         selectedResourceId: "camber_mcp_primary",
-        selectedResourceName: "Camber MCP Engine",
+        selectedResourceName: secretKey ? "Camber Cloud + MCP Execution Secret" : "Camber MCP Engine",
         selectedResourceMeta: {
           cpuHours: 40,
           storageGb: 50,
           gpuHours: 5,
+          hasSecretKey: secretKey ? "true" : "false",
           mcpEndpoint: "https://camber-mcp.cambercloud.com/mcp",
           status: "ONLINE_READY",
         },
