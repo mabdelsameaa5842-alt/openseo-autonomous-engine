@@ -1463,7 +1463,7 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     pointLight: THREE.PointLight;
   }> = [];
 
-  const DEFAULT_8_PLATFORMS: Array<{
+  const DEFAULT_11_PLATFORMS: Array<{
     id: string;
     label: string;
     status: 'LIVE' | 'KV_CACHE' | 'UNLINKED';
@@ -1477,6 +1477,9 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
     { id: 'github', label: '6. GitHub CI/CD', status: 'LIVE', metricText: 'Workflows Guarded' },
     { id: 'vercel', label: '7. Vercel Edge', status: 'LIVE', metricText: 'Dynamic Blog Routes' },
     { id: 'cloudflare', label: '8. Cloudflare D1+KV', status: 'LIVE', metricText: '5 Indexes • Shield' },
+    { id: 'clerk', label: '9. Clerk Identity', status: 'LIVE', metricText: 'Auth Shield Active' },
+    { id: 'camber', label: '10. Camber Cloud', status: 'LIVE', metricText: 'Pods Engine Ready' },
+    { id: 'tavily', label: '11. Tavily Grounding', status: 'LIVE', metricText: 'Web Grounding Live' },
   ];
 
   function renderServerRackCanvas(unit: (typeof serverRackUnits)[number]) {
@@ -1509,14 +1512,14 @@ export function createVorderOfficeScene(container: HTMLElement, callbacks: Offic
 
   function spawn8PlatformServerWall() {
     const baseX = 11.85;
-    const startZ = 0.8;
-    const spacingZ = 1.02;
+    const startZ = 0.35;
+    const spacingZ = 0.76;
 
-    DEFAULT_8_PLATFORMS.forEach((plat, idx) => {
+    DEFAULT_11_PLATFORMS.forEach((plat, idx) => {
       const rz = startZ + idx * spacingZ;
       const rack = new THREE.Group();
 
-      const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.46, 1.68, 0.78), M(0x0F172A));
+      const cabinet = new THREE.Mesh(new THREE.BoxGeometry(0.46, 1.68, 0.70), M(0x0F172A));
       cabinet.position.set(baseX, 0.84, rz);
       cabinet.castShadow = true;
       rack.add(cabinet);

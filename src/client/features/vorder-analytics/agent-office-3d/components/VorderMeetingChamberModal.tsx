@@ -536,6 +536,8 @@ export function VorderMeetingChamberModal({
       }
       if (nomJson && Array.isArray(nomJson?.nominations)) {
         setNominationsList(nomJson.nominations);
+      } else if (Array.isArray(json?.meeting?.nominations) && json.meeting.nominations.length > 0) {
+        setNominationsList(json.meeting.nominations);
       }
       if (json.meeting) {
         setMeetingData((prev) => {
@@ -2037,10 +2039,41 @@ export function VorderMeetingChamberModal({
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-xs">
+                  <div className="p-4 rounded-2xl bg-indigo-500/10 border border-indigo-500/25 text-xs flex flex-wrap items-center justify-between gap-2">
                     <p className="font-black text-indigo-700 dark:text-indigo-300">
-                      الهيكلة الهرمية الموحدة للوكلاء الـ 9 (4 مستويات قيادية وتنفيذية متصلة بالمنصات الـ 8 والـ 50 نموذجاً مع البرومتات الحية):
+                      الهيكلة الهرمية الشاملة لمنظومة VORDER (قيادة SAM العليا + الوكلاء الـ 9 الأساسيون + وكلاء التوسع التخصصيون الـ 6 عبر المنصات الـ 11):
                     </p>
+                    <span className="px-2.5 py-1 rounded-full bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 font-bold text-[10px]">
+                      15 وكيلاً نشطاً • متصلون بـ SAM
+                    </span>
+                  </div>
+
+                  {/* Tier 0: SAM Supreme Autonomous Orchestrator */}
+                  <div className="p-4 rounded-2xl border-2 border-indigo-500/40 bg-gradient-to-r from-indigo-950/20 via-fuchsia-950/15 to-purple-950/20 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xl">🤖</span>
+                        <div>
+                          <span className="font-black text-sm text-[var(--apple-text-primary)]">
+                            SAM — القائد والموزع التكتيكي الأعلى (Supreme Orchestrator)
+                          </span>
+                          <span className="block text-[11px] text-indigo-600 dark:text-indigo-400 font-bold">
+                            Cloudflare Durable Object • Google Antigravity (AGY) Hub
+                          </span>
+                        </div>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black border bg-indigo-500/20 text-indigo-600 dark:text-indigo-300 border-indigo-500/40">
+                        Tier 0: القيادة العليا الحية
+                      </span>
+                    </div>
+                    <p className="text-xs text-[var(--apple-text-secondary)] leading-relaxed">
+                      الربط العصبي الشامل بين المستخدم والمجلس الاستشاري الـ 15، توجيه مهام البحث عبر Tavily وحماية الهوية عبر Clerk وتشغيل الحوسبة عبر Camber، ومزامنة التقرير الميداني والذاكرة مع Cloudflare D1 و Supabase.
+                    </p>
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1 text-[10px] font-mono text-[var(--apple-text-secondary)]">
+                      <span className="font-bold text-fuchsia-500">النموذج: Gemini 2.5 Pro (Dual-Thinking)</span>
+                      <span>•</span>
+                      <span>المنصات: 11 منصة (GSC, GA4, Ads, Gemini, Supabase, GitHub, Vercel, Cloudflare, Clerk, Camber, Tavily)</span>
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
@@ -2121,6 +2154,41 @@ export function VorderMeetingChamberModal({
                         </div>
                       </div>
                     ))}
+
+                    {/* Render Expansion Agents if any */}
+                    {nominationsList
+                      .filter((n) => n.status === "approved")
+                      .map((nom, idx) => (
+                        <div
+                          key={nom.id}
+                          className="p-4 rounded-2xl border border-emerald-500/30 bg-[var(--apple-card)] space-y-2 flex flex-col justify-between"
+                        >
+                          <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="font-black text-sm text-[var(--apple-text-primary)]">
+                                🚀 {10 + idx}. {nom.agentName}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold border bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border-emerald-500/30">
+                                وكيل تخصصي معتمد
+                              </span>
+                            </div>
+                            <div className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                              {nom.roleCategory} (إشراف: {nom.nominatedBy})
+                            </div>
+                            <p className="text-xs text-[var(--apple-text-secondary)] leading-relaxed">
+                              {nom.reason}
+                            </p>
+                          </div>
+                          <div className="pt-2 border-t border-[var(--apple-border)]/60 space-y-1 text-[10px]">
+                            <div className="font-mono text-emerald-600 dark:text-emerald-400 font-bold">
+                              العائد المتوقع: {nom.expectedRoi}
+                            </div>
+                            <div className="text-[var(--apple-text-secondary)]">
+                              صلاحيات حية: {nom.authorities?.slice(0, 2).join(" • ")}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                   </div>
                 </div>
               )}

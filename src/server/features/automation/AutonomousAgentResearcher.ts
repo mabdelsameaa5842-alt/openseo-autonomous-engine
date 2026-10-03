@@ -20,6 +20,7 @@ import {
   tripD1CircuitIfQuotaExceeded,
   recordProgrammaticDiagnosticLog,
 } from "./SubMillisecondFallbackEngine";
+import { PlatformIntegrationsService } from "@/server/features/integrations/PlatformIntegrationsService";
 
 export interface DiscoveredAgentCitation {
   id: string;
@@ -124,7 +125,10 @@ export async function executeAutonomousAgentResearch(opts: {
 
   // 4. Attempt live web search if external keys are present, with graceful programmatic fallback
   let liveSearchError: string | null = null;
-  const serperApiKey = (opts.env as any)?.SERPER_API_KEY || (opts.env as any)?.TAVILY_API_KEY;
+  const serperApiKey =
+    (await PlatformIntegrationsService.getTavilyApiKey(opts.projectId || "cc58e018-8ef9-4be7-8f3a-2af2bc158d62")) ||
+    (opts.env as any)?.SERPER_API_KEY ||
+    (opts.env as any)?.TAVILY_API_KEY;
 
   if (serperApiKey) {
     try {

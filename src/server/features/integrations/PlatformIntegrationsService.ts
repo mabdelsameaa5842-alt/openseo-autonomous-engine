@@ -545,6 +545,62 @@ export class PlatformIntegrationsService {
   }
 
   /**
+   * Helper to fetch verified Tavily API key for live search grounding.
+   */
+  static async getTavilyApiKey(pid: string = "cc58e018-8ef9-4be7-8f3a-2af2bc158d62"): Promise<string | null> {
+    try {
+      const record = await this.readVerifiedRecord(pid, "tavily");
+      if (record && record.credentials) {
+        const key = (record.credentials.apiKey || record.credentials.token || "").trim();
+        if (key && key.startsWith("tvly-")) return key;
+      }
+    } catch {}
+    const envKey =
+      (typeof env !== "undefined" && ((env as any).TAVILY_API_KEY || (env as any).SERPER_API_KEY)) ||
+      (typeof process !== "undefined" && (process.env?.TAVILY_API_KEY || process.env?.SERPER_API_KEY)) ||
+      "";
+    return envKey ? envKey.trim() : null;
+  }
+
+  /**
+   * Helper to fetch verified Clerk credentials for auth telemetry and verification.
+   */
+  static async getClerkSecretKey(pid: string = "cc58e018-8ef9-4be7-8f3a-2af2bc158d62"): Promise<string | null> {
+    try {
+      const record = await this.readVerifiedRecord(pid, "clerk");
+      if (record && record.credentials) {
+        const key = (record.credentials.secretKey || record.credentials.token || "").trim();
+        if (key && key.startsWith("sk_")) return key;
+      }
+    } catch {}
+    const envKey =
+      (typeof env !== "undefined" && (env as any).CLERK_SECRET_KEY) ||
+      (typeof process !== "undefined" && process.env?.CLERK_SECRET_KEY) ||
+      "";
+    return envKey ? envKey.trim() : null;
+  }
+
+  /**
+   * Helper to fetch verified Camber credentials for cloud compute orchestration.
+   */
+  static async getCamberCredentials(pid: string = "cc58e018-8ef9-4be7-8f3a-2af2bc158d62"): Promise<{ token: string; apiKey?: string; secretKey?: string } | null> {
+    try {
+      const record = await this.readVerifiedRecord(pid, "camber");
+      if (record && record.credentials) {
+        const token = (record.credentials.token || record.credentials.apiKey || "").trim();
+        if (token) {
+          return {
+            token,
+            apiKey: record.credentials.apiKey,
+            secretKey: record.credentials.secretKey,
+          };
+        }
+      }
+    } catch {}
+    return null;
+  }
+
+  /**
    * Step 1: Authenticates credentials against the platform's real API.
    * Rejects invalid credentials with the exact upstream error.
    * Stores the grant in `setup_required` state so the user can pick a property/resource.

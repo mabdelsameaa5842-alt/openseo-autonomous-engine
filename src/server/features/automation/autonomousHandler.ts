@@ -945,22 +945,47 @@ export async function runSmartDeduplicationSweep(env: any, projectId: string): P
     ).bind(projectId).all();
     const allArticles = (allArticlesRes?.results || []) as any[];
 
-    const getBaseKey = (slug: string, kw: string) => {
-      // Only strip trailing 5-char random suffix or trailing `-v2` suffix, NEVER mid-slug `v2` like `consent-mode-v2`
+    const normalizeSemanticToken = (str: string) => {
+      return (str || "")
+        .toLowerCase()
+        .replace(/[أإآ]/g, "ا")
+        .replace(/[ة]/g, "ه")
+        .replace(/[ى]/g, "ي")
+        .replace(/[^a-z0-9\u0621-\u064A\s-]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    };
+
+    const getSemanticFingerprint = (slug: string, kw: string, title?: string) => {
       const cleanSlug = (slug || "")
         .replace(/-[a-z0-9]{5}$/i, "")
         .replace(/-v2$/i, "")
         .trim()
         .toLowerCase();
-      if (cleanSlug) return cleanSlug;
-      return (kw || "").replace(/[^a-zA-Z0-9\u0621-\u064A]/g, "").trim().toLowerCase();
+
+      const textToHash = cleanSlug || kw || title || "";
+      const normalized = normalizeSemanticToken(textToHash);
+
+      const stopWords = new Set([
+        "في", "من", "على", "عن", "مع", "الى", "إلى", "هو", "هي", "ان", "أن", "كان", "كانت",
+        "in", "on", "at", "for", "with", "the", "a", "an", "and", "or", "to", "of", "by"
+      ]);
+
+      const tokens = normalized
+        .split(/[\s-]+/)
+        .map((t) => t.trim())
+        .filter((t) => t.length > 1 && !stopWords.has(t))
+        .map((t) => t.replace(/ات$/, "ه").replace(/ين$/, "").replace(/ون$/, ""));
+
+      if (tokens.length === 0) return normalized || "article";
+      return Array.from(new Set(tokens)).sort().join("-");
     };
 
     const seenBases = new Map<string, any>();
     const redundantQueueIds: string[] = [];
 
     for (const art of allArticles) {
-      const baseKey = getBaseKey(art.article_slug, art.primary_keyword);
+      const baseKey = getSemanticFingerprint(art.article_slug, art.primary_keyword, art.article_title);
       if (!baseKey) continue;
 
       if (!seenBases.has(baseKey)) {
@@ -7193,6 +7218,10 @@ export async function build8PlatformRacksStatus(
   let vercelLive = false;
   let cfLive = false;
 
+  let clerkLive = false;
+  let camberLive = false;
+  let tavilyLive = false;
+
   let ga4PropLabel = "Prop 510849000 • Active";
   let adsAccountLabel = `${kwCount} KW • OAuth Connected`;
   let geminiModelLabel = "Gemini 2.5 Flash • OAuth";
@@ -7200,10 +7229,13 @@ export async function build8PlatformRacksStatus(
   let ghLabel = "openseo-autonomous-engine";
   let vercelLabel = `${pubCount} Blog Routes Live`;
   let cfLabel = "Workers + D1 + KV Active";
+  let clerkLabel = "Auth Shield Active";
+  let camberLabel = "Pods Engine Ready";
+  let tavilyLabel = "Web Grounding Live";
 
   try {
     if (kv) {
-      const [gscRaw, ga4Raw, adsRaw, geminiRaw, supaRaw, ghRaw, vercelRaw, cfRaw] =
+      const [gscRaw, ga4Raw, adsRaw, geminiRaw, supaRaw, ghRaw, vercelRaw, cfRaw, clerkRaw, camberRaw, tavilyRaw] =
         await Promise.all([
           kv.get("oauth_grant:gsc"),
           kv.get("oauth_grant:ga4"),
@@ -7213,6 +7245,9 @@ export async function build8PlatformRacksStatus(
           kv.get(`verified_platform_v2:${pid}:github`),
           kv.get(`verified_platform_v2:${pid}:vercel`),
           kv.get(`verified_platform_v2:${pid}:cloudflare`),
+          kv.get(`verified_platform_v2:${pid}:clerk`),
+          kv.get(`verified_platform_v2:${pid}:camber`),
+          kv.get(`verified_platform_v2:${pid}:tavily`),
         ]);
       gscLive = Boolean(gscRaw);
       ga4Live = Boolean(ga4Raw);
@@ -7222,6 +7257,9 @@ export async function build8PlatformRacksStatus(
       ghLive = Boolean(ghRaw);
       vercelLive = Boolean(vercelRaw);
       cfLive = Boolean(cfRaw);
+      clerkLive = Boolean(clerkRaw);
+      camberLive = Boolean(camberRaw);
+      tavilyLive = Boolean(tavilyRaw);
 
       if (ga4Raw) {
         try {
@@ -7252,6 +7290,24 @@ export async function build8PlatformRacksStatus(
           if (p?.selectedResourceName) {
             vercelLabel = `${p.selectedResourceName} • ${pubCount} URLs`;
           }
+        } catch {}
+      }
+      if (clerkRaw) {
+        try {
+          const p = JSON.parse(clerkRaw);
+          if (p?.selectedResourceId) clerkLabel = `${p.selectedResourceId} • Live Shield`;
+        } catch {}
+      }
+      if (camberRaw) {
+        try {
+          const p = JSON.parse(camberRaw);
+          if (p?.selectedResourceId) camberLabel = `${p.selectedResourceId} • Pods OK`;
+        } catch {}
+      }
+      if (tavilyRaw) {
+        try {
+          const p = JSON.parse(tavilyRaw);
+          if (p?.selectedResourceId) tavilyLabel = `${p.selectedResourceId} • Search Live`;
         } catch {}
       }
     }
@@ -7321,6 +7377,30 @@ export async function build8PlatformRacksStatus(
       metricText: cfLabel,
       responsibleAgentId: "vorder-ziad",
       responsibleAgentName: "زياد عمران",
+    },
+    {
+      id: "clerk",
+      label: "Clerk Identity & Auth Shield",
+      status: clerkLive ? "LIVE" : "UNLINKED",
+      metricText: clerkLabel,
+      responsibleAgentId: "vorder-ziad",
+      responsibleAgentName: "زياد عمران",
+    },
+    {
+      id: "camber",
+      label: "Camber Cloud MicroVM Pods",
+      status: camberLive ? "LIVE" : "UNLINKED",
+      metricText: camberLabel,
+      responsibleAgentId: "vorder-layla",
+      responsibleAgentName: "ليلى الألفي",
+    },
+    {
+      id: "tavily",
+      label: "Tavily Real-Time Search Grounding",
+      status: tavilyLive ? "LIVE" : "UNLINKED",
+      metricText: tavilyLabel,
+      responsibleAgentId: "vorder-yasmine",
+      responsibleAgentName: "ياسمين الشريف",
     },
   ];
 }
