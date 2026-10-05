@@ -30,6 +30,8 @@ async function listGrantsForUser(userId: string) {
         if (
           parsed &&
           parsed.status !== "disconnected" &&
+          parsed.status !== "reconnect_required" &&
+          parsed.status !== "revoked" &&
           (parsed.accessToken || parsed.refreshToken)
         ) {
           return [

@@ -65,7 +65,12 @@ async function getByProjectId(
           availableResources?: Array<{ id: string; label?: string }>;
           connectedAt?: string;
         };
-        if (grant && grant.status !== "disconnected") {
+        if (
+          grant &&
+          grant.status !== "disconnected" &&
+          grant.status !== "reconnect_required" &&
+          grant.status !== "revoked"
+        ) {
           const preferredProp =
             grant.availableResources?.find(
               (r) =>

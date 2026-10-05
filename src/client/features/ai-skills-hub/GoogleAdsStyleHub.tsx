@@ -28,7 +28,9 @@ import {
   Users,
   PanelLeftClose,
   PanelLeftOpen,
+  ArrowUpRight,
 } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useI18n } from "@/client/lib/i18n";
 import { GoogleAdsScorecard, type MetricKey } from "./components/GoogleAdsScorecard";
@@ -635,6 +637,41 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
           {/* TAB 1: OVERVIEW */}
           {activeTab === "overview" && (
             <>
+              {/* Guidance Notice when live search auth is pending in Production */}
+              {(performanceQuery.data?.platformConnectionsStatus?.dataSource === "DISCONNECTED_GOOGLE_AUTH_REQUIRED" ||
+                performanceQuery.data?.platformConnectionsStatus?.gscConnected === false) && (
+                <div
+                  dir={isRtl ? "rtl" : "ltr"}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-amber-500/35 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent p-3.5 sm:p-4 text-xs shadow-xs"
+                >
+                  <div className="flex items-start sm:items-center gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-600 dark:text-amber-400">
+                      <Sparkles className="size-4" />
+                    </div>
+                    <div>
+                      <div className="font-bold text-amber-900 dark:text-amber-200">
+                        {isRtl
+                          ? "💡 تظهر مقاييس النقرات والظهور كـ 0 بانتظار استكمال ربط Google Search Console في وضع الإنتاج"
+                          : "💡 Clicks and Impressions show 0 pending Google Search Console reconnection in Production mode"}
+                      </div>
+                      <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5 leading-relaxed">
+                        {isRtl
+                          ? "حسابك جاهز بنسبة 100% والمقالات منشورة. لقراءة بيانات السيرش الحية دون انقطاع كل 7 أيام، تأكد من تحويل شاشة الموافقة إلى Production في Google Cloud ثم أعد الربط بضغطة زر."
+                          : "Your portfolio is 100% ready and articles are published. To pull live search queries permanently, switch your OAuth Consent Screen to Production in Google Cloud Console and reconnect."}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    to="/p/$projectId/settings/integrations"
+                    params={{ projectId }}
+                    className="inline-flex items-center justify-center gap-1.5 shrink-0 rounded-xl bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-1.5 font-bold text-xs shadow-xs transition-all"
+                  >
+                    <span>{isRtl ? "إعادة ربط Search Console ⚡" : "Reconnect Search Console ⚡"}</span>
+                    <ArrowUpRight className="size-3.5" />
+                  </Link>
+                </div>
+              )}
+
               {/* Apple HIG VORDER Scorecards */}
               <GoogleAdsScorecard
                 metrics={metricsData}

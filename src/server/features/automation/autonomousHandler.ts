@@ -11966,45 +11966,112 @@ export async function handlePlatformsTelemetry(
     const geminiGrant = intMap.get("google_ai_studio");
     const isGeminiConnected = Boolean(geminiGrant?.connected);
 
+    let gscGrant: any = null;
+    let ga4Grant: any = null;
+    let adsGrant: any = null;
+
+    if (env && (env as any).OAUTH_KV) {
+      try {
+        const rawGsc = await (env as any).OAUTH_KV.get("oauth_grant:gsc");
+        if (rawGsc) gscGrant = JSON.parse(rawGsc);
+      } catch {}
+      try {
+        const rawGa4 = await (env as any).OAUTH_KV.get("oauth_grant:ga4");
+        if (rawGa4) ga4Grant = JSON.parse(rawGa4);
+      } catch {}
+      try {
+        const rawAds =
+          (await (env as any).OAUTH_KV.get("oauth_grant:google_ads")) ||
+          (await (env as any).OAUTH_KV.get("oauth_grant:ads"));
+        if (rawAds) adsGrant = JSON.parse(rawAds);
+      } catch {}
+    }
+
+    const isGscRevokedOrExpired =
+      !gscGrant ||
+      gscGrant.status === "reconnect_required" ||
+      gscGrant.status === "revoked" ||
+      gscGrant.status === "disconnected" ||
+      (!gscGrant.accessToken && !gscGrant.refreshToken);
+
+    const isGa4RevokedOrExpired =
+      !ga4Grant ||
+      ga4Grant.status === "reconnect_required" ||
+      ga4Grant.status === "revoked" ||
+      ga4Grant.status === "disconnected" ||
+      (!ga4Grant.accessToken && !ga4Grant.refreshToken);
+
+    const isAdsRevokedOrExpired =
+      !adsGrant ||
+      adsGrant.status === "reconnect_required" ||
+      adsGrant.status === "revoked" ||
+      adsGrant.status === "disconnected" ||
+      (!adsGrant.accessToken && !adsGrant.refreshToken);
+
+    let isGscConnected = !isGscRevokedOrExpired;
+    let isGa4Connected = !isGa4RevokedOrExpired;
+    let isAdsConnected = !isAdsRevokedOrExpired;
+
+    if (isGscConnected || isGa4Connected || isAdsConnected) {
+      try {
+        const { getOrRefreshGoogleOAuthTokenFromKv } = await import("@/server/features/google/selfHostedOAuth");
+        if (isGscConnected) {
+          const t = await getOrRefreshGoogleOAuthTokenFromKv("gsc").catch(() => null);
+          isGscConnected = Boolean(t?.accessToken);
+        }
+        if (isGa4Connected) {
+          const t = await getOrRefreshGoogleOAuthTokenFromKv("ga4").catch(() => null);
+          isGa4Connected = Boolean(t?.accessToken);
+        }
+        if (isAdsConnected) {
+          const t = await getOrRefreshGoogleOAuthTokenFromKv("google-ads").catch(() => null);
+          isAdsConnected = Boolean(t?.accessToken);
+        }
+      } catch {}
+    }
+
     const platforms = [
       {
         id: "gsc",
         name: "Google Search Console",
         nameAr: "جوجل سيرش كونسول (GSC)",
         category: "search_engine",
-        connected: true,
-        quotaUsagePercent: 24,
+        connected: isGscConnected,
+        requiresReconnect: !isGscConnected,
+        quotaUsagePercent: isGscConnected ? 24 : 0,
         latencyMs: 140,
-        status: "ACTIVE_CONNECTED",
+        status: isGscConnected ? "ACTIVE_CONNECTED" : "RECONNECT_REQUIRED",
         responsibleAgents: ["طارق العبدلي", "عمر الفاروق"],
         metricLabel: "Indexed Pages & Impressions",
-        metricValue: `${pubCount} Pages Tracked`,
+        metricValue: isGscConnected ? `${pubCount} Pages Tracked` : "يتطلب إعادة ربط ⚡",
       },
       {
         id: "ga4",
         name: "Google Analytics 4",
         nameAr: "جوجل أناليتكس 4 (GA4)",
         category: "analytics",
-        connected: true,
-        quotaUsagePercent: 18,
+        connected: isGa4Connected,
+        requiresReconnect: !isGa4Connected,
+        quotaUsagePercent: isGa4Connected ? 18 : 0,
         latencyMs: 165,
-        status: "ACTIVE_CONNECTED",
+        status: isGa4Connected ? "ACTIVE_CONNECTED" : "RECONNECT_REQUIRED",
         responsibleAgents: ["سارة المهندس", "فارس النجار"],
         metricLabel: "Data Streams",
-        metricValue: "Active Conversion Stream",
+        metricValue: isGa4Connected ? "Active Conversion Stream" : "يتطلب إعادة ربط ⚡",
       },
       {
         id: "google_ads",
         name: "Google Ads",
         nameAr: "إعلانات جوجل (Google Ads)",
         category: "ads",
-        connected: true,
-        quotaUsagePercent: 12,
+        connected: isAdsConnected,
+        requiresReconnect: !isAdsConnected,
+        quotaUsagePercent: isAdsConnected ? 12 : 0,
         latencyMs: 210,
-        status: "ACTIVE_CONNECTED",
+        status: isAdsConnected ? "ACTIVE_CONNECTED" : "RECONNECT_REQUIRED",
         responsibleAgents: ["عمر الفاروق", "سارة المهندس"],
         metricLabel: "Campaigns Synced",
-        metricValue: "Active Commercial Campaigns",
+        metricValue: isAdsConnected ? "Active Commercial Campaigns" : "يتطلب إعادة ربط ⚡",
       },
       {
         id: "supabase",
@@ -12839,7 +12906,7 @@ export async function dispatchAutonomousRoute(
     }
   }
   if (pathname === "/api/automation/agent-meetings") return handleAgentMeetings(request, env);
-  if (pathname === "/api/automation/platforms-telemetry") return handlePlatformsTelemetry(request, env);
+  if (pathname === "/api/automation/platforms-telemetry" || pathname === "/api/integrations/overview" || pathname === "/api/automation/integrations-overview") return handlePlatformsTelemetry(request, env);
   if (pathname === "/api/automation/agent-deliverables") return handleAgentDeliverables(request, env);
   if (pathname === "/api/automation/agent-nominations") return handleAgentNominations(request, env);
   if (pathname === "/api/automation/unified-quota-status") return handleUnifiedQuotaStatus(request, env);

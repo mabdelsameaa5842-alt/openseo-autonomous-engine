@@ -29,17 +29,38 @@ export async function handleNotificationSubscribe(
     const userAgent = request.headers.get("user-agent") || "Unknown";
     const id = "sub_" + Math.random().toString(36).slice(2, 12);
 
+    const subRecord = {
+      id,
+      userId,
+      endpoint,
+      p256dh,
+      auth,
+      userAgent,
+      platform: platform || "desktop",
+      createdAt: Date.now(),
+    };
+
+    if (env && env.KV) {
+      try {
+        await env.KV.put(`push_sub:${id}`, JSON.stringify(subRecord), { expirationTtl: 60 * 60 * 24 * 90 });
+      } catch {}
+    }
+
     if (env && env.DB) {
-      await env.DB.prepare(`
-        INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, user_agent, platform, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ON CONFLICT(endpoint) DO UPDATE SET
-          user_id = excluded.user_id,
-          p256dh = excluded.p256dh,
-          auth = excluded.auth,
-          platform = excluded.platform,
-          user_agent = excluded.user_agent
-      `).bind(id, userId, endpoint, p256dh, auth, userAgent, platform || "desktop", Date.now()).run();
+      try {
+        await env.DB.prepare(`
+          INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, user_agent, platform, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(endpoint) DO UPDATE SET
+            user_id = excluded.user_id,
+            p256dh = excluded.p256dh,
+            auth = excluded.auth,
+            platform = excluded.platform,
+            user_agent = excluded.user_agent
+        `).bind(id, userId, endpoint, p256dh, auth, userAgent, platform || "desktop", Date.now()).run();
+      } catch (d1Err) {
+        console.warn("[pushNotificationHandler] D1 fallback to KV:", d1Err);
+      }
     }
 
     return new Response(

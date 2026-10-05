@@ -195,7 +195,7 @@ async function handleFetch(
   if (
     pathname.startsWith("/api/automation/") ||
     pathname.startsWith("/api/autonomous/") ||
-    pathname === "/api/integrations/select" ||
+    pathname.startsWith("/api/integrations/") ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
     pathname === "/api/public/autonomous-articles" ||

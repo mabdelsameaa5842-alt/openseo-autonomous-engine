@@ -28,6 +28,31 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
   const queryClient = useQueryClient();
   const [minimizedSuccess, setMinimizedSuccess] = React.useState(false);
 
+  const overviewQuery = useQuery({
+    queryKey: ["integrationsOverview", projectId],
+    queryFn: async () => {
+      const res = await fetch(`/api/integrations/overview?projectId=${encodeURIComponent(projectId)}`);
+      if (!res.ok) throw new Error("Failed to fetch overview");
+      return res.json() as Promise<{
+        success: boolean;
+        totalPlatforms: number;
+        activePlatformsCount: number;
+        platforms: Array<{
+          id: string;
+          name: string;
+          nameAr: string;
+          category: string;
+          connected: boolean;
+          requiresReconnect?: boolean;
+          status: string;
+          metricValue?: string;
+        }>;
+      }>;
+    },
+    enabled: Boolean(projectId),
+    refetchInterval: 30000,
+  });
+
   const gscQuery = useQuery({
     queryKey: ["gscConnection", projectId],
     queryFn: () => getGscConnection({ data: { projectId } }),
@@ -51,6 +76,7 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
 
   React.useEffect(() => {
     const handler = () => {
+      void queryClient.invalidateQueries({ queryKey: ["integrationsOverview", projectId] });
       void queryClient.invalidateQueries({ queryKey: ["platformIntegrations", projectId] });
       void queryClient.invalidateQueries({ queryKey: ["gscConnection", projectId] });
       void queryClient.invalidateQueries({ queryKey: ["ga4Connection", projectId] });
@@ -86,88 +112,119 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
   const camberConnected = platformMap.get("camber")?.status === "connected";
   const tavilyConnected = platformMap.get("tavily")?.status === "connected";
 
-  const platforms: PlatformReadinessItem[] = [
-    {
-      id: "gsc",
-      key: "gsc",
-      nameAr: "Google Search Console",
-      nameEn: "Google Search Console",
-      connected: gscConnected,
-      requiresReconnect: gscRequiresReconnect,
-    },
-    {
-      id: "ga4",
-      key: "ga4",
-      nameAr: "Google Analytics 4",
-      nameEn: "Google Analytics 4",
-      connected: ga4Connected,
-      requiresReconnect: ga4RequiresReconnect,
-    },
-    {
-      id: "google_ads",
-      key: "google_ads",
-      nameAr: "Google Ads",
-      nameEn: "Google Ads",
-      connected: adsConnected,
-      requiresReconnect: adsRequiresReconnect,
-    },
-    {
-      id: "supabase",
-      key: "supabase",
-      nameAr: "Supabase",
-      nameEn: "Supabase",
-      connected: supabaseConnected,
-    },
-    {
-      id: "github",
-      key: "github",
-      nameAr: "GitHub",
-      nameEn: "GitHub",
-      connected: githubConnected,
-    },
-    {
-      id: "vercel",
-      key: "vercel",
-      nameAr: "Vercel",
-      nameEn: "Vercel",
-      connected: vercelConnected,
-    },
-    {
-      id: "google_ai_studio",
-      key: "google_ai_studio",
-      nameAr: "Google Gemini AI Studio",
-      nameEn: "Google Gemini AI Studio",
-      connected: geminiConnected,
-    },
-    {
-      id: "cloudflare",
-      key: "cloudflare",
-      nameAr: "Cloudflare",
-      nameEn: "Cloudflare",
-      connected: cloudflareConnected,
-    },
-    {
-      id: "clerk",
-      key: "clerk",
-      nameAr: "Clerk Auth",
-      nameEn: "Clerk Auth",
-      connected: clerkConnected,
-    },
-    {
-      id: "camber",
-      key: "camber",
-      nameAr: "Camber Cloud",
-      nameEn: "Camber Cloud",
-      connected: camberConnected,
-    },
-    {
-      id: "tavily",
-      key: "tavily",
-      nameAr: "Tavily Search",
-      nameEn: "Tavily Search",
-      connected: tavilyConnected,
-    },
-  ];
+  const overviewPlatforms = overviewQuery.data?.platforms;
+
+  const platforms: PlatformReadinessItem[] = React.useMemo(() => {
+    if (overviewPlatforms && Array.isArray(overviewPlatforms) && overviewPlatforms.length >= 11) {
+      return overviewPlatforms.map((p) => ({
+        id: p.id,
+        key: p.id as any,
+        nameAr: p.nameAr || p.name,
+        nameEn: p.name,
+        connected: Boolean(p.connected),
+        requiresReconnect: Boolean(p.requiresReconnect || p.status === "RECONNECT_REQUIRED"),
+      }));
+    }
+
+    return [
+      {
+        id: "gsc",
+        key: "gsc",
+        nameAr: "Google Search Console",
+        nameEn: "Google Search Console",
+        connected: gscConnected,
+        requiresReconnect: gscRequiresReconnect,
+      },
+      {
+        id: "ga4",
+        key: "ga4",
+        nameAr: "Google Analytics 4",
+        nameEn: "Google Analytics 4",
+        connected: ga4Connected,
+        requiresReconnect: ga4RequiresReconnect,
+      },
+      {
+        id: "google_ads",
+        key: "google_ads",
+        nameAr: "Google Ads",
+        nameEn: "Google Ads",
+        connected: adsConnected,
+        requiresReconnect: adsRequiresReconnect,
+      },
+      {
+        id: "supabase",
+        key: "supabase",
+        nameAr: "Supabase",
+        nameEn: "Supabase",
+        connected: supabaseConnected,
+      },
+      {
+        id: "github",
+        key: "github",
+        nameAr: "GitHub",
+        nameEn: "GitHub",
+        connected: githubConnected,
+      },
+      {
+        id: "vercel",
+        key: "vercel",
+        nameAr: "Vercel",
+        nameEn: "Vercel",
+        connected: vercelConnected,
+      },
+      {
+        id: "google_ai_studio",
+        key: "google_ai_studio",
+        nameAr: "Google Gemini AI Studio",
+        nameEn: "Google Gemini AI Studio",
+        connected: geminiConnected,
+      },
+      {
+        id: "cloudflare",
+        key: "cloudflare",
+        nameAr: "Cloudflare",
+        nameEn: "Cloudflare",
+        connected: cloudflareConnected,
+      },
+      {
+        id: "clerk",
+        key: "clerk",
+        nameAr: "Clerk Auth",
+        nameEn: "Clerk Auth",
+        connected: clerkConnected,
+      },
+      {
+        id: "camber",
+        key: "camber",
+        nameAr: "Camber Cloud",
+        nameEn: "Camber Cloud",
+        connected: camberConnected,
+      },
+      {
+        id: "tavily",
+        key: "tavily",
+        nameAr: "Tavily Search",
+        nameEn: "Tavily Search",
+        connected: tavilyConnected,
+      },
+    ];
+  }, [
+    overviewPlatforms,
+    gscConnected,
+    gscRequiresReconnect,
+    ga4Connected,
+    ga4RequiresReconnect,
+    adsConnected,
+    adsRequiresReconnect,
+    supabaseConnected,
+    githubConnected,
+    vercelConnected,
+    geminiConnected,
+    cloudflareConnected,
+    clerkConnected,
+    camberConnected,
+    tavilyConnected,
+  ]);
 
   const unconnectedPlatforms = platforms.filter((p) => !p.connected);
   const connectedCount = platforms.length - unconnectedPlatforms.length;

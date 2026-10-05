@@ -65,7 +65,12 @@ async function getByProjectId(
           availableResources?: Array<{ id: string }>;
           connectedAt?: string;
         };
-        if (grant && grant.status !== "disconnected") {
+        if (
+          grant &&
+          grant.status !== "disconnected" &&
+          grant.status !== "reconnect_required" &&
+          grant.status !== "revoked"
+        ) {
           const preferredSite =
             grant.availableResources?.find((r) =>
               r.id?.toLowerCase().includes("mohamed-abdelsamee"),
