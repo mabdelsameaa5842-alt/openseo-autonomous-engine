@@ -524,6 +524,24 @@ export function DashboardPage({ projectId }: { projectId: string }) {
             projectId={projectId}
             platform="cloudflare"
           />
+
+          {/* Card 12: Clerk Authentication Shield (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="clerk"
+          />
+
+          {/* Card 13: Camber Agentic Cloud Compute (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="camber"
+          />
+
+          {/* Card 14: Tavily AI Search Grounding (Connection -> Live Readings) */}
+          <PlatformDashboardCard
+            projectId={projectId}
+            platform="tavily"
+          />
         </main>
       </div>
     </div>

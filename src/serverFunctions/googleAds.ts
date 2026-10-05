@@ -46,8 +46,10 @@ export const getGoogleAdsConnection = createServerFn({ method: "POST" })
         hasSelfHostedGoogleOAuthConfig(),
         GoogleAdsService.getDeveloperTokenStatus(context.projectId),
       ]);
+    const isReallyConnected = Boolean(connection) && Boolean(currentUserHasGrant);
     return {
-      connected: Boolean(connection),
+      connected: isReallyConnected,
+      requiresReconnect: Boolean(connection) && !currentUserHasGrant,
       currentUserHasGrant,
       googleOAuthConfigured: hosted || adsConfigured,
       customerId: connection?.customerId ?? null,

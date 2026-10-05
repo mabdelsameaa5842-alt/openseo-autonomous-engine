@@ -113,7 +113,8 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
       const json = (await res.json()) as any;
       return (json.campaigns || []) as CampaignRecord[];
     },
-    refetchInterval: 60000,
+    refetchInterval: 120000,
+    staleTime: 60000,
   });
 
   // 3. Fetch Isolated Performance
@@ -128,7 +129,8 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
       if (!res.ok) throw new Error("Failed to fetch performance");
       return (await res.json()) as any;
     },
-    refetchInterval: 60000,
+    refetchInterval: 120000,
+    staleTime: 60000,
   });
 
   // 4. Fetch GSC Search Terms & Pages Breakdown
@@ -141,7 +143,8 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
       if (!res.ok) throw new Error("Failed to fetch search terms");
       return (await res.json()) as any;
     },
-    refetchInterval: 60000,
+    refetchInterval: 120000,
+    staleTime: 60000,
   });
 
   const [isSubRailCollapsed, setIsSubRailCollapsed] = useState<boolean>(false);
@@ -156,8 +159,8 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
       if (!res.ok) return null;
       return (await res.json()) as any;
     },
-    refetchInterval: 25000,
-    staleTime: 20000,
+    refetchInterval: 60000,
+    staleTime: 45000,
   });
 
   const [cronCountdown, setCronCountdown] = useState<number>(1800);
@@ -185,13 +188,14 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
   const searchTerms: GscSearchTerm[] = searchTermsQuery.data?.searchTerms || (Array.isArray(searchTermsQuery.data) ? searchTermsQuery.data : []);
   const gscPages = searchTermsQuery.data?.gscPages || [];
 
-  // Ground Truth Metrics matching Google Search Console & D1
-  const metricsData = performanceQuery.data?.metrics || {
-    clicks: telemetryQuery.data?.gscIndexingTelemetry?.clicks ?? 5,
-    impressions: telemetryQuery.data?.gscIndexingTelemetry?.impressions ?? 40,
-    avgPosition: telemetryQuery.data?.gscIndexingTelemetry?.avgPosition ?? 9.4,
-    ctr: telemetryQuery.data?.gscIndexingTelemetry?.ctr ?? 12.5,
-    geoIndexingRate: 94.3,
+  // Authentic Telemetry matching Server APIs: Zero fake fallbacks
+  const perfMetrics = performanceQuery.data?.metrics;
+  const metricsData = {
+    clicks: perfMetrics?.clicks ?? 0,
+    impressions: perfMetrics?.impressions ?? 0,
+    avgPosition: perfMetrics?.avgPosition ?? 0.0,
+    ctr: perfMetrics?.ctr ?? 0.0,
+    geoIndexingRate: perfMetrics?.geoIndexingRate ?? 0.0,
   };
 
   const timelineData = performanceQuery.data?.timeline || [];
@@ -234,8 +238,8 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
         queryClient.invalidateQueries({ queryKey: ["gscSearchTerms"] }),
         queryClient.invalidateQueries({ queryKey: ["dualPipelinesTelemetry"] }),
       ]);
-      const latestImpressions = metricsData.impressions ?? 23;
-      const latestRank = Number(metricsData.avgPosition ?? 35.52).toFixed(1);
+      const latestImpressions = metricsData.impressions ?? 0;
+      const latestRank = Number(metricsData.avgPosition ?? 0.0).toFixed(1);
       toast.success(
         isArabic
           ? `⚡ تمت المزامنة بنجاح! ${livePublishedCount} مقالاً حياً • ${latestImpressions} ظهور • متوسط ترتيب ${latestRank}.`
@@ -754,16 +758,16 @@ export function GoogleAdsStyleHub({ projectId, projectDomain }: GoogleAdsStyleHu
                   const geoArticles = geoCamp?.publishedArticlesCount ?? Math.round(livePublishedCount * 0.20);
                   const trackingArticles = trackingCamp?.publishedArticlesCount ?? Math.max(0, livePublishedCount - saudiArticles - whatsappArticles - geoArticles);
 
-                  const totalImp = Math.max(1, Number(metricsData.impressions ?? 23));
-                  const saudiImp = (saudiCamp as any)?.impressions ?? Math.max(1, Math.round(totalImp * (saudiArticles / Math.max(1, livePublishedCount))));
-                  const whatsappImp = (whatsappCamp as any)?.impressions ?? Math.max(1, Math.round(totalImp * (whatsappArticles / Math.max(1, livePublishedCount))));
-                  const geoImp = (geoCamp as any)?.impressions ?? Math.max(1, Math.round(totalImp * (geoArticles / Math.max(1, livePublishedCount))));
-                  const trackingImp = (trackingCamp as any)?.impressions ?? Math.max(1, totalImp - saudiImp - whatsappImp - geoImp);
+                  const totalImp = Number(metricsData.impressions ?? 0);
+                  const saudiImp = Number((saudiCamp as any)?.impressions ?? 0);
+                  const whatsappImp = Number((whatsappCamp as any)?.impressions ?? 0);
+                  const geoImp = Number((geoCamp as any)?.impressions ?? 0);
+                  const trackingImp = Number((trackingCamp as any)?.impressions ?? 0);
 
-                  const saudiRank = Number((saudiCamp as any)?.avgPosition ?? (metricsData.avgPosition ? metricsData.avgPosition * 0.75 : 26.0)).toFixed(1);
-                  const whatsappRank = Number((whatsappCamp as any)?.avgPosition ?? (metricsData.avgPosition ? metricsData.avgPosition * 0.6 : 20.0)).toFixed(1);
-                  const geoCitationRate = Number(metricsData.geoIndexingRate ?? 93.9).toFixed(1);
-                  const indexingCoverage = Math.min(100, Math.round((livePublishedCount / Math.max(1, livePublishedCount)) * 100));
+                  const saudiRank = Number((saudiCamp as any)?.avgPosition ?? 0.0).toFixed(1);
+                  const whatsappRank = Number((whatsappCamp as any)?.avgPosition ?? 0.0).toFixed(1);
+                  const geoCitationRate = Number(metricsData.geoIndexingRate ?? 0.0).toFixed(1);
+                  const indexingCoverage = 0;
 
                   return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">

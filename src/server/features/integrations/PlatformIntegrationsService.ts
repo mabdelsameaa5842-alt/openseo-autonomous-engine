@@ -1270,7 +1270,7 @@ export class PlatformIntegrationsService {
         { id: "gemini-2.0-flash", displayName: "Gemini 2.0 Flash (High-Throughput Core)", inputTokenLimit: 1048576, outputTokenLimit: 8192 },
         { id: "gemini-2.0-flash-lite", displayName: "Gemini 2.0 Flash-Lite (Low-Latency Fallback)", inputTokenLimit: 1048576, outputTokenLimit: 8192 },
         { id: "gemini-3.5-flash-lite", displayName: "Gemini 3.5 Flash-Lite", inputTokenLimit: 1048576, outputTokenLimit: 65536 },
-        { id: "gemini-3.8-flash", displayName: "Gemini 3.8 Flash", inputTokenLimit: 1048576, outputTokenLimit: 65536 },
+        { id: "gemini-2.5-flash", displayName: "Gemini 2.5 Flash (Official Production)", inputTokenLimit: 1048576, outputTokenLimit: 65536 },
         { id: "gemma-3-27b-it", displayName: "Gemma 3 27B IT (14,400 RPD Safety Net)", inputTokenLimit: 131072, outputTokenLimit: 8192 },
         { id: "gemma-3-12b-it", displayName: "Gemma 3 12B IT (High-Speed Safety Net)", inputTokenLimit: 131072, outputTokenLimit: 8192 },
       ];

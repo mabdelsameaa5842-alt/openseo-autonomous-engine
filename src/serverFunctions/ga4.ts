@@ -41,8 +41,10 @@ export const getGa4Connection = createServerFn({ method: "POST" })
         isHostedServerAuthMode(),
         hasSelfHostedGoogleOAuthConfig(),
       ]);
+    const isReallyConnected = Boolean(connection) && Boolean(currentUserHasGrant);
     return {
-      connected: Boolean(connection),
+      connected: isReallyConnected,
+      requiresReconnect: Boolean(connection) && !currentUserHasGrant,
       currentUserHasGrant,
       googleOAuthConfigured: hosted || ga4Configured,
       propertyId: connection?.propertyId ?? null,

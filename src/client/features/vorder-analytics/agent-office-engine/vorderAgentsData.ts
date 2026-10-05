@@ -183,7 +183,7 @@ export const VORDER_AGENTS_ROSTER: VorderAgentData[] = [
     station: 'محطة الفهرسة وSearch Console',
     harness: 'gsc-truth-sync',
     harnessName: 'GSC Realtime Telemetry & Crawl Master',
-    model: 'gemini-3.8-flash',
+    model: 'gemini-2.5-flash',
     gitBranch: 'analytics/gsc-impressions-23-truth',
     worktree: 'gsc-pipeline',
     running: true,

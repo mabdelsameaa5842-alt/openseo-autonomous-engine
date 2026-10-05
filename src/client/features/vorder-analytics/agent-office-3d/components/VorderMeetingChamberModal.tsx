@@ -1056,7 +1056,7 @@ export function VorderMeetingChamberModal({
               </span>
               <select
                 aria-label="مبدل موديلات Google AI Studio"
-                defaultValue="gemini-3.8-flash"
+                defaultValue="gemini-2.5-flash"
                 onChange={async (e) => {
                   const chosenModel = e.target.value;
                   try {
@@ -1077,13 +1077,10 @@ export function VorderMeetingChamberModal({
                 }}
                 className="bg-transparent font-mono text-[11px] font-black text-fuchsia-700 dark:text-fuchsia-200 focus:outline-none cursor-pointer"
               >
-                <option value="gemini-3.8-flash" className="bg-zinc-900 text-white">gemini-3.8-flash</option>
-                <option value="gemini-3.6-flash" className="bg-zinc-900 text-white">gemini-3.6-flash (Verified 200 OK)</option>
-                <option value="gemini-3.5-flash" className="bg-zinc-900 text-white">gemini-3.5-flash (Verified 200 OK)</option>
-                <option value="gemini-3.5-flash-lite" className="bg-zinc-900 text-white">gemini-3.5-flash-lite (500 RPD)</option>
-                <option value="gemini-3.1-flash-lite" className="bg-zinc-900 text-white">gemini-3.1-flash-lite (500 RPD)</option>
-                <option value="gemini-3-flash-preview" className="bg-zinc-900 text-white">gemini-3-flash-preview (Verified 200 OK)</option>
-                <option value="gemma-4-26b-a4b-it" className="bg-zinc-900 text-white">gemma-4-26b-a4b-it (14,400 RPD)</option>
+                <option value="gemini-2.5-flash" className="bg-zinc-900 text-white">gemini-2.5-flash (Official Production)</option>
+                <option value="gemini-2.5-flash-lite" className="bg-zinc-900 text-white">gemini-2.5-flash-lite (High Speed / 1,000 RPD)</option>
+                <option value="gemini-2.0-flash-exp" className="bg-zinc-900 text-white">gemini-2.0-flash-exp (Experimental)</option>
+                <option value="gemma-2-27b-it" className="bg-zinc-900 text-white">gemma-2-27b-it (Google Safety Net)</option>
               </select>
             </div>
 

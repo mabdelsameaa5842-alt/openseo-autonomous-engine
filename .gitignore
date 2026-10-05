@@ -53,3 +53,4 @@ scripts/*.py
 
 __pycache__/
 *.pyc
+scripts/*.mjs

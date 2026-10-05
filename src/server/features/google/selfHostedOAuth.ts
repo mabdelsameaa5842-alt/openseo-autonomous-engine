@@ -386,9 +386,146 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
       ? `oauth_grant:${providerKeyMap[stateNamespace]}`
       : null;
 
-    const raw =
+    let raw =
       (await kv.get(primaryKey)) ||
       (secondaryKey ? await kv.get(secondaryKey) : null);
+
+    // Self-Healing Bridge from Supabase KV mirror & D1 account table when OAUTH_KV is unseeded or evicted
+    if (!raw) {
+      try {
+        const { supabaseKvGet } = await import("@/server/features/automation/SubMillisecondFallbackEngine");
+        const supaVal = (await supabaseKvGet<any>(primaryKey)) || (secondaryKey ? await supabaseKvGet<any>(secondaryKey) : null);
+        if (supaVal) {
+          raw = typeof supaVal === "string" ? supaVal : JSON.stringify(supaVal);
+        } else {
+          // If asking for gsc or google-ads, oauth_grant:ga4 in Supabase contains the master refresh token with all scopes
+          const ga4Master = await supabaseKvGet<any>("oauth_grant:ga4");
+          if (ga4Master) {
+            const parsedGa4 = typeof ga4Master === "string" ? JSON.parse(ga4Master) : ga4Master;
+            if (parsedGa4?.refreshToken) {
+              const adaptedPayload = {
+                ...parsedGa4,
+                providerId: providerKeyMap[stateNamespace] || stateNamespace,
+                stateNamespace,
+                selectedResource:
+                  stateNamespace === "gsc"
+                    ? "https://mohamed-abdelsamee-portfolio.vercel.app/"
+                    : stateNamespace === "google-ads"
+                    ? "731-278-7991"
+                    : parsedGa4.selectedResource,
+              };
+              raw = JSON.stringify(adaptedPayload);
+            }
+          }
+        }
+      } catch (supaErr) {
+        console.warn(`[selfHostedOAuth] Supabase mirror check error for ${stateNamespace}:`, supaErr);
+      }
+    }
+
+    if (!raw) {
+      try {
+        const d1 = (env as any)?.DB;
+        if (d1) {
+          const providerId = providerKeyMap[stateNamespace] || stateNamespace;
+          const accountRow: any = await d1.prepare(
+            "SELECT user_id, account_id, access_token, refresh_token, access_token_expires_at FROM account WHERE provider_id = ? ORDER BY created_at DESC LIMIT 1"
+          ).bind(providerId).first().catch(() => null);
+
+          if (accountRow && accountRow.refresh_token) {
+            let plainRefreshToken = accountRow.refresh_token;
+            // Attempt decryption via Better Auth secret if encrypted
+            try {
+              const { symmetricDecrypt } = await import("better-auth/crypto");
+              const secret = (env as any)?.BETTER_AUTH_SECRET || "";
+              if (secret && typeof plainRefreshToken === "string" && plainRefreshToken.length > 50) {
+                const dec = await symmetricDecrypt({ key: secret, data: plainRefreshToken }).catch(() => null);
+                if (dec && typeof dec === "string" && dec.length > 10) {
+                  plainRefreshToken = dec;
+                }
+              }
+            } catch (decErr) {
+              console.warn("[selfHostedOAuth] token decryption warning:", decErr);
+            }
+
+            let connectedEmail: string | null = null;
+            let selectedResource: string | null = null;
+            try {
+              if (stateNamespace === "gsc") {
+                const gscRow: any = await d1.prepare("SELECT site_url, connected_account_email FROM gsc_connections LIMIT 1").first().catch(() => null);
+                if (gscRow) {
+                  selectedResource = gscRow.site_url;
+                  connectedEmail = gscRow.connected_account_email;
+                }
+              } else if (stateNamespace === "ga4") {
+                const ga4Row: any = await d1.prepare("SELECT property_id, connected_account_email FROM ga4_connections LIMIT 1").first().catch(() => null);
+                if (ga4Row) {
+                  selectedResource = ga4Row.property_id;
+                  connectedEmail = ga4Row.connected_account_email;
+                }
+              }
+            } catch {}
+
+            const config = await getGoogleOAuthClientConfig();
+            if (config?.clientId && config?.clientSecret && plainRefreshToken) {
+              const tokenRes = await fetch(GOOGLE_TOKEN_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                body: new URLSearchParams({
+                  client_id: config.clientId,
+                  client_secret: config.clientSecret,
+                  refresh_token: plainRefreshToken,
+                  grant_type: "refresh_token",
+                }),
+              });
+
+              if (tokenRes.ok) {
+                const refreshed = (await tokenRes.json()) as {
+                  access_token?: string;
+                  expires_in?: number;
+                  refresh_token?: string;
+                };
+                if (refreshed.access_token) {
+                  const healedPayload = {
+                    providerId,
+                    stateNamespace,
+                    userId: accountRow.user_id,
+                    accountId: accountRow.account_id,
+                    email: connectedEmail,
+                    accessToken: refreshed.access_token,
+                    refreshToken: refreshed.refresh_token || plainRefreshToken,
+                    expiresAt: Date.now() + (refreshed.expires_in ?? 3600) * 1000,
+                    selectedResource: selectedResource || null,
+                    availableResources: selectedResource ? [{ id: selectedResource, label: selectedResource }] : [],
+                    connectedAt: new Date().toISOString(),
+                    status: "connected",
+                  };
+                  raw = JSON.stringify(healedPayload);
+                  await kv.put(primaryKey, raw, { expirationTtl: 60 * 60 * 24 * 180 }).catch(() => {});
+                  if (secondaryKey) {
+                    await kv.put(secondaryKey, raw, { expirationTtl: 60 * 60 * 24 * 180 }).catch(() => {});
+                  }
+                  try {
+                    const { supabaseKvPut } = await import("@/server/features/automation/SubMillisecondFallbackEngine");
+                    await supabaseKvPut(primaryKey, raw);
+                    if (secondaryKey) await supabaseKvPut(secondaryKey, raw);
+                  } catch {}
+                  await d1.prepare(
+                    "UPDATE account SET access_token = ?, access_token_expires_at = ? WHERE provider_id = ?"
+                  ).bind(refreshed.access_token, healedPayload.expiresAt, providerId).run().catch(() => {});
+                }
+              } else {
+                const errText = await tokenRes.text().catch(() => "");
+                console.warn(`[selfHostedOAuth] D1 bridge refresh response ${tokenRes.status} for ${stateNamespace}:`, errText);
+              }
+            }
+          }
+        }
+      } catch (bridgeErr) {
+        console.warn(`[selfHostedOAuth] D1 bridge error for ${stateNamespace}:`, bridgeErr);
+      }
+    }
+
     if (!raw) return null;
 
     const parsed = JSON.parse(raw) as {
@@ -481,6 +618,11 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
                 });
               }
             } catch {}
+            try {
+              const { supabaseKvPut } = await import("@/server/features/automation/SubMillisecondFallbackEngine");
+              await supabaseKvPut(primaryKey, JSON.stringify(updatedPayload));
+              if (secondaryKey) await supabaseKvPut(secondaryKey, JSON.stringify(updatedPayload));
+            } catch {}
             return {
               accessToken: refreshed.access_token,
               email: updatedPayload.email || null,
@@ -492,11 +634,28 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
                 : [],
             };
           }
+        } else {
+          const errText = await tokenRes.text().catch(() => "");
+          console.warn(`[getOrRefreshGoogleOAuthTokenFromKv] token refresh failed with ${tokenRes.status} for ${stateNamespace}:`, errText);
+          if (errText.includes("invalid_grant")) {
+            const revokedPayload = { ...parsed, status: "reconnect_required", accessToken: undefined };
+            inMemoryOAuthTokenCache.delete(canonicalNs);
+            try {
+              if (kv) {
+                await kv.put(primaryKey, JSON.stringify(revokedPayload));
+                if (secondaryKey) await kv.put(secondaryKey, JSON.stringify(revokedPayload));
+              }
+              const { supabaseKvPut } = await import("@/server/features/automation/SubMillisecondFallbackEngine");
+              await supabaseKvPut(primaryKey, JSON.stringify(revokedPayload));
+              if (secondaryKey) await supabaseKvPut(secondaryKey, JSON.stringify(revokedPayload));
+            } catch {}
+            return null;
+          }
         }
       }
     }
 
-    if (parsed.accessToken) {
+    if (!isExpired && parsed.accessToken) {
       return {
         accessToken: parsed.accessToken,
         email: parsed.email || null,

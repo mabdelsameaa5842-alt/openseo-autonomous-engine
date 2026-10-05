@@ -15,10 +15,11 @@ interface GlobalSystemReadinessBannerProps {
 
 interface PlatformReadinessItem {
   id: string;
-  key: "gsc" | "ga4" | "google_ads" | "supabase" | "github" | "vercel" | "google_ai_studio" | "cloudflare";
+  key: "gsc" | "ga4" | "google_ads" | "supabase" | "github" | "vercel" | "google_ai_studio" | "cloudflare" | "clerk" | "camber" | "tavily";
   nameAr: string;
   nameEn: string;
   connected: boolean;
+  requiresReconnect?: boolean;
 }
 
 export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadinessBannerProps) {
@@ -69,14 +70,21 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
     return map;
   }, [platformsQuery.data]);
 
-  const gscConnected = Boolean(gscQuery.data?.connected);
-  const ga4Connected = Boolean(ga4Query.data?.connected);
-  const adsConnected = Boolean(adsQuery.data?.connected);
+  const gscRequiresReconnect = Boolean((gscQuery.data as any)?.requiresReconnect);
+  const ga4RequiresReconnect = Boolean((ga4Query.data as any)?.requiresReconnect);
+  const adsRequiresReconnect = Boolean((adsQuery.data as any)?.requiresReconnect);
+
+  const gscConnected = Boolean(gscQuery.data?.connected) && !gscRequiresReconnect;
+  const ga4Connected = Boolean(ga4Query.data?.connected) && !ga4RequiresReconnect;
+  const adsConnected = Boolean(adsQuery.data?.connected) && !adsRequiresReconnect;
   const supabaseConnected = platformMap.get("supabase")?.status === "connected";
   const githubConnected = platformMap.get("github")?.status === "connected";
   const vercelConnected = platformMap.get("vercel")?.status === "connected";
   const geminiConnected = platformMap.get("google_ai_studio")?.status === "connected";
   const cloudflareConnected = platformMap.get("cloudflare")?.status === "connected";
+  const clerkConnected = platformMap.get("clerk")?.status === "connected";
+  const camberConnected = platformMap.get("camber")?.status === "connected";
+  const tavilyConnected = platformMap.get("tavily")?.status === "connected";
 
   const platforms: PlatformReadinessItem[] = [
     {
@@ -85,6 +93,7 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
       nameAr: "Google Search Console",
       nameEn: "Google Search Console",
       connected: gscConnected,
+      requiresReconnect: gscRequiresReconnect,
     },
     {
       id: "ga4",
@@ -92,6 +101,7 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
       nameAr: "Google Analytics 4",
       nameEn: "Google Analytics 4",
       connected: ga4Connected,
+      requiresReconnect: ga4RequiresReconnect,
     },
     {
       id: "google_ads",
@@ -99,6 +109,7 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
       nameAr: "Google Ads",
       nameEn: "Google Ads",
       connected: adsConnected,
+      requiresReconnect: adsRequiresReconnect,
     },
     {
       id: "supabase",
@@ -135,6 +146,27 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
       nameEn: "Cloudflare",
       connected: cloudflareConnected,
     },
+    {
+      id: "clerk",
+      key: "clerk",
+      nameAr: "Clerk Auth",
+      nameEn: "Clerk Auth",
+      connected: clerkConnected,
+    },
+    {
+      id: "camber",
+      key: "camber",
+      nameAr: "Camber Cloud",
+      nameEn: "Camber Cloud",
+      connected: camberConnected,
+    },
+    {
+      id: "tavily",
+      key: "tavily",
+      nameAr: "Tavily Search",
+      nameEn: "Tavily Search",
+      connected: tavilyConnected,
+    },
   ];
 
   const unconnectedPlatforms = platforms.filter((p) => !p.connected);
@@ -151,6 +183,9 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
     github: "github",
     vercel: "vercel",
     cloudflare: "cloudflare",
+    clerk: "clerk",
+    camber: "camber",
+    tavily: "tavily",
   };
 
   const handleGoToIntegrations = (platformKey?: string) => {
@@ -178,8 +213,8 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
             <CheckCircle2 className="size-4 text-emerald-500 shrink-0" />
             <span>
               {isRtl
-                ? "✅ يعمل النظام والوكلاء الـ 9 والـ 50 نموذجاً بنجاح وبكفاءة 100% (8/8 منصات متصلة بـ Full Access)"
-                : "✅ System, 9 Agents & 50 Models operating successfully at 100% efficiency (8/8 Connected)"}
+                ? `✅ يعمل النظام والوكلاء الـ 9 والـ 50 نموذجاً بنجاح وبكفاءة 100% (${platforms.length}/${platforms.length} منصة متصلة بـ Full Access)`
+                : `✅ System, 9 Agents & 50 Models operating successfully at 100% efficiency (${platforms.length}/${platforms.length} Connected)`}
             </span>
           </div>
           <button
@@ -211,13 +246,13 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
                     : "System & All 9 Agents Operating Successfully at 100% Efficiency"}
                 </span>
                 <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/20 px-2 py-0.5 text-[10px] font-extrabold text-emerald-700 dark:text-emerald-300">
-                  <Sparkles className="size-2.5" /> 8/8 {isRtl ? "متصل" : "Connected"}
+                  <Sparkles className="size-2.5" /> {platforms.length}/{platforms.length} {isRtl ? "متصل" : "Connected"}
                 </span>
               </div>
               <p className="text-[11px] text-zinc-600 dark:text-zinc-400 mt-0.5">
                 {isRtl
-                  ? "جميع المنصات الـ 8 متصلة الآن بالوكلاء الـ 9 وماكينة Google AI Studio ذات الـ 50 نموذجاً."
-                  : "All 8 platforms are live and synchronized with the 9 agents and 50-model engine."}
+                  ? `جميع المنصات الـ ${platforms.length} متصلة الآن بالوكلاء الـ 9 وماكينة Google AI Studio ذات الـ 50 نموذجاً.`
+                  : `All ${platforms.length} platforms are live and synchronized with the 9 agents and 50-model engine.`}
               </p>
             </div>
           </div>
@@ -264,11 +299,11 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xs md:text-sm font-black text-zinc-900 dark:text-amber-200">
                 {isRtl
-                  ? `⚠️ تنبيه: النظام والوكلاء لن يعملوا بكفاءة كاملة قبل ربط (${unconnectedPlatforms.length} منصات متبقية من 8):`
-                  : `⚠️ Warning: System & Agents will not operate at full efficiency before connecting (${unconnectedPlatforms.length} of 8 remaining):`}
+                  ? `⚠️ تنبيه: النظام والوكلاء لن يعملوا بكفاءة كاملة قبل ربط (${unconnectedPlatforms.length} منصات متبقية من ${platforms.length}):`
+                  : `⚠️ Warning: System & Agents will not operate at full efficiency before connecting (${unconnectedPlatforms.length} of ${platforms.length} remaining):`}
               </span>
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 border border-amber-500/30 px-2 py-0.5 text-[10px] font-extrabold text-amber-800 dark:text-amber-300">
-                {isRtl ? `الكفاءة الحالية: ${efficiencyPercent}% (${connectedCount}/8)` : `Efficiency: ${efficiencyPercent}% (${connectedCount}/8)`}
+                {isRtl ? `الكفاءة الحالية: ${efficiencyPercent}% (${connectedCount}/${platforms.length})` : `Efficiency: ${efficiencyPercent}% (${connectedCount}/${platforms.length})`}
               </span>
             </div>
 
@@ -283,8 +318,14 @@ export function GlobalSystemReadinessBanner({ projectId }: GlobalSystemReadiness
                 >
                   <PlatformBrandLogo platform={p.key} className="size-3.5 shrink-0" />
                   <span>{isRtl ? p.nameAr : p.nameEn}</span>
-                  <span className="text-[9px] font-extrabold text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.2 rounded">
-                    {isRtl ? "غير مربوط" : "Unlinked"}
+                  <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded ${
+                    p.requiresReconnect
+                      ? "text-amber-600 dark:text-amber-400 bg-amber-500/10"
+                      : "text-rose-600 dark:text-rose-400 bg-rose-500/10"
+                  }`}>
+                    {p.requiresReconnect
+                      ? (isRtl ? "يتطلب إعادة ربط ⚡" : "Reconnect Required ⚡")
+                      : (isRtl ? "غير مربوط" : "Unlinked")}
                   </span>
                   <ArrowUpRight className="size-3 text-zinc-400 group-hover:text-rose-500 transition-colors" />
                 </button>

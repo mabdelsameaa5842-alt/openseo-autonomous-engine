@@ -97,8 +97,8 @@ export const AVAILABLE_MODELS: AIModelOption[] = [
 
   // ── 3. Balanced Flash Series (20 RPD) ──
   {
-    id: "gemini-3.8-flash",
-    name: "Gemini 3.8 Flash",
+    id: "gemini-2.5-flash",
+    name: "Gemini 2.5 Flash",
     tag: "🔥 أحدث جيل فلاش",
     rpm: 5,
     rpd: 20,

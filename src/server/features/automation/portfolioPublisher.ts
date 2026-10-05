@@ -58,6 +58,99 @@ export function getBrandProofBox(domain?: string): string {
 
 export const BRAND_PROOF_BOX = getBrandProofBox();
 
+/**
+ * Sanitizes article titles to prevent recursive suffix looping e.g. "(دليل وتطبيق 2026) (دليل وتطبيق 2026)"
+ * and eliminates duplicate years or excessive parentheses.
+ */
+export function sanitizeArticleTitle(rawTitle: string): string {
+  if (!rawTitle) return "دليل استراتيجي متكامل لعام 2026";
+  let title = rawTitle.trim();
+
+  // Strip duplicate consecutive years e.g. "2026 2026"
+  title = title.replace(/\b2026\s+2026\b/g, "2026");
+
+  // Remove multiple repeated parentheses: e.g. "(رؤية هندسية وتطبيق عملي 2026) (دليل وتطبيق 2026) (دليل وتطبيق 2026)"
+  const parenMatches = title.match(/\([^)]+\)/g);
+  if (parenMatches && parenMatches.length > 1) {
+    const hasEngineering = parenMatches.some((p) => p.includes("رؤية هندسية") || p.includes("تطبيق عملي"));
+    title = title.replace(/\s*\([^)]+\)/g, "").trim();
+    if (hasEngineering) {
+      title = `${title} (رؤية هندسية وتطبيق عملي 2026)`;
+    } else {
+      title = `${title} (دليل وتطبيق 2026)`;
+    }
+  }
+
+  // Deduplicate redundant start and end references
+  if (title.startsWith("دليل 2026") && title.endsWith("(دليل وتطبيق 2026)")) {
+    title = title.replace(/\s*\(دليل وتطبيق 2026\)$/, "").trim();
+  }
+
+  return title.trim();
+}
+
+/**
+ * Strict Pre-Publish Quality Gate
+ * Prevents AI hallucinations, machine gibberish, prompt leaks, and truncated outputs from EVER being published.
+ */
+export function validateArticleQuality(content: string): { isValid: boolean; reason?: string } {
+  if (!content || typeof content !== "string") {
+    return { isValid: false, reason: "المحتوى فارغ تماماً" };
+  }
+  const words = content.split(/\s+/).filter(Boolean);
+  if (words.length < 500) {
+    return { isValid: false, reason: `عدد الكلمات غير كافٍ لنشر دليل احترافي: ${words.length} < 500 كلمة` };
+  }
+
+  const bannedPhrases = [
+    "تحويلات البشرية",
+    "تحويلات النظر",
+    "النظر إلى الأسفل",
+    "النظر إلى الأعلى",
+    "Cloud AI Platform API",
+    "Direct Answer Block من 50 إلى 70 كلمة",
+    "شروط كتابة المقال",
+    "أنت كريم الدسوقي",
+    "الكلمة المفتاحية المحورية",
+    "تجربة المستخدم\n\nتجربة المستخدم",
+    "تجربة المستخدم في تتبع التح",
+  ];
+
+  for (const phrase of bannedPhrases) {
+    if (content.includes(phrase)) {
+      return { isValid: false, reason: `تم رصد عبارة مشوهة أو تسريب للبرومت: "${phrase}"` };
+    }
+  }
+
+  // Check structure: must have at least two Markdown H2 headings
+  const h2Count = (content.match(/^##\s+/gm) || []).length;
+  if (h2Count < 2) {
+    return { isValid: false, reason: `الهيكل غير مكتمل: يحتوي فقط على ${h2Count} عناوين رئيسية (الحد الأدنى 2)` };
+  }
+
+  // Must contain a structured comparison table
+  if (!content.includes("|") || !content.includes("---")) {
+    return { isValid: false, reason: "المقال يفتقر إلى جدول المقارنة المعياري المعتمد" };
+  }
+
+  // Check for truncation at the end
+  const lastLine = content.trim().split("\n").pop() || "";
+  if (
+    lastLine.length < 25 &&
+    !lastLine.endsWith(".") &&
+    !lastLine.endsWith("!") &&
+    !lastLine.endsWith("؟") &&
+    !lastLine.endsWith("`") &&
+    !lastLine.endsWith(">") &&
+    !lastLine.endsWith(")") &&
+    !lastLine.endsWith("*")
+  ) {
+    return { isValid: false, reason: "المقال ينتهي بشكل مقطوع غير مكتمل الصياغة" };
+  }
+
+  return { isValid: true };
+}
+
 export function generateTacticalArticleContent(item: ArticleQueueItem): {
   content: string;
   metaDescription: string;
@@ -424,25 +517,30 @@ export async function generateAndPublishArticle(
       agentName: publishingAgentName,
       operationName: "agent_article_generation",
       moduleFile: "portfolioPublisher.ts:generateAndPublishArticle",
-      preferredModelId: "gemini-3.5-flash-lite",
+      preferredModelId: "gemini-2.5-flash",
     });
 
-    if (aiExec?.text && aiExec.text.trim().length > 350) {
-      modelUsed = aiExec.modelUsed;
-      finalContent = `${aiExec.text.trim()}\n\n${ getBrandProofBox(domain) }`;
-    } else if (aiExec?.text && aiExec.text.trim().length > 80) {
-      modelUsed = aiExec.modelUsed;
-      finalContent = `${aiExec.text.trim()}\n\n---\n\n${generated.content}`;
+    if (aiExec?.text) {
+      const candidateContent = `${aiExec.text.trim()}\n\n${ getBrandProofBox(domain) }`;
+      const quality = validateArticleQuality(candidateContent);
+      if (quality.isValid) {
+        modelUsed = aiExec.modelUsed;
+        finalContent = candidateContent;
+      } else {
+        console.warn(`[portfolioPublisher] ⚠️ محتوى الذكاء الاصطناعي رُفض لعدم استيفاء معايير الجودة الصارمة (${quality.reason}). تم تفعيل المخطط التكتيكي المعياري المعتمد.`);
+        finalContent = generated.content;
+      }
     }
   } catch (aiErr: any) {
     console.warn("[portfolioPublisher] AI enrichment fallback to tactical blueprint:", aiErr?.message);
   }
 
+  const cleanTitle = sanitizeArticleTitle(item.article_title || item.primary_keyword);
   const words = finalContent.split(/\s+/).filter(Boolean).length;
 
   const payload: PortfolioArticlePayload = {
     id: "art_auto_" + item.article_slug.replace(/[^a-zA-Z0-9_-]/g, "").slice(0, 30),
-    title: item.article_title,
+    title: cleanTitle,
     slug: item.article_slug,
     focusKeyword: item.primary_keyword,
     category: generated.category,

@@ -194,11 +194,11 @@ async function getVerifiedLiveGeminiModels(
  * WITHOUT collapsing the entire catalog into 5 hardcoded models.
  */
 export function resolveRealGeminiApiModelId(catalogId?: string): string {
-  if (!catalogId) return "gemini-3.8-flash";
+  if (!catalogId) return "gemini-2.5-flash";
   const clean = catalogId.trim().toLowerCase().replace(/^models\//, "");
   const directPass = [
-    "gemini-3.8-flash",
-    "gemini-3.7-flash",
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
     "gemini-3.6-flash",
     "gemini-3.5-flash",
     "gemini-3.5-flash-lite",
@@ -208,8 +208,8 @@ export function resolveRealGeminiApiModelId(catalogId?: string): string {
     "gemini-flash-latest",
     "gemini-flash-lite-latest",
     "gemini-pro-latest",
-    "gemini-3.8-flash-tts",
-    "gemini-3.8-flash-lite-tts",
+    "gemini-2.5-flash-tts",
+    "gemini-2.5-flash-lite-tts",
     "gemini-3.5-transcribe",
   ];
   if (directPass.includes(clean)) return clean;
@@ -2019,7 +2019,7 @@ ${positiveStyleOverride}`.trim();
     "gemini-3.1-flash-lite",
     "gemini-3-flash-preview",
     "gemini-flash-latest",
-    "gemini-3.8-flash",
+    "gemini-2.5-flash",
     "gemma-4-26b-a4b-it",
     "gemma-3-27b-it",
     ...catalogFallbackModels,
@@ -2221,7 +2221,7 @@ ${positiveStyleOverride}`.trim();
       outputSummary: guardedText.slice(0, 200),
       remediationHint:
         bannedPhrases.length > 0
-          ? `تم تطهير المخرجات عبر Output Guardrail وحظر: (${bannedPhrases.slice(0, 4).join("، ")})`
+          ? `تم التدقيق الأمني وتطهير المخرجات عبر Output Guardrail ومطابقة معايير الصياغة المؤسسية (${bannedPhrases.length} قواعد نشطة).`
           : "تم التنفيذ السحابي المباشر بنجاح عبر Workers AI مع حفظ السياق.",
     });
     return {

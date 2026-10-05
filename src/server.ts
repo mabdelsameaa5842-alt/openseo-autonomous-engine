@@ -224,6 +224,18 @@ async function handleFetch(
     if (autonomousResponse) return autonomousResponse;
   }
 
+  if (pathname === "/api/notifications/subscribe" && publicRequest.method === "POST") {
+    return handleNotificationSubscribe(publicRequest, env);
+  }
+
+  if (pathname === "/api/notifications/test-push" && (publicRequest.method === "POST" || publicRequest.method === "GET")) {
+    return handleNotificationTestPush(publicRequest, env);
+  }
+
+  if (pathname === "/api/notifications/status") {
+    return handleNotificationStatus(publicRequest, env);
+  }
+
   if (pathname === "/api/google-ads/test-permissions") {
     return handleGoogleAdsTestPermissions(publicRequest, env);
   }
@@ -309,11 +321,11 @@ export default {
       return;
     }
 
-    // Watchdog first: reconcile audits stuck in "running" whose workflow died
-    // without reaching mark-failed (OOM/CPU kills, expired instances). Runs
-    // before the rank loop so a slow tick can't delay or starve it. Its
-    // failure is held until after the rank checks so it can't suppress them,
-    // then rethrown so the invocation still reports as failed.
+    // Differentiate cron triggers to prevent overloading D1 row read quota
+    const isThirtyMinCron = controller.cron === "*/30 * * * *";
+    const isFifteenMinCron = controller.cron === "*/15 * * * *";
+
+    // Watchdog first: reconcile audits stuck in "running"
     let watchdogError: unknown;
     try {
       await withPgClient(() => reconcileStaleAudits());
@@ -321,20 +333,25 @@ export default {
       watchdogError = err;
       console.error("[cron] Stale-audit reconcile failed:", err);
     }
-    // Scope a per-request Postgres client for the cron run (no-op in D1 mode).
-    try {
-      await withPgClient(() => runScheduledRankChecks(env));
-    } catch (rankErr) {
-      console.warn("[cron] Scheduled rank check warning:", rankErr);
+
+    // Rank checks run every 30 minutes (not on every 15-minute tick)
+    if (isThirtyMinCron || !isFifteenMinCron) {
+      try {
+        await withPgClient(() => runScheduledRankChecks(env));
+      } catch (rankErr) {
+        console.warn("[cron] Scheduled rank check warning:", rankErr);
+      }
     }
 
-    // Autonomous SEO, Self-Healing Pipeline & IndexNow Scheduled Tick (Every 30 min)
+    // Autonomous SEO, Self-Healing Pipeline & IndexNow Scheduled Tick
     try {
       const { executeScheduledAutonomousTick, scrapePortfolioGroundTruth } = await import(
         "@/server/features/automation/autonomousHandler"
       );
-      await executeScheduledAutonomousTick(env);
-      await scrapePortfolioGroundTruth(env, true);
+      if (isThirtyMinCron || !isFifteenMinCron) {
+        await executeScheduledAutonomousTick(env);
+      }
+      await scrapePortfolioGroundTruth(env, isThirtyMinCron);
     } catch (autoErr) {
       console.warn("[cron] Autonomous pipeline scheduled tick warning:", autoErr);
     }

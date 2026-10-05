@@ -110,8 +110,8 @@ export const UnifiedEcosystemTelemetryHub: React.FC<UnifiedEcosystemTelemetryHub
             </div>
             <p className="text-[11px] text-zinc-500 dark:text-zinc-400 mt-0.5">
               {isRtl
-                ? "إدارة مركزية لكوتا قراءات Cloudflare D1، تبريد نماذج الذكاء الاصطناعي، وسلامة المنصات الـ 8"
-                : "Centralized Broker for D1 read quotas, AI model cooldown cascades, and 8-platform mesh health"}
+                ? "إدارة مركزية لكوتا قراءات Cloudflare D1، تبريد نماذج الذكاء الاصطناعي، وسلامة شبكة المنصات الـ 11"
+                : "Centralized Broker for D1 read quotas, AI model cooldown cascades, and 11-platform mesh health"}
             </p>
           </div>
         </div>
@@ -217,25 +217,37 @@ export const UnifiedEcosystemTelemetryHub: React.FC<UnifiedEcosystemTelemetryHub
           </div>
         </div>
 
-        {/* Column 3: 8 Platforms Mesh & Search Grounding */}
+        {/* Column 3: 11 Platforms Mesh & Search Grounding */}
         <div className="rounded-2xl border border-zinc-200/60 dark:border-white/5 bg-zinc-50/50 dark:bg-zinc-800/40 p-4 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-bold text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                 <Layers className="size-4 text-emerald-500" />
-                {isRtl ? "شبكة المنصات الـ 8 والبحث الحي" : "8 Platforms & Search Mesh"}
+                {isRtl ? "شبكة المنصات الـ 11 والبحث الحي" : "11 Platforms & Search Mesh"}
               </span>
               <span className="size-2 rounded-full bg-emerald-500 animate-ping" />
             </div>
 
             <p className="text-[11px] text-zinc-600 dark:text-zinc-300 leading-relaxed mb-3">
               {isRtl
-                ? "مزامنة لحظية مستمرة بين Google Search Console و GA4 و Google Ads و AI Studio و Supabase و GitHub و Vercel و Cloudflare."
-                : "Live sync mesh spanning GSC, GA4, Ads, AI Studio, Supabase, GitHub, Vercel, and Cloudflare."}
+                ? "مزامنة لحظية مستمرة بين GSC، GA4، Ads، AI Studio، Supabase، GitHub، Vercel، Cloudflare، Clerk، Camber، و Tavily."
+                : "Live sync mesh spanning GSC, GA4, Ads, AI Studio, Supabase, GitHub, Vercel, Cloudflare, Clerk, Camber, and Tavily."}
             </p>
 
-            <div className="grid grid-cols-4 gap-1.5 text-center text-[9px] font-bold">
-              {["GSC", "GA4", "Ads", "AI Studio", "Supabase", "GitHub", "Vercel", "Cloudflare"].map((p) => (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5 text-center text-[9px] font-bold">
+              {[
+                "GSC",
+                "GA4",
+                "Ads",
+                "AI Studio",
+                "Supabase",
+                "GitHub",
+                "Vercel",
+                "Cloudflare",
+                "Clerk",
+                "Camber",
+                "Tavily",
+              ].map((p) => (
                 <span
                   key={p}
                   className="py-1 px-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 dark:text-emerald-300 truncate"
