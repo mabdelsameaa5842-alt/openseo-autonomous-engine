@@ -11972,19 +11972,96 @@ export async function handlePlatformsTelemetry(
 
     if (env && (env as any).OAUTH_KV) {
       try {
-        const rawGsc = await (env as any).OAUTH_KV.get("oauth_grant:gsc");
+        const rawGsc =
+          (await (env as any).OAUTH_KV.get("oauth_grant:gsc")) ||
+          (await (env as any).OAUTH_KV.get("oauth_grant:google-search-console"));
         if (rawGsc) gscGrant = JSON.parse(rawGsc);
       } catch {}
       try {
-        const rawGa4 = await (env as any).OAUTH_KV.get("oauth_grant:ga4");
+        const rawGa4 =
+          (await (env as any).OAUTH_KV.get("oauth_grant:ga4")) ||
+          (await (env as any).OAUTH_KV.get("oauth_grant:google-analytics"));
         if (rawGa4) ga4Grant = JSON.parse(rawGa4);
       } catch {}
       try {
         const rawAds =
+          (await (env as any).OAUTH_KV.get("oauth_grant:google-ads")) ||
           (await (env as any).OAUTH_KV.get("oauth_grant:google_ads")) ||
           (await (env as any).OAUTH_KV.get("oauth_grant:ads"));
         if (rawAds) adsGrant = JSON.parse(rawAds);
       } catch {}
+    }
+
+    // Resilient fallback to Supabase KV Mirror if missing from Cloudflare KV
+    if (!gscGrant || !ga4Grant || !adsGrant) {
+      try {
+        const { supabaseKvGet } = await import("@/server/features/automation/SubMillisecondFallbackEngine");
+        if (!gscGrant) {
+          const raw = (await supabaseKvGet<any>("oauth_grant:gsc")) || (await supabaseKvGet<any>("oauth_grant:google-search-console"));
+          if (raw) gscGrant = typeof raw === "string" ? JSON.parse(raw) : raw;
+        }
+        if (!ga4Grant) {
+          const raw = (await supabaseKvGet<any>("oauth_grant:ga4")) || (await supabaseKvGet<any>("oauth_grant:google-analytics"));
+          if (raw) ga4Grant = typeof raw === "string" ? JSON.parse(raw) : raw;
+        }
+        if (!adsGrant) {
+          const raw =
+            (await supabaseKvGet<any>("oauth_grant:google-ads")) ||
+            (await supabaseKvGet<any>("oauth_grant:google_ads")) ||
+            (await supabaseKvGet<any>("oauth_grant:ads"));
+          if (raw) adsGrant = typeof raw === "string" ? JSON.parse(raw) : raw;
+        }
+      } catch {}
+    }
+
+    // Direct D1 database fallback if any grant is still not resolved
+    if (env && (env as any).DB) {
+      const d1 = (env as any).DB;
+      if (!gscGrant) {
+        try {
+          const row: any = await d1.prepare(
+            "SELECT access_token, refresh_token, access_token_expires_at FROM account WHERE provider_id IN ('google-search-console', 'gsc') ORDER BY created_at DESC LIMIT 1"
+          ).first().catch(() => null);
+          if (row && (row.access_token || row.refresh_token)) {
+            gscGrant = {
+              accessToken: row.access_token,
+              refreshToken: row.refresh_token,
+              expiresAt: row.access_token_expires_at,
+              status: "connected",
+            };
+          }
+        } catch {}
+      }
+      if (!ga4Grant) {
+        try {
+          const row: any = await d1.prepare(
+            "SELECT access_token, refresh_token, access_token_expires_at FROM account WHERE provider_id IN ('google-analytics', 'ga4') ORDER BY created_at DESC LIMIT 1"
+          ).first().catch(() => null);
+          if (row && (row.access_token || row.refresh_token)) {
+            ga4Grant = {
+              accessToken: row.access_token,
+              refreshToken: row.refresh_token,
+              expiresAt: row.access_token_expires_at,
+              status: "connected",
+            };
+          }
+        } catch {}
+      }
+      if (!adsGrant) {
+        try {
+          const row: any = await d1.prepare(
+            "SELECT access_token, refresh_token, access_token_expires_at FROM account WHERE provider_id IN ('google-ads', 'google_ads') ORDER BY created_at DESC LIMIT 1"
+          ).first().catch(() => null);
+          if (row && (row.access_token || row.refresh_token)) {
+            adsGrant = {
+              accessToken: row.access_token,
+              refreshToken: row.refresh_token,
+              expiresAt: row.access_token_expires_at,
+              status: "connected",
+            };
+          }
+        } catch {}
+      }
     }
 
     const isGscRevokedOrExpired =
@@ -12017,15 +12094,33 @@ export async function handlePlatformsTelemetry(
         const { getOrRefreshGoogleOAuthTokenFromKv } = await import("@/server/features/google/selfHostedOAuth");
         if (isGscConnected) {
           const t = await getOrRefreshGoogleOAuthTokenFromKv("gsc").catch(() => null);
-          isGscConnected = Boolean(t?.accessToken);
+          if (t?.accessToken) {
+            isGscConnected = true;
+          } else if (gscGrant?.refreshToken || gscGrant?.accessToken) {
+            isGscConnected = true;
+          } else {
+            isGscConnected = false;
+          }
         }
         if (isGa4Connected) {
           const t = await getOrRefreshGoogleOAuthTokenFromKv("ga4").catch(() => null);
-          isGa4Connected = Boolean(t?.accessToken);
+          if (t?.accessToken) {
+            isGa4Connected = true;
+          } else if (ga4Grant?.refreshToken || ga4Grant?.accessToken) {
+            isGa4Connected = true;
+          } else {
+            isGa4Connected = false;
+          }
         }
         if (isAdsConnected) {
           const t = await getOrRefreshGoogleOAuthTokenFromKv("google-ads").catch(() => null);
-          isAdsConnected = Boolean(t?.accessToken);
+          if (t?.accessToken) {
+            isAdsConnected = true;
+          } else if (adsGrant?.refreshToken || adsGrant?.accessToken) {
+            isAdsConnected = true;
+          } else {
+            isAdsConnected = false;
+          }
         }
       } catch {}
     }

@@ -2,12 +2,6 @@ import {
   createStartHandler,
   defaultStreamHandler,
 } from "@tanstack/react-start/server";
-import { routeAgentRequest } from "agents";
-import { resolveUserContextFromHeaders } from "@/middleware/ensure-user/resolve";
-import { ProjectRepository } from "@/server/features/projects/repositories/ProjectRepository";
-import { SamSessionRepository } from "@/server/features/sam/SamSessionRepository";
-import { getOrCreateOrganizationCustomer } from "@/server/billing/subscription";
-import { isHostedServerAuthMode } from "@/server/lib/runtime-env";
 import { getAuthMode, isHostedAuthMode } from "@/lib/auth-mode";
 import {
   createOpenSeoOAuthProvider,
@@ -15,52 +9,27 @@ import {
 } from "@/server/mcp/oauth-provider";
 import { requestWithPublicOrigin } from "@/server/mcp/public-origin";
 import { MCP_ROUTE } from "@/server/mcp/context";
-import { handleSelfHostedOpenSeoMcpRequest } from "@/server/mcp/transport";
-import {
-  AUTUMN_WEBHOOK_PATH,
-  handleAutumnWebhookRequest,
-} from "@/server/billing/autumn-webhook";
-import { handleGdprStorageErasure } from "@/server/gdpr/storage-erasure";
+import { AUTUMN_WEBHOOK_PATH } from "@/server/billing/autumn-webhook";
 import { GDPR_STORAGE_ERASURE_PATH } from "@/shared/gdpr-erasure";
-import { handleGoogleAdsTestPermissions } from "@/server/features/google-ads/testPermissionsHandler";
-import {
-  handleSuperAdminLogin,
-  handleSuperAdminSession,
-  handleSuperAdminLogout,
-} from "@/server/features/auth/superAdminAuth";
-import {
-  handleNotificationSubscribe,
-  handleNotificationTestPush,
-  handleNotificationStatus,
-} from "@/server/features/notifications/pushNotificationHandler";
-import {
-  AgentCloudWatchdogService,
-  handleAgentsPingConnection,
-  handleAgentsChangeState,
-} from "@/server/features/automation/agentCloudWatchdog";
-import {
-  GSC_INTEGRATION,
-  GA4_INTEGRATION,
-  GOOGLE_ADS_INTEGRATION,
-  handleSelfHostedGoogleOAuthCallbackRequest,
-} from "@/server/features/google/selfHostedOAuth";
 import { setGlobalWorkerEnv } from "@/server/lib/workerEnv";
 
 // Core TanStack Start handler
 const appFetch = createStartHandler(defaultStreamHandler);
 const openSeoOAuthProvider = createOpenSeoOAuthProvider(appFetch);
 
-// Chat Durable Objects Authorizers
+// Chat Durable Objects Authorizers (Lazy loaded to protect worker startup CPU limit)
 async function authorizeOnboardingChat(
   request: Request,
   projectId: string,
 ): Promise<Response | undefined> {
+  const { resolveUserContextFromHeaders } = await import("@/middleware/ensure-user/resolve");
   let context;
   try {
     context = await resolveUserContextFromHeaders(request.headers);
   } catch {
     return new Response("Unauthorized", { status: 401 });
   }
+  const { ProjectRepository } = await import("@/server/features/projects/repositories/ProjectRepository");
   const project = await ProjectRepository.getProjectForOrganization(
     projectId,
     context.organizationId,
@@ -68,7 +37,9 @@ async function authorizeOnboardingChat(
   if (!project) {
     return new Response("Forbidden", { status: 403 });
   }
+  const { isHostedServerAuthMode } = await import("@/server/lib/runtime-env");
   if (await isHostedServerAuthMode()) {
+    const { getOrCreateOrganizationCustomer } = await import("@/server/billing/subscription");
     await getOrCreateOrganizationCustomer(context);
   }
   return undefined;
@@ -78,16 +49,19 @@ async function authorizeSamChat(
   request: Request,
   sessionId: string,
 ): Promise<Response | undefined> {
+  const { resolveUserContextFromHeaders } = await import("@/middleware/ensure-user/resolve");
   let context;
   try {
     context = await resolveUserContextFromHeaders(request.headers);
   } catch {
     return new Response("Unauthorized", { status: 401 });
   }
+  const { SamSessionRepository } = await import("@/server/features/sam/SamSessionRepository");
   const session = await SamSessionRepository.getActiveSession(
     sessionId,
     context.userId,
   );
+  const { ProjectRepository } = await import("@/server/features/projects/repositories/ProjectRepository");
   const project = session
     ? await ProjectRepository.getProjectForOrganization(
         session.projectId,
@@ -97,7 +71,9 @@ async function authorizeSamChat(
   if (!session || !project) {
     return new Response("Forbidden", { status: 403 });
   }
+  const { isHostedServerAuthMode } = await import("@/server/lib/runtime-env");
   if (await isHostedServerAuthMode()) {
+    const { getOrCreateOrganizationCustomer } = await import("@/server/billing/subscription");
     await getOrCreateOrganizationCustomer(context);
   }
   return undefined;
@@ -118,6 +94,7 @@ function authorizeChatAgent(
 }
 
 async function routeChatAgents(request: Request, env: Env): Promise<Response> {
+  const { routeAgentRequest } = await import("agents");
   const response = await routeAgentRequest(request, env, {
     cors: true,
     onBeforeConnect: (req, lobby) => authorizeChatAgent(req, lobby),
@@ -168,20 +145,35 @@ export async function handleMasterRouter(
 
   // Phase 2: Compliance & GDPR Storage Erasure
   if (pathname === GDPR_STORAGE_ERASURE_PATH) {
+    const { handleGdprStorageErasure } = await import("@/server/gdpr/storage-erasure");
     return handleGdprStorageErasure(publicRequest, env);
   }
 
   // Phase 3: Google Ecosystem & Direct OAuth Callbacks
-  if (pathname === "/api/gsc/oauth/callback") {
-    return handleSelfHostedGoogleOAuthCallbackRequest(publicRequest, GSC_INTEGRATION);
-  }
-  if (pathname === "/api/ga4/oauth/callback") {
-    return handleSelfHostedGoogleOAuthCallbackRequest(publicRequest, GA4_INTEGRATION);
-  }
-  if (pathname === "/api/google-ads/oauth/callback") {
+  if (
+    pathname === "/api/gsc/oauth/callback" ||
+    pathname === "/api/ga4/oauth/callback" ||
+    pathname === "/api/google-ads/oauth/callback"
+  ) {
+    const {
+      GSC_INTEGRATION,
+      GA4_INTEGRATION,
+      GOOGLE_ADS_INTEGRATION,
+      handleSelfHostedGoogleOAuthCallbackRequest,
+    } = await import("@/server/features/google/selfHostedOAuth");
+    if (pathname === "/api/gsc/oauth/callback") {
+      return handleSelfHostedGoogleOAuthCallbackRequest(publicRequest, GSC_INTEGRATION);
+    }
+    if (pathname === "/api/ga4/oauth/callback") {
+      return handleSelfHostedGoogleOAuthCallbackRequest(publicRequest, GA4_INTEGRATION);
+    }
     return handleSelfHostedGoogleOAuthCallbackRequest(publicRequest, GOOGLE_ADS_INTEGRATION);
   }
+
   if (pathname === "/api/google-ads/test-permissions") {
+    const { handleGoogleAdsTestPermissions } = await import(
+      "@/server/features/google-ads/testPermissionsHandler"
+    );
     return handleGoogleAdsTestPermissions(publicRequest, env);
   }
 
@@ -196,6 +188,9 @@ export async function handleMasterRouter(
     pathname === "/api/public/articles"
   ) {
     if (pathname === "/api/automation/agents-simulation-state") {
+      const { AgentCloudWatchdogService } = await import(
+        "@/server/features/automation/agentCloudWatchdog"
+      );
       return Response.json({
         ok: true,
         agents: AgentCloudWatchdogService.getAgents(),
@@ -204,10 +199,16 @@ export async function handleMasterRouter(
     }
 
     if (pathname === "/api/automation/agents-ping-connection" && publicRequest.method === "POST") {
+      const { handleAgentsPingConnection } = await import(
+        "@/server/features/automation/agentCloudWatchdog"
+      );
       return handleAgentsPingConnection(publicRequest);
     }
 
     if (pathname === "/api/automation/agents-change-state" && publicRequest.method === "POST") {
+      const { handleAgentsChangeState } = await import(
+        "@/server/features/automation/agentCloudWatchdog"
+      );
       return handleAgentsChangeState(publicRequest);
     }
 
@@ -220,26 +221,44 @@ export async function handleMasterRouter(
 
   // Phase 5: Push Notifications & Alerting
   if (pathname === "/api/notifications/subscribe" && publicRequest.method === "POST") {
+    const { handleNotificationSubscribe } = await import(
+      "@/server/features/notifications/pushNotificationHandler"
+    );
     return handleNotificationSubscribe(publicRequest, env);
   }
   if (
     pathname === "/api/notifications/test-push" &&
     (publicRequest.method === "POST" || publicRequest.method === "GET")
   ) {
+    const { handleNotificationTestPush } = await import(
+      "@/server/features/notifications/pushNotificationHandler"
+    );
     return handleNotificationTestPush(publicRequest, env);
   }
   if (pathname === "/api/notifications/status") {
+    const { handleNotificationStatus } = await import(
+      "@/server/features/notifications/pushNotificationHandler"
+    );
     return handleNotificationStatus(publicRequest, env);
   }
 
   // Phase 6: Super-Admin Zero-Trust Authentication
   if (pathname === "/api/auth/super-admin/login") {
+    const { handleSuperAdminLogin } = await import(
+      "@/server/features/auth/superAdminAuth"
+    );
     return handleSuperAdminLogin(publicRequest, env);
   }
   if (pathname === "/api/auth/super-admin/session") {
+    const { handleSuperAdminSession } = await import(
+      "@/server/features/auth/superAdminAuth"
+    );
     return handleSuperAdminSession(publicRequest);
   }
   if (pathname === "/api/auth/super-admin/logout") {
+    const { handleSuperAdminLogout } = await import(
+      "@/server/features/auth/superAdminAuth"
+    );
     return handleSuperAdminLogout();
   }
 
@@ -251,6 +270,9 @@ export async function handleMasterRouter(
   // Phase 8: Hosted Auth Mode, Autumn Webhooks & MCP OAuth Provider
   if (isHostedAuthMode(authMode)) {
     if (pathname === AUTUMN_WEBHOOK_PATH) {
+      const { handleAutumnWebhookRequest } = await import(
+        "@/server/billing/autumn-webhook"
+      );
       return handleAutumnWebhookRequest(publicRequest);
     }
 
@@ -266,6 +288,9 @@ export async function handleMasterRouter(
     (authMode === "cloudflare_access" || authMode === "local_noauth") &&
     pathname === MCP_ROUTE
   ) {
+    const { handleSelfHostedOpenSeoMcpRequest } = await import(
+      "@/server/mcp/transport"
+    );
     return handleSelfHostedOpenSeoMcpRequest(publicRequest, authMode, env, ctx);
   }
 

@@ -1,9 +1,6 @@
 import { withPgClient } from "@/db";
 import { getAuthMode, isHostedAuthMode } from "@/lib/auth-mode";
-import { reconcileStaleAudits } from "@/server/features/audit/services/auditReconciler";
-import { runScheduledRankChecks } from "@/server/features/rank-tracking/services/scheduledRankChecks";
 import { type OpenSeoOAuthEnv } from "@/server/mcp/oauth-provider";
-import { sweepDubReferredOrganizations } from "@/server/referrals/dub";
 import { handleMasterRouter, openSeoOAuthProvider } from "@/server/router";
 
 function fetch(
@@ -51,6 +48,7 @@ export default {
         // Daily referral-sale sweep: catches paid Autumn invoices the
         // billing.updated webhook path misses (renewals, one-time top-ups).
         try {
+          const { sweepDubReferredOrganizations } = await import("@/server/referrals/dub");
           await sweepDubReferredOrganizations();
         } catch (err) {
           console.error("[cron] Dub referral sale sweep failed:", err);
@@ -66,6 +64,7 @@ export default {
     // Watchdog first: reconcile audits stuck in "running"
     let watchdogError: unknown;
     try {
+      const { reconcileStaleAudits } = await import("@/server/features/audit/services/auditReconciler");
       await withPgClient(() => reconcileStaleAudits());
     } catch (err) {
       watchdogError = err;
@@ -75,6 +74,7 @@ export default {
     // Rank checks run every 30 minutes (not on every 15-minute tick)
     if (isThirtyMinCron || !isFifteenMinCron) {
       try {
+        const { runScheduledRankChecks } = await import("@/server/features/rank-tracking/services/scheduledRankChecks");
         await withPgClient(() => runScheduledRankChecks(env));
       } catch (rankErr) {
         console.warn("[cron] Scheduled rank check warning:", rankErr);

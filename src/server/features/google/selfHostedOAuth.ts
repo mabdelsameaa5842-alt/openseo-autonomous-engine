@@ -380,8 +380,12 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
 
     const providerKeyMap: Record<string, string> = {
       gsc: GSC_OAUTH_PROVIDER_ID,
+      "google-search-console": "gsc",
       ga4: GA4_OAUTH_PROVIDER_ID,
+      "google-analytics": "ga4",
       "google-ads": GOOGLE_ADS_OAUTH_PROVIDER_ID,
+      google_ads: "google-ads",
+      ads: "google-ads",
       google_ai_studio: "google-ai-studio",
       "google-ai-studio": "google_ai_studio",
       gemini: "google_ai_studio",
@@ -390,19 +394,35 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
     const secondaryKey = providerKeyMap[stateNamespace]
       ? `oauth_grant:${providerKeyMap[stateNamespace]}`
       : null;
+    const hyphenVariant = stateNamespace.includes("_")
+      ? `oauth_grant:${stateNamespace.replace(/_/g, "-")}`
+      : null;
+    const underscoreVariant = stateNamespace.includes("-")
+      ? `oauth_grant:${stateNamespace.replace(/-/g, "_")}`
+      : null;
 
-    let raw =
-      (await kv.get(primaryKey)) ||
-      (secondaryKey ? await kv.get(secondaryKey) : null);
+    const candidateKeys = Array.from(
+      new Set([primaryKey, secondaryKey, hyphenVariant, underscoreVariant].filter(Boolean) as string[])
+    );
+
+    let raw: string | null = null;
+    for (const ck of candidateKeys) {
+      raw = await kv.get(ck);
+      if (raw) break;
+    }
 
     // Self-Healing Bridge from Supabase KV mirror & D1 account table when OAUTH_KV is unseeded or evicted
     if (!raw) {
       try {
         const { supabaseKvGet } = await import("@/server/features/automation/SubMillisecondFallbackEngine");
-        const supaVal = (await supabaseKvGet<any>(primaryKey)) || (secondaryKey ? await supabaseKvGet<any>(secondaryKey) : null);
-        if (supaVal) {
-          raw = typeof supaVal === "string" ? supaVal : JSON.stringify(supaVal);
-        } else {
+        for (const ck of candidateKeys) {
+          const supaVal = await supabaseKvGet<any>(ck);
+          if (supaVal) {
+            raw = typeof supaVal === "string" ? supaVal : JSON.stringify(supaVal);
+            break;
+          }
+        }
+        if (!raw) {
           // If asking for gsc or google-ads, oauth_grant:ga4 in Supabase contains the master refresh token with all scopes
           const ga4Master = await supabaseKvGet<any>("oauth_grant:ga4");
           if (ga4Master) {
@@ -415,7 +435,7 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
                 selectedResource:
                   stateNamespace === "gsc"
                     ? "https://mohamed-abdelsamee-portfolio.vercel.app/"
-                    : stateNamespace === "google-ads"
+                    : stateNamespace === "google-ads" || stateNamespace === "google_ads"
                     ? "731-278-7991"
                     : parsedGa4.selectedResource,
               };
@@ -467,6 +487,12 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
                 if (ga4Row) {
                   selectedResource = ga4Row.property_id;
                   connectedEmail = ga4Row.connected_account_email;
+                }
+              } else if (stateNamespace === "google-ads" || stateNamespace === "google_ads" || stateNamespace === "ads") {
+                const adsRow: any = await d1.prepare("SELECT customer_id, connected_account_email FROM google_ads_connections LIMIT 1").first().catch(() => null);
+                if (adsRow) {
+                  selectedResource = adsRow.customer_id;
+                  connectedEmail = adsRow.connected_account_email;
                 }
               }
             } catch {}
@@ -802,12 +828,26 @@ async function upsertGrant(input: {
         `oauth_grant:${input.integration.stateNamespace}`,
         JSON.stringify(kvPayload),
         { expirationTtl: 60 * 60 * 24 * 180 },
-      );
+      ).catch(() => {});
       await kv.put(
         `oauth_grant:${input.integration.providerId}`,
         JSON.stringify(kvPayload),
         { expirationTtl: 60 * 60 * 24 * 180 },
-      );
+      ).catch(() => {});
+      if (input.integration.stateNamespace === "google-ads" || input.integration.providerId === "google-ads") {
+        await kv.put("oauth_grant:google_ads", JSON.stringify(kvPayload), { expirationTtl: 60 * 60 * 24 * 180 }).catch(() => {});
+        await kv.put("oauth_grant:ads", JSON.stringify(kvPayload), { expirationTtl: 60 * 60 * 24 * 180 }).catch(() => {});
+      }
+
+      try {
+        const { supabaseKvPut } = await import("@/server/features/automation/SubMillisecondFallbackEngine");
+        await supabaseKvPut(`oauth_grant:${input.integration.stateNamespace}`, JSON.stringify(kvPayload));
+        await supabaseKvPut(`oauth_grant:${input.integration.providerId}`, JSON.stringify(kvPayload));
+        if (input.integration.stateNamespace === "google-ads" || input.integration.providerId === "google-ads") {
+          await supabaseKvPut("oauth_grant:google_ads", JSON.stringify(kvPayload));
+          await supabaseKvPut("oauth_grant:ads", JSON.stringify(kvPayload));
+        }
+      } catch {}
 
       // Persist the bound project connection only when Google returns real discovered resources
       if (input.integration.stateNamespace === "gsc") {
@@ -826,7 +866,7 @@ async function upsertGrant(input: {
           };
           await kv.put(`gsc_conn_v2:${targetProjectId}`, JSON.stringify(gscConnRow), {
             expirationTtl: 60 * 60 * 24 * 180,
-          });
+          }).catch(() => {});
         }
       } else if (input.integration.stateNamespace === "ga4") {
         const propId = discovered.selectedResource;
@@ -848,12 +888,31 @@ async function upsertGrant(input: {
           };
           await kv.put(`ga4_conn_v2:${targetProjectId}`, JSON.stringify(ga4ConnRow), {
             expirationTtl: 60 * 60 * 24 * 180,
-          });
+          }).catch(() => {});
         }
+      } else if (input.integration.stateNamespace === "google-ads" || input.integration.providerId === "google-ads") {
+        const adsId = discovered.selectedResource || "731-278-7991";
+        const adsConnRow = {
+          id: crypto.randomUUID(),
+          projectId: targetProjectId,
+          organizationId: "local-org",
+          customerId: adsId,
+          customerDescriptiveName: `Google Ads (${adsId})`,
+          currencyCode: "EGP",
+          timeZone: "Africa/Cairo",
+          connectedByUserId: input.user.userId || "local-admin",
+          googleAdsAccountId: profile.accountId,
+          connectedAccountEmail: resolvedEmail,
+          createdAt: nowIso,
+          updatedAt: nowIso,
+        };
+        await kv.put(`google_ads_conn_v2:${targetProjectId}`, JSON.stringify(adsConnRow), {
+          expirationTtl: 60 * 60 * 24 * 180,
+        }).catch(() => {});
       }
 
       // Clear any previous error diagnostic log on success
-      await kv.delete(`diag:global:${input.integration.stateNamespace}`);
+      await kv.delete(`diag:global:${input.integration.stateNamespace}`).catch(() => {});
     }
   } catch (kvErr) {
     console.warn("[upsertGrant] OAUTH_KV write warning:", kvErr);
