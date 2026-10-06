@@ -809,47 +809,47 @@ async function upsertGrant(input: {
         { expirationTtl: 60 * 60 * 24 * 180 },
       );
 
-      // Immediately persist the bound project connection in OAUTH_KV so Dashboard & Banner turn Connected immediately!
+      // Persist the bound project connection only when Google returns real discovered resources
       if (input.integration.stateNamespace === "gsc") {
-        const siteUrl =
-          discovered.selectedResource ||
-          "https://mohamed-abdelsamee-portfolio.vercel.app/";
-        const gscConnRow = {
-          id: crypto.randomUUID(),
-          projectId: targetProjectId,
-          organizationId: "local-org",
-          siteUrl,
-          connectedByUserId: input.user.userId || "local-admin",
-          gscAccountId: profile.accountId,
-          connectedAccountEmail: resolvedEmail,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        };
-        await kv.put(`gsc_conn_v2:${targetProjectId}`, JSON.stringify(gscConnRow), {
-          expirationTtl: 60 * 60 * 24 * 180,
-        });
+        const siteUrl = discovered.selectedResource;
+        if (siteUrl) {
+          const gscConnRow = {
+            id: crypto.randomUUID(),
+            projectId: targetProjectId,
+            organizationId: "local-org",
+            siteUrl,
+            connectedByUserId: input.user.userId || "local-admin",
+            gscAccountId: profile.accountId,
+            connectedAccountEmail: resolvedEmail,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          };
+          await kv.put(`gsc_conn_v2:${targetProjectId}`, JSON.stringify(gscConnRow), {
+            expirationTtl: 60 * 60 * 24 * 180,
+          });
+        }
       } else if (input.integration.stateNamespace === "ga4") {
-        const propId = discovered.selectedResource || "properties/553404486";
-        const matchedProp = discovered.availableResources.find((r) => r.id === propId);
-        const ga4ConnRow = {
-          id: crypto.randomUUID(),
-          projectId: targetProjectId,
-          organizationId: "local-org",
-          propertyId: propId,
-          propertyDisplayName:
-            matchedProp?.label ||
-            "https://mohamed-abdelsamee-portfolio.vercel.app/ — mohamed abdelsameaa",
-          propertyTimeZone: "Africa/Cairo",
-          propertyCurrencyCode: "EGP",
-          connectedByUserId: input.user.userId || "local-admin",
-          ga4AccountId: profile.accountId,
-          connectedAccountEmail: resolvedEmail,
-          createdAt: nowIso,
-          updatedAt: nowIso,
-        };
-        await kv.put(`ga4_conn_v2:${targetProjectId}`, JSON.stringify(ga4ConnRow), {
-          expirationTtl: 60 * 60 * 24 * 180,
-        });
+        const propId = discovered.selectedResource;
+        if (propId) {
+          const matchedProp = discovered.availableResources.find((r) => r.id === propId);
+          const ga4ConnRow = {
+            id: crypto.randomUUID(),
+            projectId: targetProjectId,
+            organizationId: "local-org",
+            propertyId: propId,
+            propertyDisplayName: matchedProp?.label || propId,
+            propertyTimeZone: "Africa/Cairo",
+            propertyCurrencyCode: "EGP",
+            connectedByUserId: input.user.userId || "local-admin",
+            ga4AccountId: profile.accountId,
+            connectedAccountEmail: resolvedEmail,
+            createdAt: nowIso,
+            updatedAt: nowIso,
+          };
+          await kv.put(`ga4_conn_v2:${targetProjectId}`, JSON.stringify(ga4ConnRow), {
+            expirationTtl: 60 * 60 * 24 * 180,
+          });
+        }
       }
 
       // Clear any previous error diagnostic log on success

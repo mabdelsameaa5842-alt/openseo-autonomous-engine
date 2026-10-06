@@ -76,22 +76,21 @@ async function getByProjectId(
           grant.status !== "reconnect_required" &&
           grant.status !== "revoked"
         ) {
-          const preferredSite =
-            grant.availableResources?.find((r) =>
-              r.id?.toLowerCase().includes("mohamed-abdelsamee"),
-            )?.id ||
+          const resolvedSiteUrl =
             grant.selectedResource ||
-            grant.availableResources?.[0]?.id ||
-            "https://mohamed-abdelsamee-portfolio.vercel.app/";
+            grant.availableResources?.[0]?.id;
+          if (!resolvedSiteUrl) {
+            return null;
+          }
           const now = grant.connectedAt || new Date().toISOString();
           const autoRow: GscConnection = {
             id: `gsc_${projectId}`,
             projectId,
             organizationId: "local-org",
-            siteUrl: preferredSite,
+            siteUrl: resolvedSiteUrl,
             connectedByUserId: grant.userId || "local-admin",
-            gscAccountId: grant.accountId || "google_gsc_kv",
-            connectedAccountEmail: grant.email || "mohamed701164@gmail.com",
+            gscAccountId: grant.accountId || "google_gsc",
+            connectedAccountEmail: grant.email || null,
             createdAt: now,
             updatedAt: now,
           };

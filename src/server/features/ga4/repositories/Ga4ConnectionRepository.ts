@@ -76,33 +76,28 @@ async function getByProjectId(
           grant.status !== "reconnect_required" &&
           grant.status !== "revoked"
         ) {
-          const preferredProp =
-            grant.availableResources?.find(
-              (r) =>
-                r.id === "properties/553404486" ||
-                r.label?.toLowerCase().includes("mohamed-abdelsamee") ||
-                r.label?.toLowerCase().includes("portfolio"),
-            ) ||
-            grant.availableResources?.[0];
-          const propId =
-            preferredProp?.id ||
+          const resolvedPropId =
             grant.selectedResource ||
-            "properties/553404486";
-          const propLabel =
-            preferredProp?.label ||
-            "https://mohamed-abdelsamee-portfolio.vercel.app/ — mohamed abdelsameaa";
+            grant.availableResources?.[0]?.id;
+          if (!resolvedPropId) {
+            return null;
+          }
+          const matchedProp = grant.availableResources?.find(
+            (r) => r.id === resolvedPropId,
+          );
+          const propLabel = matchedProp?.label || resolvedPropId;
           const now = grant.connectedAt || new Date().toISOString();
           const autoRow: Ga4Connection = {
             id: `ga4_${projectId}`,
             projectId,
             organizationId: "local-org",
-            propertyId: propId,
+            propertyId: resolvedPropId,
             propertyDisplayName: propLabel,
             propertyTimeZone: "Africa/Cairo",
             propertyCurrencyCode: "EGP",
             connectedByUserId: grant.userId || "local-admin",
-            ga4AccountId: grant.accountId || "google_ga4_kv",
-            connectedAccountEmail: grant.email || "mohamed701164@gmail.com",
+            ga4AccountId: grant.accountId || "google_ga4",
+            connectedAccountEmail: grant.email || null,
             createdAt: now,
             updatedAt: now,
           };
