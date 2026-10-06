@@ -1,4 +1,9 @@
 import { env } from "cloudflare:workers";
+import { getGlobalWorkerEnv } from "@/server/lib/workerEnv";
+
+function getEffectiveEnv(): any {
+  return getGlobalWorkerEnv() || env;
+}
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { account } from "@/db/schema";
@@ -60,7 +65,7 @@ async function userHasGrant(userId: string): Promise<boolean> {
 
 async function listGrantsForUser(userId: string) {
   try {
-    const kv = (env as any)?.OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (kv) {
       const raw = await kv.get("oauth_grant:gsc");
       if (raw) {

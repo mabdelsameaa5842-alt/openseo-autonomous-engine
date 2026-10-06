@@ -1,5 +1,10 @@
 import { symmetricEncrypt } from "better-auth/crypto";
 import { env } from "cloudflare:workers";
+import { getGlobalWorkerEnv } from "@/server/lib/workerEnv";
+
+function getEffectiveEnv(): any {
+  return getGlobalWorkerEnv() || env;
+}
 import { and, eq } from "drizzle-orm";
 import { decodeJwt } from "jose";
 import { z } from "zod";
@@ -307,7 +312,7 @@ export async function recordOAuthDiagnosticLog(
     timestamp: entry.timestamp || new Date().toISOString(),
   };
   try {
-    const kv = (env as any).OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (kv) {
       await kv.put(`diag:global:${stateNamespace}`, JSON.stringify(payload), {
         expirationTtl: 60 * 60 * 24 * 14,
@@ -370,7 +375,7 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
     };
   }
   try {
-    const kv = (env as any)?.OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (!kv) return null;
 
     const providerKeyMap: Record<string, string> = {
@@ -425,7 +430,7 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
 
     if (!raw) {
       try {
-        const d1 = (env as any)?.DB;
+        const d1 = getEffectiveEnv()?.DB;
         if (d1) {
           const providerId = providerKeyMap[stateNamespace] || stateNamespace;
           const accountRow: any = await d1.prepare(
@@ -437,7 +442,7 @@ export async function getOrRefreshGoogleOAuthTokenFromKv(
             // Attempt decryption via Better Auth secret if encrypted
             try {
               const { symmetricDecrypt } = await import("better-auth/crypto");
-              const secret = (env as any)?.BETTER_AUTH_SECRET || "";
+              const secret = getEffectiveEnv()?.BETTER_AUTH_SECRET || "";
               if (secret && typeof plainRefreshToken === "string" && plainRefreshToken.length > 50) {
                 const dec = await symmetricDecrypt({ key: secret, data: plainRefreshToken }).catch(() => null);
                 if (dec && typeof dec === "string" && dec.length > 10) {
@@ -762,7 +767,7 @@ async function upsertGrant(input: {
 
   // 1. Primary KV Storage (Guaranteed Zero-Failure Persistence + Auto-Bind Project Connection)
   try {
-    const kv = (env as any).OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (kv) {
       let existingRefreshToken: string | null = null;
       try {
@@ -1100,7 +1105,7 @@ export async function handleSelfHostedGoogleOAuthCallback(input: {
 
   if (state.targetPlatform === "google_ai_studio") {
     try {
-      const kv = (env as any)?.OAUTH_KV;
+      const kv = getEffectiveEnv()?.OAUTH_KV;
       if (kv) {
         const now = new Date().toISOString();
         const projectMatch = state.callbackPath.match(/\/p\/([^/?#]+)/);
@@ -1196,7 +1201,7 @@ export async function handleSelfHostedGoogleOAuthCallbackRequest(
   integration: SelfHostedGoogleOAuthIntegration,
 ) {
   try {
-    const authMode = getAuthMode(env.AUTH_MODE);
+    const authMode = getAuthMode(getEffectiveEnv()?.AUTH_MODE);
     if (isHostedAuthMode(authMode)) {
       return new Response("Not found", { status: 404 });
     }

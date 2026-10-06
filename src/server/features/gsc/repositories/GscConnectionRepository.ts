@@ -1,4 +1,9 @@
 import { env } from "cloudflare:workers";
+import { getGlobalWorkerEnv } from "@/server/lib/workerEnv";
+
+function getEffectiveEnv(): any {
+  return getGlobalWorkerEnv() || env;
+}
 import { and, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { gscConnections } from "@/db/schema";
@@ -15,7 +20,7 @@ async function getByProjectId(
   projectId: string,
 ): Promise<GscConnection | null> {
   try {
-    const kv = (env as any)?.OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (kv) {
       const raw = await kv.get(getKvKey(projectId));
       if (raw) {
@@ -37,7 +42,7 @@ async function getByProjectId(
     if (rows[0]) {
       memGscStore.set(projectId, rows[0]);
       try {
-        const kv = (env as any)?.OAUTH_KV;
+        const kv = getEffectiveEnv()?.OAUTH_KV;
         if (kv) {
           await kv.put(getKvKey(projectId), JSON.stringify(rows[0]), {
             expirationTtl: 60 * 60 * 24 * 180,
@@ -52,7 +57,7 @@ async function getByProjectId(
 
   // Auto-bind from stored oauth_grant:gsc in OAUTH_KV if user already authenticated with Google
   try {
-    const kv = (env as any)?.OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (kv) {
       const grantRaw = await kv.get("oauth_grant:gsc");
       if (grantRaw) {
@@ -126,7 +131,7 @@ async function upsert(input: {
 
   memGscStore.set(input.projectId, fallbackRow);
   try {
-    const kv = (env as any)?.OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (kv) {
       await kv.put(getKvKey(input.projectId), JSON.stringify(fallbackRow), {
         expirationTtl: 60 * 60 * 24 * 180,
@@ -164,7 +169,7 @@ async function upsert(input: {
 async function deleteByProjectId(projectId: string): Promise<void> {
   memGscStore.delete(projectId);
   try {
-    const kv = (env as any)?.OAUTH_KV;
+    const kv = getEffectiveEnv()?.OAUTH_KV;
     if (kv) {
       await kv.delete(getKvKey(projectId));
       const grantRaw = await kv.get("oauth_grant:gsc");

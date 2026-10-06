@@ -42,6 +42,9 @@ export async function isHostedServerAuthMode(): Promise<boolean> {
 }
 
 async function getWorkersEnv(): Promise<Record<string, unknown> | null> {
+  if (typeof globalThis !== "undefined" && isRecord((globalThis as any).__CF_ENV__)) {
+    return (globalThis as any).__CF_ENV__;
+  }
   if (!workersEnvPromise) {
     workersEnvPromise = loadWorkersEnv();
   }
@@ -49,6 +52,9 @@ async function getWorkersEnv(): Promise<Record<string, unknown> | null> {
 }
 
 async function loadWorkersEnv(): Promise<Record<string, unknown> | null> {
+  if (typeof globalThis !== "undefined" && isRecord((globalThis as any).__CF_ENV__)) {
+    return (globalThis as any).__CF_ENV__;
+  }
   try {
     const workersModule = await import("cloudflare:workers");
     return isRecord(workersModule.env) ? workersModule.env : null;
